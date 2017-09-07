@@ -20,6 +20,10 @@ namespace FracCuts {
         
         // graph laplacian with half-weighted boundary edge, the computation is also faster
         static void computeUniformLaplacian(const Eigen::MatrixXi& F, Eigen::SparseMatrix<double>& graphL);
+        
+        static void mapTriangleTo2D(const Eigen::Vector3d v[3], Eigen::Vector2d u[3]);
+        
+        static void mapScalarToColor(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color);
     };
     
 }

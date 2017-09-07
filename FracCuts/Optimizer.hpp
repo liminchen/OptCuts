@@ -11,13 +11,15 @@
 
 #include "Energy.hpp"
 
+#include <fstream>
+
 namespace FracCuts {
     
     // a class for solving an optimization problem
     class Optimizer {
     protected: // referenced data
         const TriangleSoup& data0; // initial guess
-        const std::vector<Energy>& energyTerms; // E_0, E_1, E_2, ...
+        const std::vector<Energy*>& energyTerms; // E_0, E_1, E_2, ...
         const std::vector<double>& energyParams; // a_0, a_1, a_2, ...
         // E = \Sigma_i a_i E_i
         
@@ -29,9 +31,13 @@ namespace FracCuts {
         Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> cholSolver;
         Eigen::VectorXd gradient; // energy gradient computed in each iteration
         Eigen::VectorXd searchDir; // search direction comptued in each iteration
+        double lastEnergyVal; // for output and line search
         
-    public: // constructor
-        Optimizer(const TriangleSoup& p_data0, const std::vector<Energy>& p_energyTerms, const std::vector<double>& p_energyParams);
+        std::ofstream file_energyValPerIter;
+        
+    public: // constructor and destructor
+        Optimizer(const TriangleSoup& p_data0, const std::vector<Energy*>& p_energyTerms, const std::vector<double>& p_energyParams);
+        ~Optimizer(void);
         
     public: // API
         // precompute preconditioning matrix and factorize for fast solve, prepare initial guess
@@ -39,7 +45,9 @@ namespace FracCuts {
         
         // solve the optimization problem that minimizes E using a hill-climbing method,
         // the final result will be in result
-        void solve(void);
+        const TriangleSoup& solve(int maxIter = 100);
+        
+        void getGradientVisual(Eigen::MatrixXd& arrowVec) const;
         
     protected: // helper functions
         // solve for new configuration in the next iteration
@@ -47,6 +55,8 @@ namespace FracCuts {
         void solve_oneStep(void);
         
         void lineSearch(void);
+        
+        void stepForward(TriangleSoup& data, double stepSize) const;
         
         void computeEnergyVal(const TriangleSoup& data, double& energyVal) const;
         void computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const;
