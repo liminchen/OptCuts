@@ -184,8 +184,8 @@ int main(int argc, char *argv[])
     std::vector<FracCuts::Energy*> energyTerms;
     std::vector<double> energyParams;
     energyParams.emplace_back(1.0);
-    energyTerms.emplace_back(new FracCuts::ARAPEnergy());
-//    energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
+//    energyTerms.emplace_back(new FracCuts::ARAPEnergy());
+    energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
 //    energyTerms.back()->checkEnergyVal(triSoup);
 //    energyTerms.back()->checkGradient(triSoup);
     optimizer = new FracCuts::Optimizer(triSoup, energyTerms, energyParams);

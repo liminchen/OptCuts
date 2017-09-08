@@ -74,7 +74,9 @@ namespace FracCuts {
     void Optimizer::lineSearch(void)
     {
         const double eps = 1.0e-12;
-        double stepSize = 0.1;
+        double stepSize = 1.0;
+        SymStretchEnergy::lineSearch(result, searchDir, stepSize);
+        stepSize /= 2.0;
         TriangleSoup testingData = result;
         stepForward(testingData, stepSize);
         double testingE;

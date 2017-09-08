@@ -145,18 +145,17 @@ namespace FracCuts {
     
     void SymStretchEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr) const
     {
-        //TODO: Debug weights!
-        
-        Eigen::SparseMatrix<double> M;
-        massmatrix(data.V_rest, data.F, igl::MASSMATRIX_TYPE_DEFAULT, M);
+//        Eigen::SparseMatrix<double> M;
+//        massmatrix(data.V_rest, data.F, igl::MASSMATRIX_TYPE_DEFAULT, M);
         Eigen::SparseMatrix<double> L;
         igl::cotmatrix(data.V_rest, data.F, L);
         precondMtr.resize(data.V.rows() * 2, data.V.rows() * 2);
-        for (int k = 0; k < L.outerSize(); ++k) {
+        for (int k = 0; k < L.outerSize(); ++k)
+        {
             for (Eigen::SparseMatrix<double>::InnerIterator it(L, k); it; ++it)
             {
-                precondMtr.insert(it.row() * 2, it.col() * 2) = it.value() * M.coeffRef(it.row(), it.row());
-                precondMtr.insert(it.row() * 2 + 1, it.col() * 2 + 1) = it.value() * M.coeffRef(it.row(), it.row());
+                precondMtr.insert(it.row() * 2, it.col() * 2) = -it.value();// * M.coeffRef(it.row(), it.row());
+                precondMtr.insert(it.row() * 2 + 1, it.col() * 2 + 1) = -it.value();// * M.coeffRef(it.row(), it.row());
             }
         }
         precondMtr.makeCompressed();
@@ -217,8 +216,6 @@ namespace FracCuts {
         if((stepSize < right) && (stepSize > left)) {
             stepSize = left;
         }
-        
-        //TODO: Debug!
     }
     
     void SymStretchEnergy::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const
