@@ -76,13 +76,20 @@ namespace FracCuts {
         const double eps = 1.0e-12;
         double stepSize = 1.0;
         SymStretchEnergy::lineSearch(result, searchDir, stepSize);
-        stepSize /= 2.0;
+        stepSize *= 0.99; // producing degenerated element is not allowed
+        std::cout << "stepSize: " << stepSize << " -> ";
+        
+        const double m = searchDir.dot(gradient);
+        const double c1m = 1.0e-4 * m, c2m = 0.9 * m;
         TriangleSoup testingData = result;
         stepForward(testingData, stepSize);
         double testingE;
+        Eigen::VectorXd testingG;
         computeEnergyVal(testingData, testingE);
-//        while(testingE > lastEnergyVal) {
-        while(0) { //!! right now testing ARAP, no line search needed.
+        computeGradient(testingData, testingG);
+        while((testingE > lastEnergyVal + stepSize * c1m) ||
+              (searchDir.dot(testingG) < c2m)) // Wolfe condition
+        {
             stepSize /= 2.0;
             if(stepSize < eps) {
                 //TODO: converged?
@@ -95,8 +102,8 @@ namespace FracCuts {
         result.V = testingData.V;
         lastEnergyVal = testingE;
         
+        std::cout << stepSize << std::endl;
         std::cout << "E_cur = " << testingE << std::endl;
-        std::cout << "stepSize = " << stepSize << std::endl;
         
         file_energyValPerIter << lastEnergyVal << std::endl;
     }
