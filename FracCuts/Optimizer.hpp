@@ -29,6 +29,7 @@ namespace FracCuts {
         Eigen::SparseMatrix<double> precondMtr;
         // cholesky solver for solving the linear system for search directions
         Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> cholSolver;
+//        Eigen::SparseLU<Eigen::SparseMatrix<double>> cholSolver;
         Eigen::VectorXd gradient; // energy gradient computed in each iteration
         Eigen::VectorXd searchDir; // search direction comptued in each iteration
         double lastEnergyVal; // for output and line search
@@ -55,13 +56,15 @@ namespace FracCuts {
         void solve_oneStep(void);
         
         void lineSearch(void);
-        
+
         void stepForward(TriangleSoup& data, double stepSize) const;
         
         void computeEnergyVal(const TriangleSoup& data, double& energyVal) const;
         void computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const;
         void computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr) const;
         void computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const;
+        
+        void initStepSize(const TriangleSoup& data, double& stepSize) const;
     };
     
 }

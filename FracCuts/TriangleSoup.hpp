@@ -26,8 +26,7 @@ namespace FracCuts{
         Eigen::MatrixXd V_rest; // duplicated rest vertex coordinates in 3D
         Eigen::MatrixXd V; // duplicated vertex coordinates, the dimension depends on the search space
         Eigen::MatrixXi F; // reordered triangle draw list (0, 1, 2, ...), indices based on V
-        Eigen::MatrixXi E; // duplicated edges with 2 end vertex indices based on V
-        Eigen::MatrixXi cohE; // cohesive edges with 2 end vertex indices for E based on V
+        Eigen::MatrixXi cohE; // cohesive edge pairs with the 4 end vertex indices based on V
         
     public: // constructor
         // default constructor that doesn't do anything
@@ -36,9 +35,9 @@ namespace FracCuts{
         // initialize from a triangle mesh, V will be constructed from UV_mesh in 2D,
         // V_mesh will be used to initialize restShape
         TriangleSoup(const Eigen::MatrixXd& V_mesh, const Eigen::MatrixXi& F_mesh,
-                     const Eigen::MatrixXd& UV_mesh);
+                     const Eigen::MatrixXd& UV_mesh, bool separateTri = true);
         
-        TriangleSoup(Primitive primitive, double size = 1.0, double spacing = 0.1);
+        TriangleSoup(Primitive primitive, double size = 1.0, double spacing = 0.1, bool separateTri = true);
     };
     
 }

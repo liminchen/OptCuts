@@ -15,6 +15,7 @@
 		988ED1321F575C3C00B21181 /* IglUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 988ED1301F575C3C00B21181 /* IglUtils.cpp */; };
 		988ED1351F5871F200B21181 /* Optimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 988ED1331F5871F200B21181 /* Optimizer.cpp */; };
 		98A5A32B1F5F5BB900584EFD /* ARAPEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98A5A3291F5F5BB900584EFD /* ARAPEnergy.cpp */; };
+		98C2D8F41F6348820048B18A /* SeparationEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98C2D8F21F6348820048B18A /* SeparationEnergy.cpp */; };
 		98D10F2D1F5CA12C0010E1A6 /* SymStretchEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98D10F2B1F5CA12C0010E1A6 /* SymStretchEnergy.cpp */; };
 /* End PBXBuildFile section */
 
@@ -46,6 +47,8 @@
 		988ED1371F58721B00B21181 /* Energy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Energy.hpp; sourceTree = "<group>"; };
 		98A5A3291F5F5BB900584EFD /* ARAPEnergy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ARAPEnergy.cpp; sourceTree = "<group>"; };
 		98A5A32A1F5F5BB900584EFD /* ARAPEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ARAPEnergy.hpp; sourceTree = "<group>"; };
+		98C2D8F21F6348820048B18A /* SeparationEnergy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SeparationEnergy.cpp; sourceTree = "<group>"; };
+		98C2D8F31F6348820048B18A /* SeparationEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SeparationEnergy.hpp; sourceTree = "<group>"; };
 		98D10F2B1F5CA12C0010E1A6 /* SymStretchEnergy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SymStretchEnergy.cpp; sourceTree = "<group>"; };
 		98D10F2C1F5CA12C0010E1A6 /* SymStretchEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SymStretchEnergy.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -96,6 +99,8 @@
 				982CE6121F5DB358004176A8 /* Energy.cpp */,
 				98A5A3291F5F5BB900584EFD /* ARAPEnergy.cpp */,
 				98A5A32A1F5F5BB900584EFD /* ARAPEnergy.hpp */,
+				98C2D8F21F6348820048B18A /* SeparationEnergy.cpp */,
+				98C2D8F31F6348820048B18A /* SeparationEnergy.hpp */,
 			);
 			path = FracCuts;
 			sourceTree = "<group>";
@@ -172,6 +177,7 @@
 				988ED1351F5871F200B21181 /* Optimizer.cpp in Sources */,
 				98D10F2D1F5CA12C0010E1A6 /* SymStretchEnergy.cpp in Sources */,
 				98A5A32B1F5F5BB900584EFD /* ARAPEnergy.cpp in Sources */,
+				98C2D8F41F6348820048B18A /* SeparationEnergy.cpp in Sources */,
 				988ED12F1F5727F400B21181 /* TriangleSoup.cpp in Sources */,
 				980180BC1F552CDA00C64B43 /* main.cpp in Sources */,
 			);

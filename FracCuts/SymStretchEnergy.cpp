@@ -161,9 +161,8 @@ namespace FracCuts {
         precondMtr.makeCompressed();
     }
     
-    void SymStretchEnergy::lineSearch(const TriangleSoup& data, const Eigen::VectorXd& searchDir, double& stepSize)
+    void SymStretchEnergy::initStepSize(const TriangleSoup& data, const Eigen::VectorXd& searchDir, double& stepSize) const
     {
-        stepSize = 1.0;
         double left = 1.0, right = 0.0;
         for(int triI = 0; triI < data.F.rows(); triI++)
         {

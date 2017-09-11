@@ -41,6 +41,9 @@ namespace FracCuts {
     {
         computePrecondMtr(data0, precondMtr);
         cholSolver.compute(precondMtr);
+        if(cholSolver.info() != Eigen::Success) {
+            assert(0 && "Cholesky decomposition failed!");
+        }
         result = data0;
         computeEnergyVal(result, lastEnergyVal);
         file_energyValPerIter << lastEnergyVal << std::endl;
@@ -67,7 +70,17 @@ namespace FracCuts {
     
     void Optimizer::solve_oneStep(void)
     {
+        //!! for the changing hessian
+        computePrecondMtr(result, precondMtr);
+        cholSolver.compute(precondMtr);
+        if(cholSolver.info() != Eigen::Success) {
+            assert(0 && "Cholesky decomposition failed!");
+        }
+        
         searchDir = cholSolver.solve(-gradient);
+        if(cholSolver.info() != Eigen::Success) {
+            assert(0 && "Cholesky solve failed!");
+        }
         lineSearch();
     }
     
@@ -75,7 +88,7 @@ namespace FracCuts {
     {
         const double eps = 1.0e-12;
         double stepSize = 1.0;
-        SymStretchEnergy::lineSearch(result, searchDir, stepSize);
+        initStepSize(result, stepSize);
         stepSize *= 0.99; // producing degenerated element is not allowed
         std::cout << "stepSize: " << stepSize << " -> ";
         
@@ -89,6 +102,8 @@ namespace FracCuts {
         computeGradient(testingData, testingG);
         while((testingE > lastEnergyVal + stepSize * c1m) ||
               (searchDir.dot(testingG) < c2m)) // Wolfe condition
+//        while(testingE > lastEnergyVal + stepSize * c1m) // Armijo condition
+//        while(0)
         {
             stepSize /= 2.0;
             if(stepSize < eps) {
@@ -131,6 +146,13 @@ namespace FracCuts {
         arrowVec *= igl::avg_edge_length(result.V, result.F);
     }
     
+    void Optimizer::initStepSize(const TriangleSoup& data, double& stepSize) const
+    {
+        for(int eI = 0; eI < energyTerms.size(); eI++) {
+            energyTerms[eI]->initStepSize(data, searchDir, stepSize);
+        }
+    }
+    
     void Optimizer::computeEnergyVal(const TriangleSoup& data, double& energyVal) const
     {
         energyTerms[0]->computeEnergyVal(data, energyVal);
@@ -160,6 +182,8 @@ namespace FracCuts {
             energyTerms[eI]->computePrecondMtr(data, precondMtrI);
             precondMtr += energyParams[eI] * precondMtrI;
         }
+//        std::cout << "det(precondMtr) = " << Eigen::MatrixXd(precondMtr).determinant() << std::endl;
+//        logFile << precondMtr << std::endl;
     }
     void Optimizer::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const
     {

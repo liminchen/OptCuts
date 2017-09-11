@@ -2,12 +2,14 @@
 #include "Optimizer.hpp"
 #include "SymStretchEnergy.hpp"
 #include "ARAPEnergy.hpp"
+#include "SeparationEnergy.hpp"
 
 #include <igl/readOFF.h>
 #include <igl/boundary_loop.h>
 #include <igl/map_vertices_to_circle.h>
 #include <igl/harmonic.h>
 #include <igl/arap.h>
+#include <igl/avg_edge_length.h>
 #include <igl/viewer/Viewer.h>
 
 #include <fstream>
@@ -28,6 +30,8 @@ FracCuts::TriangleSoup triSoup;
 FracCuts::Optimizer* optimizer;
 bool optimization_on = false;
 int iterNum = 0;
+std::vector<FracCuts::Energy*> energyTerms;
+std::vector<double> energyParams;
 
 std::ofstream logFile;
 std::string outputFolderPath = "/Users/mincli/Desktop/";
@@ -57,7 +61,8 @@ void updateViewerData(void)
             viewer.data.clear();
         }
         viewer.data.set_mesh(UV[viewChannel], F[viewChannel]);
-        viewer.core.align_camera_center(UV[0], F[0]);
+//        viewer.core.align_camera_center(UV[0], F[0]);
+        viewer.core.align_camera_center(UV[viewChannel], F[viewChannel]);
         viewer.core.show_texture = false;
     }
     else {
@@ -69,7 +74,8 @@ void updateViewerData(void)
         }
         viewer.data.set_mesh(V[viewChannel], F[viewChannel]);
         viewer.data.set_uv(UV[viewChannel]);
-        viewer.core.align_camera_center(V[0], F[0]);
+//        viewer.core.align_camera_center(V[0], F[0]);
+        viewer.core.align_camera_center(V[viewChannel], F[viewChannel]);
         viewer.core.show_texture = true;
     }
     
@@ -112,6 +118,12 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                 break;
             }
                 
+            case 'd':
+            case 'D': {
+                dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms.back())->decreaseSigma();
+                break;
+            }
+                
             default:
                 break;
         }
@@ -140,10 +152,11 @@ int main(int argc, char *argv[])
     // Load a mesh in OFF format
     V.resize(V.size() + 1);
     F.resize(F.size() + 1);
-    igl::readOFF(TUTORIAL_SHARED_PATH "/camelhead.off", V[0], F[0]);
-//    FracCuts::TriangleSoup squareMesh(FracCuts::Primitive::P_SQUARE);
+    igl::readOFF(TUTORIAL_SHARED_PATH "/camelhead_f1000.off", V[0], F[0]);
+//    FracCuts::TriangleSoup squareMesh(FracCuts::Primitive::P_SQUARE, 1.0, 0.1, false);
 //    V[0] = squareMesh.V_rest;
 //    F[0] = squareMesh.F;
+    const double edgeLen = igl::avg_edge_length(V[0], F[0]);
     
     // Harmonic map
     // Find the open boundary
@@ -181,22 +194,23 @@ int main(int argc, char *argv[])
     
     // * Our approach
     triSoup = FracCuts::TriangleSoup(V[0], F[0], UV[0]);
-    std::vector<FracCuts::Energy*> energyTerms;
-    std::vector<double> energyParams;
-    energyParams.emplace_back(1.0);
+    energyParams.emplace_back(1.0e0);
 //    energyTerms.emplace_back(new FracCuts::ARAPEnergy());
     energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
+    energyParams.emplace_back(1.0e0);
+    energyTerms.emplace_back(new FracCuts::SeparationEnergy(edgeLen));
 //    energyTerms.back()->checkEnergyVal(triSoup);
 //    energyTerms.back()->checkGradient(triSoup);
+//    energyTerms.back()->checkHessian(triSoup);
     optimizer = new FracCuts::Optimizer(triSoup, energyTerms, energyParams);
     optimizer->precompute();
     
     
     // Scale UV to make the texture more clear
     UV[0] *= texScale;
-    V.emplace_back(V[0]);
-    F.emplace_back(F[0]);
-    UV.emplace_back(UV[0]);
+    V.emplace_back(triSoup.V_rest);
+    F.emplace_back(triSoup.F);
+    UV.emplace_back(triSoup.V * texScale);
     
     // setup viewer
     viewer.core.background_color << 1.0f, 1.0f, 1.0f, 0.0f;

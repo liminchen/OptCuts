@@ -106,4 +106,30 @@ namespace FracCuts {
             getColor(scalar[elemI], color.row(elemI).data(), minVal, range);
         }
     }
+    
+    void IglUtils::addBlockToMatrix(Eigen::SparseMatrix<double>& mtr, const Eigen::MatrixXd& block,
+                                 const Eigen::VectorXi& index, int dim)
+    {
+        assert(block.rows() == block.cols());
+        assert(index.size() * dim == block.rows());
+        assert(mtr.rows() == mtr.cols());
+        assert(index.maxCoeff() * dim + dim - 1 < mtr.rows());
+        assert(index.minCoeff() >= 0);
+        
+        for(int indI = 0; indI < index.size(); indI++) {
+            int startIndI = index[indI] * dim;
+            int startIndI_block = indI * dim;
+            
+            for(int indJ = 0; indJ < index.size(); indJ++) {
+                int startIndJ = index[indJ] * dim;
+                int startIndJ_block = indJ * dim;
+                
+                for(int dimI = 0; dimI < dim; dimI++) {
+                    for(int dimJ = 0; dimJ < dim; dimJ++) {
+                        mtr.coeffRef(startIndI + dimI, startIndJ + dimJ) += block(startIndI_block + dimI, startIndJ_block + dimJ);
+                    }
+                }
+            }
+        }
+    }
 }

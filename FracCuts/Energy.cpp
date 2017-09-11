@@ -61,6 +61,49 @@ namespace FracCuts {
         logFile << "g_finiteDiff = \n" << gradient_finiteDiff << std::endl;
     }
     
+    void Energy::checkHessian(const TriangleSoup& data) const
+    {
+        std::cout << "checking energy hessian computation..." << std::endl;
+        
+        Eigen::VectorXd gradient0;
+        computeGradient(data, gradient0);
+        const double h = 1.0e-8 * igl::avg_edge_length(data.V, data.F);
+        TriangleSoup perturbed = data;
+        Eigen::SparseMatrix<double> hessian_finiteDiff;
+        hessian_finiteDiff.resize(data.V.rows() * 2, data.V.rows() * 2);
+        for(int vI = 0; vI < data.V.rows(); vI++)
+        {
+            for(int dimI = 0; dimI < 2; dimI++) {
+                perturbed.V = data.V;
+                perturbed.V(vI, dimI) += h;
+                Eigen::VectorXd gradient_perturbed;
+                computeGradient(perturbed, gradient_perturbed);
+                Eigen::VectorXd hessian_colI = (gradient_perturbed - gradient0) / h;
+                int colI = vI * 2 + dimI;
+                for(int rowI = 0; rowI < data.V.rows() * 2; rowI++) {
+                    hessian_finiteDiff.insert(rowI, colI) = hessian_colI[rowI];
+                }
+            }
+            
+            if(((vI + 1) % 100) == 0) {
+                std::cout << vI + 1 << "/" << data.V.rows() << " vertices computed" << std::endl;
+            }
+        }
+        
+        Eigen::SparseMatrix<double> hessian_symbolic;
+        computeHessian(data, hessian_symbolic);
+        
+        Eigen::SparseMatrix<double> difMtr = hessian_symbolic - hessian_finiteDiff;
+        const double dif_L2 = difMtr.norm();
+        const double relErr = dif_L2 / hessian_finiteDiff.norm();
+        
+        std::cout << "L2 dist = " << dif_L2 << ", relErr = " << relErr << std::endl;
+        
+        logFile << "check hessian:" << std::endl;
+        logFile << "h_symbolic =\n" << hessian_symbolic << std::endl;
+        logFile << "h_finiteDiff = \n" << hessian_finiteDiff << std::endl;
+    }
+    
     bool Energy::checkInversion(const TriangleSoup& data) const
     {
         const double eps = 1.0e-6 * igl::avg_edge_length(data.V, data.F);
@@ -80,6 +123,11 @@ namespace FracCuts {
         }
         
         return true;
+    }
+    
+    void Energy::initStepSize(const TriangleSoup& data, const Eigen::VectorXd& searchDir, double& stepSize) const
+    {
+        
     }
     
 }

@@ -13,7 +13,8 @@
 
 namespace FracCuts {
     
-    class SymStretchEnergy : public Energy {
+    class SymStretchEnergy : public Energy
+    {
     public:
         virtual void computeEnergyVal(const TriangleSoup& data, double& energyVal) const;
         virtual void computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const;
@@ -22,10 +23,10 @@ namespace FracCuts {
         
         virtual void checkEnergyVal(const TriangleSoup& data) const; // check with isometric case
         
-        virtual void getEnergyValPerElem(const TriangleSoup& data, Eigen::VectorXd& energyValPerElem) const;
-        
         // to prevent element inversion
-        static void lineSearch(const TriangleSoup& data, const Eigen::VectorXd& searchDir, double& stepSize);
+        virtual void initStepSize(const TriangleSoup& data, const Eigen::VectorXd& searchDir, double& stepSize) const;
+        
+        virtual void getEnergyValPerElem(const TriangleSoup& data, Eigen::VectorXd& energyValPerElem) const;
     };
     
 }
