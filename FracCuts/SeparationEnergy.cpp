@@ -21,8 +21,8 @@ namespace FracCuts {
         energyVal = 0.0;
         for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
         {
-            if(data.cohE.row(cohI).minCoeff() > 0) {
-                const double w = (data.V_rest.row(data.cohE(cohI, 0)) - data.V_rest.row(data.cohE(cohI, 1))).norm();
+            if(!data.boundaryEdge[cohI]) {
+                const double w = data.edgeLen[cohI];
                 energyVal += w * kernel((data.V.row(data.cohE(cohI, 0)) - data.V.row(data.cohE(cohI, 2))).squaredNorm());
                 energyVal += w * kernel((data.V.row(data.cohE(cohI, 1)) - data.V.row(data.cohE(cohI, 3))).squaredNorm());
             }
@@ -35,12 +35,12 @@ namespace FracCuts {
         gradient.setZero();
         for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
         {
-            if(data.cohE.row(cohI).minCoeff() > 0) {
-                const double w = (data.V_rest.row(data.cohE(cohI, 0)) - data.V_rest.row(data.cohE(cohI, 1))).norm();
-                const Eigen::Vector2d xamc = w * (data.V.row(data.cohE(cohI, 0)) - data.V.row(data.cohE(cohI, 2)));
-                const Eigen::Vector2d xbmd = w * (data.V.row(data.cohE(cohI, 1)) - data.V.row(data.cohE(cohI, 3)));
-                const double kG_ac = kernelGradient((data.V.row(data.cohE(cohI, 0)) - data.V.row(data.cohE(cohI, 2))).squaredNorm());
-                const double kG_bd = kernelGradient((data.V.row(data.cohE(cohI, 1)) - data.V.row(data.cohE(cohI, 3))).squaredNorm());
+            if(!data.boundaryEdge[cohI]) {
+                const double w = data.edgeLen[cohI];
+                const Eigen::Vector2d xamc = data.V.row(data.cohE(cohI, 0)) - data.V.row(data.cohE(cohI, 2));
+                const Eigen::Vector2d xbmd = data.V.row(data.cohE(cohI, 1)) - data.V.row(data.cohE(cohI, 3));
+                const double kG_ac = w * kernelGradient(xamc.squaredNorm());
+                const double kG_bd = w * kernelGradient(xbmd.squaredNorm());
                 gradient.block(data.cohE(cohI, 0) * 2, 0, 2, 1) += kG_ac * 2.0 * xamc;
                 gradient.block(data.cohE(cohI, 2) * 2, 0, 2, 1) -= kG_ac * 2.0 * xamc;
                 gradient.block(data.cohE(cohI, 1) * 2, 0, 2, 1) += kG_bd * 2.0 * xbmd;
@@ -60,8 +60,7 @@ namespace FracCuts {
         hessian.setZero();
         for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
         {
-            if(data.cohE.row(cohI).minCoeff() > 0) {
-                
+            if(!data.boundaryEdge[cohI]) {
                 const Eigen::Vector2d xamc = data.V.row(data.cohE(cohI, 0)) - data.V.row(data.cohE(cohI, 2));
                 const Eigen::Vector2d xbmd = data.V.row(data.cohE(cohI, 1)) - data.V.row(data.cohE(cohI, 3));
                 
@@ -80,18 +79,20 @@ namespace FracCuts {
                 -2.0, 0.0, 2.0, 0.0,
                 0.0, -2.0, 0.0, 2.0;
                 
-                const double w = (data.V_rest.row(data.cohE(cohI, 0)) - data.V_rest.row(data.cohE(cohI, 1))).norm();
+                const double w = data.edgeLen[cohI];
                 
                 Eigen::MatrixXd hessian_ac;
                 hessian_ac.resize(4, 4);
-                hessian_ac = w * (kernelHessian(xamc.squaredNorm()) * dtddx_ac * dtddx_ac.transpose() +
-                                  kernelGradient(xamc.squaredNorm()) * dt2dd2x);
+                const double sqn_xamc = xamc.squaredNorm();
+                hessian_ac = w * (kernelHessian(sqn_xamc) * dtddx_ac * dtddx_ac.transpose() +
+                                  kernelGradient(sqn_xamc) * dt2dd2x);
                 IglUtils::addBlockToMatrix(hessian, hessian_ac, Eigen::Vector2i(data.cohE(cohI, 0), data.cohE(cohI, 2)), 2);
                 
                 Eigen::MatrixXd hessian_bd;
                 hessian_bd.resize(4, 4);
-                hessian_bd = w * (kernelHessian(xbmd.squaredNorm()) * dtddx_bd * dtddx_bd.transpose() +
-                                  kernelGradient(xbmd.squaredNorm()) * dt2dd2x);
+                const double sqn_xbmd = xamc.squaredNorm();
+                hessian_bd = w * (kernelHessian(sqn_xbmd) * dtddx_bd * dtddx_bd.transpose() +
+                                  kernelGradient(sqn_xbmd) * dt2dd2x);
                 IglUtils::addBlockToMatrix(hessian, hessian_bd, Eigen::Vector2i(data.cohE(cohI, 1), data.cohE(cohI, 3)), 2);
             }
         }
@@ -108,8 +109,8 @@ namespace FracCuts {
         
     }
     
-    SeparationEnergy::SeparationEnergy(double p_sigma_base) :
-        sigma_base(p_sigma_base), sigma_param(1.0)
+    SeparationEnergy::SeparationEnergy(double p_sigma_base, double p_sigma_param) :
+        sigma_base(p_sigma_base), sigma_param(p_sigma_param)
     {
         sigma = sigma_param * sigma_base;
     }

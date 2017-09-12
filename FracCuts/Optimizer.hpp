@@ -46,16 +46,19 @@ namespace FracCuts {
         
         // solve the optimization problem that minimizes E using a hill-climbing method,
         // the final result will be in result
-        const TriangleSoup& solve(int maxIter = 100);
+        bool solve(int maxIter = 100);
+        
+        void computeLastEnergyVal(void);
         
         void getGradientVisual(Eigen::MatrixXd& arrowVec) const;
+        const TriangleSoup& getResult(void) const;
         
     protected: // helper functions
         // solve for new configuration in the next iteration
         //NOTE: must compute current gradient first
-        void solve_oneStep(void);
+        bool solve_oneStep(void);
         
-        void lineSearch(void);
+        bool lineSearch(void);
 
         void stepForward(TriangleSoup& data, double stepSize) const;
         

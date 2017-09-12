@@ -17,6 +17,7 @@
 		98A5A32B1F5F5BB900584EFD /* ARAPEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98A5A3291F5F5BB900584EFD /* ARAPEnergy.cpp */; };
 		98C2D8F41F6348820048B18A /* SeparationEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98C2D8F21F6348820048B18A /* SeparationEnergy.cpp */; };
 		98D10F2D1F5CA12C0010E1A6 /* SymStretchEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98D10F2B1F5CA12C0010E1A6 /* SymStretchEnergy.cpp */; };
+		98D5B2101F67274100DCE9F4 /* libstb_image.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 98D5B20F1F67274100DCE9F4 /* libstb_image.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -51,6 +52,7 @@
 		98C2D8F31F6348820048B18A /* SeparationEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SeparationEnergy.hpp; sourceTree = "<group>"; };
 		98D10F2B1F5CA12C0010E1A6 /* SymStretchEnergy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SymStretchEnergy.cpp; sourceTree = "<group>"; };
 		98D10F2C1F5CA12C0010E1A6 /* SymStretchEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SymStretchEnergy.hpp; sourceTree = "<group>"; };
+		98D5B20F1F67274100DCE9F4 /* libstb_image.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libstb_image.a; path = ../../../../usr/local/lib/libstb_image.a; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +60,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				98D5B2101F67274100DCE9F4 /* libstb_image.a in Frameworks */,
 				988ED12C1F57237F00B21181 /* libglfw.3.2.dylib in Frameworks */,
 				988ED1281F57211500B21181 /* OpenGL.framework in Frameworks */,
 			);
@@ -108,6 +111,7 @@
 		988ED1261F57211500B21181 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				98D5B20F1F67274100DCE9F4 /* libstb_image.a */,
 				988ED12B1F57237F00B21181 /* libglfw.3.2.dylib */,
 				988ED1291F57212300B21181 /* lib */,
 				988ED1271F57211500B21181 /* OpenGL.framework */,
@@ -282,6 +286,7 @@
 					/Users/mincli/Documents/libigl/include,
 					"/Users/mincli/Documents/eigen-eigen-5a0156e40feb",
 					"/Users/mincli/Documents/glfw-3.2.1/include",
+					/Users/mincli/Documents/libigl/external/stb_image,
 				);
 				LIBRARY_SEARCH_PATHS = /usr/local/lib;
 				OTHER_LDFLAGS = "";
@@ -296,6 +301,7 @@
 					/Users/mincli/Documents/libigl/include,
 					"/Users/mincli/Documents/eigen-eigen-5a0156e40feb",
 					"/Users/mincli/Documents/glfw-3.2.1/include",
+					/Users/mincli/Documents/libigl/external/stb_image,
 				);
 				LIBRARY_SEARCH_PATHS = /usr/local/lib;
 				OTHER_LDFLAGS = "";

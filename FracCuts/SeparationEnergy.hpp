@@ -26,7 +26,7 @@ namespace FracCuts {
         virtual void getEnergyValPerElem(const TriangleSoup& data, Eigen::VectorXd& energyValPerElem) const;
         
     public:
-        SeparationEnergy(double p_sigma_base);
+        SeparationEnergy(double p_sigma_base, double p_sigma_param = 10.0);
         
     public:
         void decreaseSigma(void); // decrease sigma by half for homotopy optimization

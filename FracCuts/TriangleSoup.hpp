@@ -28,6 +28,16 @@ namespace FracCuts{
         Eigen::MatrixXi F; // reordered triangle draw list (0, 1, 2, ...), indices based on V
         Eigen::MatrixXi cohE; // cohesive edge pairs with the 4 end vertex indices based on V
         
+    public: // owned features
+        Eigen::VectorXi boundaryEdge; // 1: boundary edge, 0: interior edge
+        Eigen::VectorXd edgeLen; // cohesive edge rest length, used as weights
+        Eigen::SparseMatrix<double> LaplacianMtr; // 2 * V.rows() wide
+        Eigen::VectorXd triArea; // triangle rest area
+        Eigen::VectorXd triAreaSq; // triangle rest squared area
+        Eigen::VectorXd e0dote1; // triangle rest edge dot product
+        Eigen::VectorXd e0SqLen, e1SqLen; // triangle edge rest squared length
+//        Eigen::MatrixXd cotVals; // cotangent values of rest triangle corners
+        
     public: // constructor
         // default constructor that doesn't do anything
         TriangleSoup(void);
@@ -38,6 +48,9 @@ namespace FracCuts{
                      const Eigen::MatrixXd& UV_mesh, bool separateTri = true);
         
         TriangleSoup(Primitive primitive, double size = 1.0, double spacing = 0.1, bool separateTri = true);
+        
+    public: // API
+        void computeFeatures(void);
     };
     
 }

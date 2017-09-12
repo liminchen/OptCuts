@@ -11,6 +11,7 @@
 #include <igl/arap.h>
 #include <igl/avg_edge_length.h>
 #include <igl/viewer/Viewer.h>
+#include <igl/png/writePNG.h>
 
 #include <fstream>
 #include <string>
@@ -32,9 +33,10 @@ bool optimization_on = false;
 int iterNum = 0;
 std::vector<FracCuts::Energy*> energyTerms;
 std::vector<double> energyParams;
+bool converged = false;
 
 std::ofstream logFile;
-std::string outputFolderPath = "/Users/mincli/Desktop/";
+std::string outputFolderPath = "/Users/mincli/Desktop/output_FracCuts/";
 
 // visualization
 igl::viewer::Viewer viewer;
@@ -48,7 +50,8 @@ const double texScale = 20.0;
 void proceedOptimization(void)
 {
     std::cout << "Iteration" << iterNum << ":" << std::endl;
-    UV[channel_result] = optimizer->solve(1).V * texScale;
+    converged = optimizer->solve(1);
+    UV[channel_result] = optimizer->getResult().V * texScale;
     iterNum++;
 }
 
@@ -82,6 +85,24 @@ void updateViewerData(void)
     viewer.data.compute_normals();
 }
 
+void saveScreenshot(const std::string& filePath, double scale = 1.0)
+{
+    int width = static_cast<int>(scale * (viewer.core.viewport[2] - viewer.core.viewport[0]));
+    int height = static_cast<int>(scale * (viewer.core.viewport[3] - viewer.core.viewport[1]));
+    
+    // Allocate temporary buffers for image
+    Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> R(width, height);
+    Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> G(width, height);
+    Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> B(width, height);
+    Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> A(width, height);
+    
+    // Draw the scene in the buffers
+    viewer.core.draw_buffer(viewer.data, viewer.opengl, false, R, G, B, A);
+    
+    // Save it to a PNG
+    igl::png::writePNG(R, G, B, A, filePath);
+}
+
 bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
 {
     if((key >= '0') && (key <= '9')) {
@@ -102,8 +123,14 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
             case '/': {
                 optimization_on = !optimization_on;
                 if(optimization_on) {
-                    std::cout << "start/resume optimization, press again to pause." << std::endl;
-                    viewer.core.is_animating = true;
+                    if(converged) {
+                        optimization_on = false;
+                        std::cout << "optimization converged." << std::endl;
+                    }
+                    else {
+                        std::cout << "start/resume optimization, press again to pause." << std::endl;
+                        viewer.core.is_animating = true;
+                    }
                 }
                 else {
                     std::cout << "pause optimization, press again to resume." << std::endl;
@@ -118,9 +145,17 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                 break;
             }
                 
-            case 'd':
-            case 'D': {
+            case 'h':
+            case 'H': { // mannual homotopy optimization
                 dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms.back())->decreaseSigma();
+                optimizer->computeLastEnergyVal();
+                converged = false;
+                break;
+            }
+                
+            case 'o':
+            case 'O': {
+                saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 0.5);
                 break;
             }
                 
@@ -141,12 +176,24 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
         proceedOptimization();
         viewChannel = channel_result;
         updateViewerData();
+//        saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 0.5);
+        if(converged) {
+            optimization_on = false;
+            viewer.core.is_animating = false;
+            std::cout << "optimization converged." << std::endl;
+        }
     }
     return false;
 }
 
 int main(int argc, char *argv[])
 {
+    if(argc > 1) {
+        outputFolderPath += argv[1];
+        if(outputFolderPath.back() != '/') {
+            outputFolderPath += '/';
+        }
+    }
     logFile.open(outputFolderPath + "log.txt");
     
     // Load a mesh in OFF format
@@ -197,8 +244,8 @@ int main(int argc, char *argv[])
     energyParams.emplace_back(1.0e0);
 //    energyTerms.emplace_back(new FracCuts::ARAPEnergy());
     energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
-    energyParams.emplace_back(1.0e0);
-    energyTerms.emplace_back(new FracCuts::SeparationEnergy(edgeLen));
+    energyParams.emplace_back(2.5e-1);
+    energyTerms.emplace_back(new FracCuts::SeparationEnergy(edgeLen * edgeLen, 8.0));
 //    energyTerms.back()->checkEnergyVal(triSoup);
 //    energyTerms.back()->checkGradient(triSoup);
 //    energyTerms.back()->checkHessian(triSoup);

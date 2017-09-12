@@ -8,6 +8,8 @@
 
 #include "TriangleSoup.hpp"
 
+#include <igl/cotmatrix.h>
+
 #include <fstream>
 
 extern std::ofstream logFile;
@@ -40,9 +42,9 @@ namespace FracCuts {
                 V.row(vDupIndStart + 1) = UV_mesh.row(F_mesh.row(triI)[1]);
                 V.row(vDupIndStart + 2) = UV_mesh.row(F_mesh.row(triI)[2]);
                 
-//                // perturb for testing separation energy
-//                V.row(vDupIndStart + 1) = V.row(vDupIndStart) + 0.9 * (V.row(vDupIndStart + 1) - V.row(vDupIndStart));
-//                V.row(vDupIndStart + 2) = V.row(vDupIndStart) + 0.9 * (V.row(vDupIndStart + 2) - V.row(vDupIndStart));
+                // perturb for testing separation energy
+                V.row(vDupIndStart + 1) = V.row(vDupIndStart) + 0.9 * (V.row(vDupIndStart + 1) - V.row(vDupIndStart));
+                V.row(vDupIndStart + 2) = V.row(vDupIndStart) + 0.9 * (V.row(vDupIndStart + 2) - V.row(vDupIndStart));
                 
                 V_rest.row(vDupIndStart) = V_mesh.row(F_mesh.row(triI)[0]);
                 V_rest.row(vDupIndStart + 1) = V_mesh.row(F_mesh.row(triI)[1]);
@@ -86,6 +88,8 @@ namespace FracCuts {
             V = UV_mesh;
             F = F_mesh;
         }
+        
+        computeFeatures();
     }
     
     TriangleSoup::TriangleSoup(Primitive primitive, double size, double spacing, bool separateTri)
@@ -131,6 +135,64 @@ namespace FracCuts {
         
         if(separateTri) {
             *this = TriangleSoup(V_rest, F, V);
+        }
+        
+        computeFeatures();
+    }
+    
+    void TriangleSoup::computeFeatures(void)
+    {
+        boundaryEdge.resize(cohE.rows());
+        edgeLen.resize(cohE.rows());
+        for(int cohI = 0; cohI < cohE.rows(); cohI++)
+        {
+            if(cohE.row(cohI).minCoeff() > 0) {
+                boundaryEdge[cohI] = 0;
+                edgeLen[cohI] = (V_rest.row(cohE(cohI, 0)) - V_rest.row(cohE(cohI, 1))).norm();
+            }
+            else {
+                boundaryEdge[cohI] = 1;
+                edgeLen[cohI] = 0.0; //!!
+            }
+        }
+        
+        //        Eigen::SparseMatrix<double> M;
+        //        massmatrix(data.V_rest, data.F, igl::MASSMATRIX_TYPE_DEFAULT, M);
+        Eigen::SparseMatrix<double> L;
+        igl::cotmatrix(V_rest, F, L);
+        LaplacianMtr.resize(V.rows() * 2, V.rows() * 2);
+        for (int k = 0; k < L.outerSize(); ++k)
+        {
+            for (Eigen::SparseMatrix<double>::InnerIterator it(L, k); it; ++it)
+            {
+                LaplacianMtr.insert(it.row() * 2, it.col() * 2) = -it.value();// * M.coeffRef(it.row(), it.row());
+                LaplacianMtr.insert(it.row() * 2 + 1, it.col() * 2 + 1) = -it.value();// * M.coeffRef(it.row(), it.row());
+            }
+        }
+        LaplacianMtr.makeCompressed();
+        
+//        igl::cotmatrix_entries(V_rest, F, cotVals);
+        
+        triArea.resize(F.rows());
+        triAreaSq.resize(F.rows());
+        e0SqLen.resize(F.rows());
+        e1SqLen.resize(F.rows());
+        e0dote1.resize(F.rows());
+        for(int triI = 0; triI < F.rows(); triI++) {
+            const Eigen::Vector3i& triVInd = F.row(triI);
+            
+            const Eigen::Vector3d& P1 = V_rest.row(triVInd[0]);
+            const Eigen::Vector3d& P2 = V_rest.row(triVInd[1]);
+            const Eigen::Vector3d& P3 = V_rest.row(triVInd[2]);
+            
+            const Eigen::Vector3d P2m1 = P2 - P1;
+            const Eigen::Vector3d P3m1 = P3 - P1;
+            
+            triArea[triI] = 0.5 * P2m1.cross(P3m1).norm();
+            triAreaSq[triI] = triArea[triI] * triArea[triI];
+            e0SqLen[triI] = P2m1.squaredNorm();
+            e1SqLen[triI] = P3m1.squaredNorm();
+            e0dote1[triI] = P2m1.dot(P3m1);
         }
     }
     

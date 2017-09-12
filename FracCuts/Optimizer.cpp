@@ -37,6 +37,15 @@ namespace FracCuts {
         file_energyValPerIter.close();
     }
     
+    void Optimizer::computeLastEnergyVal(void)
+    {
+        computeEnergyVal(result, lastEnergyVal);
+    }
+    
+    const TriangleSoup& Optimizer::getResult(void) const {
+        return result;
+    }
+    
     void Optimizer::precompute(void)
     {
         computePrecondMtr(data0, precondMtr);
@@ -50,25 +59,26 @@ namespace FracCuts {
         std::cout << "E_initial = " << lastEnergyVal << std::endl;
     }
     
-    const TriangleSoup& Optimizer::solve(int maxIter)
+    bool Optimizer::solve(int maxIter)
     {
-        const double targetRes = 1.0e-12;
+        const double targetRes = 1.0e-6 * igl::avg_edge_length(data0.V_rest, data0.F); //!! find reasonable metric
         for(int iterI = 0; iterI < maxIter; iterI++)
         {
             computeGradient(result, gradient);
             if(gradient.squaredNorm() < targetRes) {
                 // converged
-                break;
+                return true;
             }
-            else
-            {
-                solve_oneStep();
+            else {
+                if(solve_oneStep()) {
+                    return true;
+                }
             }
         }
-        return result;
+        return false;
     }
     
-    void Optimizer::solve_oneStep(void)
+    bool Optimizer::solve_oneStep(void)
     {
         //!! for the changing hessian
         computePrecondMtr(result, precondMtr);
@@ -81,11 +91,12 @@ namespace FracCuts {
         if(cholSolver.info() != Eigen::Success) {
             assert(0 && "Cholesky solve failed!");
         }
-        lineSearch();
+        return lineSearch();
     }
     
-    void Optimizer::lineSearch(void)
+    bool Optimizer::lineSearch(void)
     {
+        bool converged = false;
         const double eps = 1.0e-12;
         double stepSize = 1.0;
         initStepSize(result, stepSize);
@@ -107,7 +118,7 @@ namespace FracCuts {
         {
             stepSize /= 2.0;
             if(stepSize < eps) {
-                //TODO: converged?
+                converged = true;
                 break;
             }
             
@@ -121,6 +132,8 @@ namespace FracCuts {
         std::cout << "E_cur = " << testingE << std::endl;
         
         file_energyValPerIter << lastEnergyVal << std::endl;
+        
+        return converged;
     }
     
     void Optimizer::stepForward(TriangleSoup& data, double stepSize) const
