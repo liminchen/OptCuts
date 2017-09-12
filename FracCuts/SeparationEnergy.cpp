@@ -16,11 +16,20 @@ extern std::ofstream logFile;
 
 namespace FracCuts {
     
-    void SeparationEnergy::computeEnergyVal(const TriangleSoup& data, double& energyVal) const
+    void SeparationEnergy::getEnergyValPerElem(const TriangleSoup& data, Eigen::VectorXd& energyValPerElem, bool uniformWeight) const
     {
-        Eigen::VectorXd energyValPerElem;
-        getEnergyValPerElem(data, energyValPerElem);
-        energyVal = energyValPerElem.sum();
+        energyValPerElem.resize(data.cohE.rows());
+        for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
+        {
+            if(data.boundaryEdge[cohI]) {
+                energyValPerElem[cohI] = 0.0;
+            }
+            else {
+                const double w = data.edgeLen[cohI];
+                energyValPerElem[cohI] = w * kernel((data.V.row(data.cohE(cohI, 0)) - data.V.row(data.cohE(cohI, 2))).squaredNorm());
+                energyValPerElem[cohI] += w * kernel((data.V.row(data.cohE(cohI, 1)) - data.V.row(data.cohE(cohI, 3))).squaredNorm());
+            }
+        }
     }
     
     void SeparationEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const
@@ -68,10 +77,10 @@ namespace FracCuts {
                 Eigen::MatrixXd dt2dd2x;
                 dt2dd2x.resize(4, 4);
                 dt2dd2x <<
-                2.0, 0.0, -2.0, 0.0,
-                0.0, 2.0, 0.0, -2.0,
-                -2.0, 0.0, 2.0, 0.0,
-                0.0, -2.0, 0.0, 2.0;
+                    2.0, 0.0, -2.0, 0.0,
+                    0.0, 2.0, 0.0, -2.0,
+                    -2.0, 0.0, 2.0, 0.0,
+                    0.0, -2.0, 0.0, 2.0;
                 
                 const double w = data.edgeLen[cohI];
                 
@@ -96,22 +105,6 @@ namespace FracCuts {
     void SeparationEnergy::checkEnergyVal(const TriangleSoup& data) const
     {
         
-    }
-    
-    void SeparationEnergy::getEnergyValPerElem(const TriangleSoup& data, Eigen::VectorXd& energyValPerElem) const
-    {
-        energyValPerElem.resize(data.cohE.rows());
-        for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
-        {
-            if(data.boundaryEdge[cohI]) {
-                energyValPerElem[cohI] = 0.0;
-            }
-            else {
-                const double w = data.edgeLen[cohI];
-                energyValPerElem[cohI] = w * kernel((data.V.row(data.cohE(cohI, 0)) - data.V.row(data.cohE(cohI, 2))).squaredNorm());
-                energyValPerElem[cohI] += w * kernel((data.V.row(data.cohE(cohI, 1)) - data.V.row(data.cohE(cohI, 3))).squaredNorm());
-            }
-        }
     }
     
     SeparationEnergy::SeparationEnergy(double p_sigma_base, double p_sigma_param) :

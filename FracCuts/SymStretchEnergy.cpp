@@ -19,9 +19,9 @@ extern std::ofstream logFile;
 
 namespace FracCuts {
     
-    void SymStretchEnergy::computeEnergyVal(const TriangleSoup& data, double& energyVal) const
+    void SymStretchEnergy::getEnergyValPerElem(const TriangleSoup& data, Eigen::VectorXd& energyValPerElem, bool uniformWeight) const
     {
-        energyVal = 0.0;
+        energyValPerElem.resize(data.F.rows());
         for(int triI = 0; triI < data.F.rows(); triI++) {
             const Eigen::Vector3i& triVInd = data.F.row(triI);
             
@@ -36,52 +36,11 @@ namespace FracCuts {
             const Eigen::Vector3d U3m1_3D(U3m1[0], U3m1[1], 0.0);
             const double area_U = 0.5 * (U2m1[0] * U3m1[1] - U2m1[1] * U3m1[0]);
             
-            const double w = data.triArea[triI];
-            energyVal += w * (1.0 + data.triAreaSq[triI] / area_U / area_U) *
-                ((U3m1.squaredNorm() * data.e0SqLen[triI] + U2m1.squaredNorm() * data.e1SqLen[triI]) / 4 / data.triAreaSq[triI] -
-                U3m1.dot(U2m1) * data.e0dote1[triI] / 2 / data.triAreaSq[triI]);
+            const double w = (uniformWeight ? 1.0 : data.triArea[triI]);
+            energyValPerElem[triI] = w * (1.0 + data.triAreaSq[triI] / area_U / area_U) *
+            ((U3m1.squaredNorm() * data.e0SqLen[triI] + U2m1.squaredNorm() * data.e1SqLen[triI]) / 4 / data.triAreaSq[triI] -
+             U3m1.dot(U2m1) * data.e0dote1[triI] / 2 / data.triAreaSq[triI]);
         }
-    }
-    
-    void SymStretchEnergy::checkEnergyVal(const TriangleSoup& data) const
-    {
-        //TODO: precomputation of quantities related to P
-        
-        logFile << "check energyVal computation..." << std::endl;
-        
-        Eigen::VectorXd energyValPerTri;
-        energyValPerTri.resize(data.F.rows());
-        double err = 0.0;
-        for(int triI = 0; triI < data.F.rows(); triI++) {
-            const Eigen::Vector3i& triVInd = data.F.row(triI);
-            
-            const Eigen::Vector3d& P1 = data.V_rest.row(triVInd[0]);
-            const Eigen::Vector3d& P2 = data.V_rest.row(triVInd[1]);
-            const Eigen::Vector3d& P3 = data.V_rest.row(triVInd[2]);
-            
-            const Eigen::Vector3d P2m1 = P2 - P1;
-            const Eigen::Vector3d P3m1 = P3 - P1;
-            
-            // fake isotropic UV coordinates
-            Eigen::Vector3d P[3] = { P1, P2, P3 };
-            Eigen::Vector2d U[3]; IglUtils::mapTriangleTo2D(P, U);
-            const Eigen::Vector2d U2m1 = U[1];//(P2m1.norm(), 0.0);
-            const Eigen::Vector2d U3m1 = U[2];//(P3m1.dot(P2m1) / U2m1[0], P3m1.cross(P2m1).norm() / U2m1[0]);
-            
-            const double area_P = 0.5 * P2m1.cross(P3m1).norm();
-            const Eigen::Vector3d U2m1_3D(U2m1[0], U2m1[1], 0.0);
-            const Eigen::Vector3d U3m1_3D(U3m1[0], U3m1[1], 0.0);
-            const double area_U = 0.5 * U2m1_3D.cross(U3m1_3D).norm();
-            logFile << "areas: " << area_P << ", " << area_U << std::endl;
-            
-            const double w = area_P;
-            energyValPerTri[triI] = w * (1.0 + area_P * area_P / area_U / area_U) *
-                ((U3m1.squaredNorm() * P2m1.squaredNorm() + U2m1.squaredNorm() * P3m1.squaredNorm()) / 4 / area_P / area_P -
-                U3m1.dot(U2m1) * P3m1.dot(P2m1) / 2 / area_P / area_P);
-            err += energyValPerTri[triI] - w * 4.0;
-        }
-        std::cout << "energyVal computation error = " << err << std::endl;
-        logFile << "energyVal computation error = " << err << std::endl;
     }
     
     void SymStretchEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const
@@ -127,6 +86,11 @@ namespace FracCuts {
     void SymStretchEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr) const
     {
         precondMtr = data.LaplacianMtr;
+    }
+    
+    void SymStretchEnergy::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const
+    {
+        assert(0 && "no hessian computation for this energy");
     }
     
     void SymStretchEnergy::initStepSize(const TriangleSoup& data, const Eigen::VectorXd& searchDir, double& stepSize) const
@@ -185,14 +149,42 @@ namespace FracCuts {
         }
     }
     
-    void SymStretchEnergy::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const
+    void SymStretchEnergy::checkEnergyVal(const TriangleSoup& data) const
     {
-        assert(0 && "no hessian computation for this energy");
-    }
-    
-    
-    void SymStretchEnergy::getEnergyValPerElem(const TriangleSoup& data, Eigen::VectorXd& energyValPerElem) const
-    {
-        //TODO:
+        logFile << "check energyVal computation..." << std::endl;
+        
+        Eigen::VectorXd energyValPerTri;
+        energyValPerTri.resize(data.F.rows());
+        double err = 0.0;
+        for(int triI = 0; triI < data.F.rows(); triI++) {
+            const Eigen::Vector3i& triVInd = data.F.row(triI);
+            
+            const Eigen::Vector3d& P1 = data.V_rest.row(triVInd[0]);
+            const Eigen::Vector3d& P2 = data.V_rest.row(triVInd[1]);
+            const Eigen::Vector3d& P3 = data.V_rest.row(triVInd[2]);
+            
+            const Eigen::Vector3d P2m1 = P2 - P1;
+            const Eigen::Vector3d P3m1 = P3 - P1;
+            
+            // fake isotropic UV coordinates
+            Eigen::Vector3d P[3] = { P1, P2, P3 };
+            Eigen::Vector2d U[3]; IglUtils::mapTriangleTo2D(P, U);
+            const Eigen::Vector2d U2m1 = U[1];//(P2m1.norm(), 0.0);
+            const Eigen::Vector2d U3m1 = U[2];//(P3m1.dot(P2m1) / U2m1[0], P3m1.cross(P2m1).norm() / U2m1[0]);
+            
+            const double area_P = 0.5 * P2m1.cross(P3m1).norm();
+            const Eigen::Vector3d U2m1_3D(U2m1[0], U2m1[1], 0.0);
+            const Eigen::Vector3d U3m1_3D(U3m1[0], U3m1[1], 0.0);
+            const double area_U = 0.5 * U2m1_3D.cross(U3m1_3D).norm();
+            logFile << "areas: " << area_P << ", " << area_U << std::endl;
+            
+            const double w = area_P;
+            energyValPerTri[triI] = w * (1.0 + area_P * area_P / area_U / area_U) *
+            ((U3m1.squaredNorm() * P2m1.squaredNorm() + U2m1.squaredNorm() * P3m1.squaredNorm()) / 4 / area_P / area_P -
+             U3m1.dot(U2m1) * P3m1.dot(P2m1) / 2 / area_P / area_P);
+            err += energyValPerTri[triI] - w * 4.0;
+        }
+        std::cout << "energyVal computation error = " << err << std::endl;
+        logFile << "energyVal computation error = " << err << std::endl;
     }
 }

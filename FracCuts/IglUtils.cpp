@@ -95,14 +95,24 @@ namespace FracCuts {
             splitRGB(colorMap[1][99], rgb);
         }
     }
-    void IglUtils::mapScalarToColor(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color, double upperBound) //!!
+    void IglUtils::mapScalarToColor_bin(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color)
     {
         color.resize(scalar.size(), 3);
         for(int elemI = 0; elemI < scalar.size(); elemI++)
         {
-//            getColor(scalar[elemI], color.row(elemI).data(), 0.0, upperBound);
             const double s = ((scalar[elemI] > 1.0e-1) ? 1.0 : 0.0);
-            color.row(elemI) = Eigen::RowVector3d(1.0 - s, 1.0 - s, s);
+            color.row(elemI) = Eigen::RowVector3d(1.0 - s, 1.0 - s, 1.0 - s);
+        }
+    }
+    void IglUtils::mapScalarToColor(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color, double lowerBound, double upperBound)
+    {
+        const double range = upperBound - lowerBound;
+        color.resize(scalar.size(), 3);
+        for(int elemI = 0; elemI < scalar.size(); elemI++)
+        {
+//            getColor(scalar[elemI], color.row(elemI).data(), 0.0, upperBound);
+            const double s = 0.8 * std::max(0.0, std::min((scalar[elemI] - lowerBound) / range, 1.0));
+            color.row(elemI) = Eigen::RowVector3d(s, 0.8 - s, 0.0);
         }
     }
     

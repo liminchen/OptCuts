@@ -22,6 +22,13 @@ namespace FracCuts {
         
     }
     
+    void Energy::computeEnergyVal(const TriangleSoup& data, double& energyVal) const
+    {
+        Eigen::VectorXd energyValPerElem;
+        getEnergyValPerElem(data, energyValPerElem);
+        energyVal = energyValPerElem.sum();
+    }
+    
     void Energy::checkGradient(const TriangleSoup& data) const
     {
         std::cout << "checking energy gradient computation..." << std::endl;

@@ -23,7 +23,8 @@ namespace FracCuts {
         
         static void mapTriangleTo2D(const Eigen::Vector3d v[3], Eigen::Vector2d u[3]);
         
-        static void mapScalarToColor(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color, double upperBound);
+        static void mapScalarToColor_bin(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color);
+        static void mapScalarToColor(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color, double lowerBound, double upperBound);
         
         static void addBlockToMatrix(Eigen::SparseMatrix<double>& mtr, const Eigen::MatrixXd& block,
                                      const Eigen::VectorXi& index, int dim);

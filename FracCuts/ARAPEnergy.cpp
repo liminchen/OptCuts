@@ -17,11 +17,41 @@ namespace FracCuts {
     
     //TODO: precomputation to accelerate optimization process
     
-    void ARAPEnergy::computeEnergyVal(const TriangleSoup& data, double& energyVal) const
+    void ARAPEnergy::getEnergyValPerElem(const TriangleSoup& data, Eigen::VectorXd& energyValPerElem, bool uniformWeight) const
     {
-        Eigen::VectorXd energyValPerElem;
-        getEnergyValPerElem(data, energyValPerElem);
-        energyVal = energyValPerElem.sum();
+        energyValPerElem.resize(data.F.rows());
+        for(int triI = 0; triI < data.F.rows(); triI++)
+        {
+            const Eigen::Vector3i& triVInd = data.F.row(triI);
+            
+            const Eigen::Vector3d x_3D[3] = {
+                data.V_rest.row(triVInd[0]),
+                data.V_rest.row(triVInd[1]),
+                data.V_rest.row(triVInd[2])
+            };
+            Eigen::Vector2d x[3];
+            IglUtils::mapTriangleTo2D(x_3D, x);
+            
+            const Eigen::Vector2d u[3] = {
+                data.V.row(triVInd[0]),
+                data.V.row(triVInd[1]),
+                data.V.row(triVInd[2])
+            };
+            
+            Eigen::Matrix2d triMtrX, triMtrU;
+            triMtrX << x[1], x[2];
+            triMtrU << u[1] - u[0], u[2] - u[0];
+            Eigen::JacobiSVD<Eigen::Matrix2d> svd(triMtrU * triMtrX.inverse(), Eigen::ComputeFullU | Eigen::ComputeFullV);
+            const double w = x[1][0] * x[2][1] / 2.0;
+            if(triMtrU.determinant() < 0.0) {
+                energyValPerElem[triI] = w * ((svd.singularValues()[0] - 1.0) * (svd.singularValues()[0] - 1.0) +
+                                              (-svd.singularValues()[1] - 1.0) * (-svd.singularValues()[1] - 1.0));
+            }
+            else {
+                energyValPerElem[triI] = w * ((svd.singularValues()[0] - 1.0) * (svd.singularValues()[0] - 1.0) +
+                                              (svd.singularValues()[1] - 1.0) * (svd.singularValues()[1] - 1.0));
+            }
+        }
     }
     
     void ARAPEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const
@@ -120,44 +150,6 @@ namespace FracCuts {
     void ARAPEnergy::checkEnergyVal(const TriangleSoup& data) const
     {
         // not quite necessary
-    }
-    
-    
-    void ARAPEnergy::getEnergyValPerElem(const TriangleSoup& data, Eigen::VectorXd& energyValPerElem) const
-    {
-        energyValPerElem.resize(data.F.rows());
-        for(int triI = 0; triI < data.F.rows(); triI++)
-        {
-            const Eigen::Vector3i& triVInd = data.F.row(triI);
-            
-            const Eigen::Vector3d x_3D[3] = {
-                data.V_rest.row(triVInd[0]),
-                data.V_rest.row(triVInd[1]),
-                data.V_rest.row(triVInd[2])
-            };
-            Eigen::Vector2d x[3];
-            IglUtils::mapTriangleTo2D(x_3D, x);
-            
-            const Eigen::Vector2d u[3] = {
-                data.V.row(triVInd[0]),
-                data.V.row(triVInd[1]),
-                data.V.row(triVInd[2])
-            };
-            
-            Eigen::Matrix2d triMtrX, triMtrU;
-            triMtrX << x[1], x[2];
-            triMtrU << u[1] - u[0], u[2] - u[0];
-            Eigen::JacobiSVD<Eigen::Matrix2d> svd(triMtrU * triMtrX.inverse(), Eigen::ComputeFullU | Eigen::ComputeFullV);
-            const double w = x[1][0] * x[2][1] / 2.0;
-            if(triMtrU.determinant() < 0.0) {
-                energyValPerElem[triI] = w * ((svd.singularValues()[0] - 1.0) * (svd.singularValues()[0] - 1.0) +
-                    (-svd.singularValues()[1] - 1.0) * (-svd.singularValues()[1] - 1.0));
-            }
-            else {
-                energyValPerElem[triI] = w * ((svd.singularValues()[0] - 1.0) * (svd.singularValues()[0] - 1.0) +
-                    (svd.singularValues()[1] - 1.0) * (svd.singularValues()[1] - 1.0));
-            }
-        }
     }
     
 }

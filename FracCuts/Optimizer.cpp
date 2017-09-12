@@ -61,11 +61,13 @@ namespace FracCuts {
     
     bool Optimizer::solve(int maxIter)
     {
-        const double targetRes = 1.0e-6 * igl::avg_edge_length(data0.V_rest, data0.F); //!! find reasonable metric
+        const double targetRes = data0.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
         for(int iterI = 0; iterI < maxIter; iterI++)
         {
             computeGradient(result, gradient);
-            if(gradient.squaredNorm() < targetRes) {
+            const double sqn_g = gradient.squaredNorm();
+            std::cout << "||gradient||^2 = " << sqn_g << ", targetRes = " << targetRes << std::endl;
+            if(sqn_g < targetRes) {
                 // converged
                 return true;
             }
@@ -195,7 +197,7 @@ namespace FracCuts {
             energyTerms[eI]->computePrecondMtr(data, precondMtrI);
             precondMtr += energyParams[eI] * precondMtrI;
         }
-//        std::cout << "det(precondMtr) = " << Eigen::MatrixXd(precondMtr).determinant() << std::endl;
+        std::cout << "det(precondMtr) = " << Eigen::MatrixXd(precondMtr).determinant() << std::endl;
 //        logFile << precondMtr << std::endl;
     }
     void Optimizer::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const

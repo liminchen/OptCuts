@@ -47,6 +47,9 @@ const int channel_result = 1;
 bool viewUV = false;
 const double texScale = 20.0;
 bool showSeam = false;
+bool showDistortion = false;
+bool showTexture = true;
+bool isLighting = true;
 
 
 void proceedOptimization(void)
@@ -71,6 +74,17 @@ void updateViewerData(void)
         viewer.core.show_texture = false;
         viewer.core.lighting_factor = 0.0;
         
+        if(showDistortion) {
+            Eigen::VectorXd distortionPerElem;
+            energyTerms[0]->getEnergyValPerElem(triSoup, distortionPerElem, true);
+            Eigen::MatrixXd color_distortionVis;
+            FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 20.0);
+            viewer.data.set_colors(color_distortionVis);
+        }
+        else {
+            viewer.data.set_colors(Eigen::RowVector3d(1.0, 1.0, 0.0));
+        }
+        
         if(showSeam) {
             viewer.core.show_lines = false;
             Eigen::MatrixXd UV_3D(UV[viewChannel].rows(), 3);
@@ -78,7 +92,7 @@ void updateViewerData(void)
             Eigen::VectorXd seamScore;
             optimizer->getResult().computeSeamScore(seamScore);
             Eigen::MatrixXd color;
-            FracCuts::IglUtils::mapScalarToColor(seamScore, color, 1.0);
+            FracCuts::IglUtils::mapScalarToColor_bin(seamScore, color);
             viewer.data.set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
             for(int eI = 0; eI < E[viewChannel].rows(); eI++) {
                 if(seamScore[eI] > 1e-1) {
@@ -104,18 +118,41 @@ void updateViewerData(void)
             viewer.data.clear();
         }
         viewer.data.set_mesh(V[viewChannel], F[viewChannel]);
-        viewer.data.set_uv(UV[viewChannel]);
 //        viewer.core.align_camera_center(V[0], F[0]);
         viewer.core.align_camera_center(V[viewChannel], F[viewChannel]);
-        viewer.core.show_texture = true;
-        viewer.core.lighting_factor = 1.0;
+        
+        if(showTexture) {
+            viewer.data.set_uv(UV[viewChannel]);
+            viewer.core.show_texture = true;
+        }
+        else {
+            viewer.core.show_texture = false;
+        }
+        
+        if(isLighting) {
+            viewer.core.lighting_factor = 1.0;
+        }
+        else {
+            viewer.core.lighting_factor = 0.0;
+        }
+        
+        if(showDistortion) {
+            Eigen::VectorXd distortionPerElem;
+            energyTerms[0]->getEnergyValPerElem(triSoup, distortionPerElem, true);
+            Eigen::MatrixXd color_distortionVis;
+            FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 20.0);
+            viewer.data.set_colors(color_distortionVis);
+        }
+        else {
+            viewer.data.set_colors(Eigen::RowVector3d(1.0, 1.0, 0.0));
+        }
         
         if(showSeam) {
             viewer.core.show_lines = false;
             Eigen::VectorXd seamScore;
             optimizer->getResult().computeSeamScore(seamScore);
             Eigen::MatrixXd color;
-            FracCuts::IglUtils::mapScalarToColor(seamScore, color, 1.0);
+            FracCuts::IglUtils::mapScalarToColor_bin(seamScore, color);
             viewer.data.set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
             for(int eI = 0; eI < E[viewChannel].rows(); eI++) {
                 if(seamScore[eI] > 1e-1) {
@@ -200,6 +237,24 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
             case 's':
             case 'S': {
                 showSeam = !showSeam;
+                break;
+            }
+                
+            case 'd':
+            case 'D': {
+                showDistortion = !showDistortion;
+                break;
+            }
+                
+            case 'c':
+            case 'C': {
+                showTexture = !showTexture;
+                break;
+            }
+                
+            case 'b':
+            case 'B': {
+                isLighting = !isLighting;
                 break;
             }
                 
@@ -303,7 +358,7 @@ int main(int argc, char *argv[])
     energyParams.emplace_back(1.0e0);
 //    energyTerms.emplace_back(new FracCuts::ARAPEnergy());
     energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
-    energyParams.emplace_back(2.5e-1);
+    energyParams.emplace_back(1.0e0);
     energyTerms.emplace_back(new FracCuts::SeparationEnergy(edgeLen * edgeLen, 8.0));
 //    energyTerms.back()->checkEnergyVal(triSoup);
 //    energyTerms.back()->checkGradient(triSoup);
@@ -326,13 +381,6 @@ int main(int argc, char *argv[])
     viewer.core.show_lines = true;
     viewer.core.orthographic = true;
     updateViewerData();
-    
-//    Eigen::VectorXd distortionPerElem;
-//    energyTerms[0]->getEnergyValPerElem(triSoup, distortionPerElem);
-//    FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis);
-//    viewer.data.set_face_based(true);
-//    viewer.data.set_colors(color_distortionVis);
-//    viewer.core.lighting_factor = 0.0;
     
     // Launch the viewer
     viewer.launch();
