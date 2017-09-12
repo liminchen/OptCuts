@@ -9,6 +9,7 @@
 #include "TriangleSoup.hpp"
 
 #include <igl/cotmatrix.h>
+#include <igl/avg_edge_length.h>
 
 #include <fstream>
 
@@ -42,9 +43,9 @@ namespace FracCuts {
                 V.row(vDupIndStart + 1) = UV_mesh.row(F_mesh.row(triI)[1]);
                 V.row(vDupIndStart + 2) = UV_mesh.row(F_mesh.row(triI)[2]);
                 
-                // perturb for testing separation energy
-                V.row(vDupIndStart + 1) = V.row(vDupIndStart) + 0.9 * (V.row(vDupIndStart + 1) - V.row(vDupIndStart));
-                V.row(vDupIndStart + 2) = V.row(vDupIndStart) + 0.9 * (V.row(vDupIndStart + 2) - V.row(vDupIndStart));
+//                // perturb for testing separation energy
+//                V.row(vDupIndStart + 1) = V.row(vDupIndStart) + 0.9 * (V.row(vDupIndStart + 1) - V.row(vDupIndStart));
+//                V.row(vDupIndStart + 2) = V.row(vDupIndStart) + 0.9 * (V.row(vDupIndStart + 2) - V.row(vDupIndStart));
                 
                 V_rest.row(vDupIndStart) = V_mesh.row(F_mesh.row(triI)[0]);
                 V_rest.row(vDupIndStart + 1) = V_mesh.row(F_mesh.row(triI)[1]);
@@ -59,8 +60,8 @@ namespace FracCuts {
                     int vsI = F_mesh.row(triI)[vI], veI = F_mesh.row(triI)[(vI + 1) % 3];
                     auto cohEFinder = edge2DupInd.find(std::pair<int, int>(veI, vsI));
                     if(cohEFinder == edge2DupInd.end()) {
-                        edge2DupInd[std::pair<int, int>(vsI, veI)] = Eigen::Vector3i(cohEAmt, F(triI, vI), F(triI, (vI + 1) % 3));
                         cohEAmt++;
+                        edge2DupInd[std::pair<int, int>(vsI, veI)] = Eigen::Vector3i(cohEAmt, F(triI, vI), F(triI, (vI + 1) % 3));
                     }
                     else {
                         edge2DupInd[std::pair<int, int>(vsI, veI)] = Eigen::Vector3i(-cohEFinder->second[0], F(triI, vI), F(triI, (vI + 1) % 3));
@@ -72,12 +73,12 @@ namespace FracCuts {
             cohE.setConstant(-1);
             for(const auto& cohPI : edge2DupInd) {
                 if(cohPI.second[0] > 0) {
-                    cohE.row(cohPI.second[0])[0] = cohPI.second[1];
-                    cohE.row(cohPI.second[0])[1] = cohPI.second[2];
+                    cohE.row(cohPI.second[0] - 1)[0] = cohPI.second[1];
+                    cohE.row(cohPI.second[0] - 1)[1] = cohPI.second[2];
                 }
                 else {
-                    cohE.row(-cohPI.second[0])[2] = cohPI.second[2];
-                    cohE.row(-cohPI.second[0])[3] = cohPI.second[1];
+                    cohE.row(-cohPI.second[0] - 1)[2] = cohPI.second[2];
+                    cohE.row(-cohPI.second[0] - 1)[3] = cohPI.second[1];
                 }
             }
 //            logFile << cohE;
@@ -148,12 +149,11 @@ namespace FracCuts {
         {
             if(cohE.row(cohI).minCoeff() > 0) {
                 boundaryEdge[cohI] = 0;
-                edgeLen[cohI] = (V_rest.row(cohE(cohI, 0)) - V_rest.row(cohE(cohI, 1))).norm();
             }
             else {
                 boundaryEdge[cohI] = 1;
-                edgeLen[cohI] = 0.0; //!!
             }
+            edgeLen[cohI] = (V_rest.row(cohE(cohI, 0)) - V_rest.row(cohE(cohI, 1))).norm();
         }
         
         //        Eigen::SparseMatrix<double> M;
@@ -193,6 +193,22 @@ namespace FracCuts {
             e0SqLen[triI] = P2m1.squaredNorm();
             e1SqLen[triI] = P3m1.squaredNorm();
             e0dote1[triI] = P2m1.dot(P3m1);
+        }
+        avgEdgeLen = igl::avg_edge_length(V_rest, F);
+    }
+    
+    void TriangleSoup::computeSeamScore(Eigen::VectorXd& seamScore) const
+    {
+        seamScore.resize(cohE.rows());
+        for(int cohI = 0; cohI < cohE.rows(); cohI++)
+        {
+            if(boundaryEdge[cohI]) {
+                seamScore[cohI] = 0.0;
+            }
+            else {
+                seamScore[cohI] = std::max((V.row(cohE(cohI, 0)) - V.row(cohE(cohI, 2))).norm(),
+                    (V.row(cohE(cohI, 1)) - V.row(cohE(cohI, 3))).norm()) / avgEdgeLen;
+            }
         }
     }
     

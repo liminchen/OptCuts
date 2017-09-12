@@ -25,6 +25,7 @@
 std::vector<Eigen::MatrixXd> V;
 std::vector<Eigen::MatrixXi> F;
 std::vector<Eigen::MatrixXd> UV;
+std::vector<Eigen::MatrixXi> E; //!! change to triSoup
 
 // optimization
 FracCuts::TriangleSoup triSoup;
@@ -45,6 +46,7 @@ const int channel_initial = 0;
 const int channel_result = 1;
 bool viewUV = false;
 const double texScale = 20.0;
+bool showSeam = false;
 
 
 void proceedOptimization(void)
@@ -67,6 +69,32 @@ void updateViewerData(void)
 //        viewer.core.align_camera_center(UV[0], F[0]);
         viewer.core.align_camera_center(UV[viewChannel], F[viewChannel]);
         viewer.core.show_texture = false;
+        viewer.core.lighting_factor = 0.0;
+        
+        if(showSeam) {
+            viewer.core.show_lines = false;
+            Eigen::MatrixXd UV_3D(UV[viewChannel].rows(), 3);
+            UV_3D << UV[viewChannel], Eigen::VectorXd::Zero(UV[viewChannel].rows());
+            Eigen::VectorXd seamScore;
+            optimizer->getResult().computeSeamScore(seamScore);
+            Eigen::MatrixXd color;
+            FracCuts::IglUtils::mapScalarToColor(seamScore, color, 1.0);
+            viewer.data.set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
+            for(int eI = 0; eI < E[viewChannel].rows(); eI++) {
+                if(seamScore[eI] > 1e-1) {
+                    viewer.data.add_edges(UV_3D.row(E[viewChannel].row(eI)[0]),
+                        UV_3D.row(E[viewChannel].row(eI)[1]), color.row(eI));
+                    if(E[viewChannel].row(eI)[2] >= 0) {
+                        viewer.data.add_edges(UV_3D.row(E[viewChannel].row(eI)[2]),
+                            UV_3D.row(E[viewChannel].row(eI)[3]), color.row(eI));
+                    }
+                }
+            }
+        }
+        else {
+            viewer.core.show_lines = true;
+            viewer.data.set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
+        }
     }
     else {
         if((V[viewChannel].rows() != viewer.data.V.rows()) ||
@@ -80,6 +108,30 @@ void updateViewerData(void)
 //        viewer.core.align_camera_center(V[0], F[0]);
         viewer.core.align_camera_center(V[viewChannel], F[viewChannel]);
         viewer.core.show_texture = true;
+        viewer.core.lighting_factor = 1.0;
+        
+        if(showSeam) {
+            viewer.core.show_lines = false;
+            Eigen::VectorXd seamScore;
+            optimizer->getResult().computeSeamScore(seamScore);
+            Eigen::MatrixXd color;
+            FracCuts::IglUtils::mapScalarToColor(seamScore, color, 1.0);
+            viewer.data.set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
+            for(int eI = 0; eI < E[viewChannel].rows(); eI++) {
+                if(seamScore[eI] > 1e-1) {
+                    viewer.data.add_edges(V[viewChannel].row(E[viewChannel].row(eI)[0]),
+                        V[viewChannel].row(E[viewChannel].row(eI)[1]), color.row(eI));
+                    if(E[viewChannel].row(eI)[2] >= 0) {
+                        viewer.data.add_edges(V[viewChannel].row(E[viewChannel].row(eI)[2]),
+                            V[viewChannel].row(E[viewChannel].row(eI)[3]), color.row(eI));
+                    }
+                }
+            }
+        }
+        else {
+            viewer.core.show_lines = true;
+            viewer.data.set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
+        }
     }
     
     viewer.data.compute_normals();
@@ -145,6 +197,12 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                 break;
             }
                 
+            case 's':
+            case 'S': {
+                showSeam = !showSeam;
+                break;
+            }
+                
             case 'h':
             case 'H': { // mannual homotopy optimization
                 dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms.back())->decreaseSigma();
@@ -199,6 +257,7 @@ int main(int argc, char *argv[])
     // Load a mesh in OFF format
     V.resize(V.size() + 1);
     F.resize(F.size() + 1);
+    E.resize(E.size() + 1);
     igl::readOFF(TUTORIAL_SHARED_PATH "/camelhead_f1000.off", V[0], F[0]);
 //    FracCuts::TriangleSoup squareMesh(FracCuts::Primitive::P_SQUARE, 1.0, 0.1, false);
 //    V[0] = squareMesh.V_rest;
@@ -258,6 +317,7 @@ int main(int argc, char *argv[])
     V.emplace_back(triSoup.V_rest);
     F.emplace_back(triSoup.F);
     UV.emplace_back(triSoup.V * texScale);
+    E.emplace_back(triSoup.cohE);
     
     // setup viewer
     viewer.core.background_color << 1.0f, 1.0f, 1.0f, 0.0f;

@@ -18,15 +18,9 @@ namespace FracCuts {
     
     void SeparationEnergy::computeEnergyVal(const TriangleSoup& data, double& energyVal) const
     {
-        energyVal = 0.0;
-        for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
-        {
-            if(!data.boundaryEdge[cohI]) {
-                const double w = data.edgeLen[cohI];
-                energyVal += w * kernel((data.V.row(data.cohE(cohI, 0)) - data.V.row(data.cohE(cohI, 2))).squaredNorm());
-                energyVal += w * kernel((data.V.row(data.cohE(cohI, 1)) - data.V.row(data.cohE(cohI, 3))).squaredNorm());
-            }
-        }
+        Eigen::VectorXd energyValPerElem;
+        getEnergyValPerElem(data, energyValPerElem);
+        energyVal = energyValPerElem.sum();
     }
     
     void SeparationEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const
@@ -106,7 +100,18 @@ namespace FracCuts {
     
     void SeparationEnergy::getEnergyValPerElem(const TriangleSoup& data, Eigen::VectorXd& energyValPerElem) const
     {
-        
+        energyValPerElem.resize(data.cohE.rows());
+        for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
+        {
+            if(data.boundaryEdge[cohI]) {
+                energyValPerElem[cohI] = 0.0;
+            }
+            else {
+                const double w = data.edgeLen[cohI];
+                energyValPerElem[cohI] = w * kernel((data.V.row(data.cohE(cohI, 0)) - data.V.row(data.cohE(cohI, 2))).squaredNorm());
+                energyValPerElem[cohI] += w * kernel((data.V.row(data.cohE(cohI, 1)) - data.V.row(data.cohE(cohI, 3))).squaredNorm());
+            }
+        }
     }
     
     SeparationEnergy::SeparationEnergy(double p_sigma_base, double p_sigma_param) :

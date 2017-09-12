@@ -65,9 +65,9 @@ namespace FracCuts {
     }
     
     void splitRGB(char32_t color, double rgb[3]) {
-        rgb[0] = int((0xff0000 & color) >> 16) / 255.0;
-        rgb[1] = int((0x00ff00 & color) >> 8) / 255.0;
-        rgb[2] = int(0x0000ff & color) / 255.0;
+        rgb[0] = static_cast<int>((0xff0000 & color) >> 16) / 255.0;
+        rgb[1] = static_cast<int>((0x00ff00 & color) >> 8) / 255.0;
+        rgb[2] = static_cast<int>(0x0000ff & color) / 255.0;
     }
     void getColor(double scalar, double rgb[3], double center, double scale)
     {
@@ -86,24 +86,23 @@ namespace FracCuts {
             splitRGB(colorMap[0][99], rgb);
         }
         else if(scalar >= 0.0){
-            splitRGB(colorMap[0][int(scalar * 100.0)], rgb);
+            splitRGB(colorMap[0][static_cast<int>(scalar * 100.0)], rgb);
         }
         else if(scalar > -1.0) {
-            splitRGB(colorMap[1][int(scalar * -100.0)], rgb);
+            splitRGB(colorMap[1][static_cast<int>(scalar * -100.0)], rgb);
         }
         else { // scalar <= -1.0
             splitRGB(colorMap[1][99], rgb);
         }
     }
-    void IglUtils::mapScalarToColor(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color)
+    void IglUtils::mapScalarToColor(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color, double upperBound) //!!
     {
-        const double maxVal = scalar.maxCoeff();
-        const double minVal = scalar.minCoeff();
-        const double range = maxVal - minVal;
         color.resize(scalar.size(), 3);
         for(int elemI = 0; elemI < scalar.size(); elemI++)
         {
-            getColor(scalar[elemI], color.row(elemI).data(), minVal, range);
+//            getColor(scalar[elemI], color.row(elemI).data(), 0.0, upperBound);
+            const double s = ((scalar[elemI] > 1.0e-1) ? 1.0 : 0.0);
+            color.row(elemI) = Eigen::RowVector3d(1.0 - s, 1.0 - s, s);
         }
     }
     

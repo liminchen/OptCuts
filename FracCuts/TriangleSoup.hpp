@@ -36,6 +36,7 @@ namespace FracCuts{
         Eigen::VectorXd triAreaSq; // triangle rest squared area
         Eigen::VectorXd e0dote1; // triangle rest edge dot product
         Eigen::VectorXd e0SqLen, e1SqLen; // triangle edge rest squared length
+        double avgEdgeLen;
 //        Eigen::MatrixXd cotVals; // cotangent values of rest triangle corners
         
     public: // constructor
@@ -51,6 +52,8 @@ namespace FracCuts{
         
     public: // API
         void computeFeatures(void);
+        
+        void computeSeamScore(Eigen::VectorXd& seamScore) const;
     };
     
 }
