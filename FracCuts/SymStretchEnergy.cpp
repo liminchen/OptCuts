@@ -32,14 +32,12 @@ namespace FracCuts {
             const Eigen::Vector2d U2m1 = U2 - U1;
             const Eigen::Vector2d U3m1 = U3 - U1;
             
-            const Eigen::Vector3d U2m1_3D(U2m1[0], U2m1[1], 0.0);
-            const Eigen::Vector3d U3m1_3D(U3m1[0], U3m1[1], 0.0);
             const double area_U = 0.5 * (U2m1[0] * U3m1[1] - U2m1[1] * U3m1[0]);
             
             const double w = (uniformWeight ? 1.0 : data.triArea[triI]);
             energyValPerElem[triI] = w * (1.0 + data.triAreaSq[triI] / area_U / area_U) *
-            ((U3m1.squaredNorm() * data.e0SqLen[triI] + U2m1.squaredNorm() * data.e1SqLen[triI]) / 4 / data.triAreaSq[triI] -
-             U3m1.dot(U2m1) * data.e0dote1[triI] / 2 / data.triAreaSq[triI]);
+                ((U3m1.squaredNorm() * data.e0SqLen[triI] + U2m1.squaredNorm() * data.e1SqLen[triI]) / 4 / data.triAreaSq[triI] -
+                U3m1.dot(U2m1) * data.e0dote1[triI] / 2 / data.triAreaSq[triI]);
         }
     }
     
@@ -60,15 +58,16 @@ namespace FracCuts {
             const double area_U = 0.5 * (U2m1[0] * U3m1[1] - U2m1[1] * U3m1[0]);
             
             const double leftTerm = 1.0 + data.triAreaSq[triI] / area_U / area_U;
-            const double rightTerm = (U3m1.squaredNorm() * data.e0SqLen[triI] + U2m1.squaredNorm() * data.e1SqLen[triI]) / 4 / data.triAreaSq[triI] -
-                U3m1.dot(U2m1) * data.e0dote1[triI] / 2 / data.triAreaSq[triI];
+            const double rightTerm = (U3m1.squaredNorm() * data.e0SqLen[triI] + U2m1.squaredNorm() * data.e1SqLen[triI]) /
+                4 / data.triAreaSq[triI] - U3m1.dot(U2m1) * data.e0dote1[triI] / 2 / data.triAreaSq[triI];
             
             const double areaRatio = data.triAreaSq[triI] / area_U / area_U / area_U;
             const double w = data.triArea[triI];
             
             const Eigen::Vector2d edge_oppo1 = U3 - U2;
             const Eigen::Vector2d dLeft1 = areaRatio * Eigen::Vector2d(edge_oppo1[1], -edge_oppo1[0]);
-            const Eigen::Vector2d dRight1 = ((data.e0dote1[triI] - data.e0SqLen[triI]) * U3m1 + (data.e0dote1[triI] - data.e1SqLen[triI]) * U2m1) / 2.0 / data.triAreaSq[triI];
+            const Eigen::Vector2d dRight1 = ((data.e0dote1[triI] - data.e0SqLen[triI]) * U3m1 +
+                (data.e0dote1[triI] - data.e1SqLen[triI]) * U2m1) / 2.0 / data.triAreaSq[triI];
             gradient.block(triVInd[0] * 2, 0, 2, 1) += w * (dLeft1 * rightTerm + dRight1 * leftTerm);
             
             const Eigen::Vector2d edge_oppo2 = U1 - U3;
@@ -81,11 +80,24 @@ namespace FracCuts {
             const Eigen::Vector2d dRight3 = (data.e0SqLen[triI] * U3m1 - data.e0dote1[triI] * U2m1) / 2.0 / data.triAreaSq[triI];
             gradient.block(triVInd[2] * 2, 0, 2, 1) += w * (dLeft3 * rightTerm + dRight3 * leftTerm);
         }
+        
+        for(const auto fixedVI : data.fixedVert) {
+            gradient[2 * fixedVI] = 0.0;
+            gradient[2 * fixedVI + 1] = 0.0;
+        }
     }
     
     void SymStretchEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr) const
     {
         precondMtr = data.LaplacianMtr;
+        
+//        Eigen::BDCSVD<Eigen::MatrixXd> svd((Eigen::MatrixXd(precondMtr)));
+//        logFile << "singular values of precondMtr_ESD:" << std::endl << svd.singularValues() << std::endl;
+//        double det = 1.0;
+//        for(int i = 0; i < svd.singularValues().size(); i++) {
+//            det *= svd.singularValues()[i];
+//        }
+//        std::cout << "det(precondMtr_ESD) = " << det << std::endl;
     }
     
     void SymStretchEnergy::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const
@@ -163,25 +175,19 @@ namespace FracCuts {
             const Eigen::Vector3d& P2 = data.V_rest.row(triVInd[1]);
             const Eigen::Vector3d& P3 = data.V_rest.row(triVInd[2]);
             
-            const Eigen::Vector3d P2m1 = P2 - P1;
-            const Eigen::Vector3d P3m1 = P3 - P1;
-            
             // fake isotropic UV coordinates
             Eigen::Vector3d P[3] = { P1, P2, P3 };
             Eigen::Vector2d U[3]; IglUtils::mapTriangleTo2D(P, U);
             const Eigen::Vector2d U2m1 = U[1];//(P2m1.norm(), 0.0);
             const Eigen::Vector2d U3m1 = U[2];//(P3m1.dot(P2m1) / U2m1[0], P3m1.cross(P2m1).norm() / U2m1[0]);
             
-            const double area_P = 0.5 * P2m1.cross(P3m1).norm();
-            const Eigen::Vector3d U2m1_3D(U2m1[0], U2m1[1], 0.0);
-            const Eigen::Vector3d U3m1_3D(U3m1[0], U3m1[1], 0.0);
-            const double area_U = 0.5 * U2m1_3D.cross(U3m1_3D).norm();
-            logFile << "areas: " << area_P << ", " << area_U << std::endl;
+            const double area_U = 0.5 * (U2m1[0] * U3m1[1] - U2m1[1] * U3m1[0]);
+            logFile << "areas: " << data.triArea[triI] << ", " << area_U << std::endl;
             
-            const double w = area_P;
-            energyValPerTri[triI] = w * (1.0 + area_P * area_P / area_U / area_U) *
-            ((U3m1.squaredNorm() * P2m1.squaredNorm() + U2m1.squaredNorm() * P3m1.squaredNorm()) / 4 / area_P / area_P -
-             U3m1.dot(U2m1) * P3m1.dot(P2m1) / 2 / area_P / area_P);
+            const double w = data.triArea[triI];
+            energyValPerTri[triI] = w * (1.0 + data.triAreaSq[triI] / area_U / area_U) *
+                ((U3m1.squaredNorm() * data.e0SqLen[triI] + U2m1.squaredNorm() * data.e1SqLen[triI]) / 4 / data.triAreaSq[triI] -
+                U3m1.dot(U2m1) * data.e0dote1[triI] / 2 / data.triAreaSq[triI]);
             err += energyValPerTri[triI] - w * 4.0;
         }
         std::cout << "energyVal computation error = " << err << std::endl;

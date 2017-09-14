@@ -7,6 +7,7 @@
 //
 
 #include "TriangleSoup.hpp"
+#include "IglUtils.hpp"
 
 #include <igl/cotmatrix.h>
 #include <igl/avg_edge_length.h>
@@ -95,8 +96,6 @@ namespace FracCuts {
     
     TriangleSoup::TriangleSoup(Primitive primitive, double size, double spacing, bool separateTri)
     {
-        //TODO: Enable generting primitive shape with separated triangles
-        
         switch(primitive)
         {
             case P_SQUARE: {
@@ -143,6 +142,8 @@ namespace FracCuts {
     
     void TriangleSoup::computeFeatures(void)
     {
+        fixedVert.insert(0);
+        
         boundaryEdge.resize(cohE.rows());
         edgeLen.resize(cohE.rows());
         for(int cohI = 0; cohI < cohE.rows(); cohI++)
@@ -165,9 +166,17 @@ namespace FracCuts {
         {
             for (Eigen::SparseMatrix<double>::InnerIterator it(L, k); it; ++it)
             {
-                LaplacianMtr.insert(it.row() * 2, it.col() * 2) = -it.value();// * M.coeffRef(it.row(), it.row());
-                LaplacianMtr.insert(it.row() * 2 + 1, it.col() * 2 + 1) = -it.value();// * M.coeffRef(it.row(), it.row());
+                if((fixedVert.find(static_cast<int>(it.row())) == fixedVert.end()) &&
+                   (fixedVert.find(static_cast<int>(it.col())) == fixedVert.end()))
+                {
+                    LaplacianMtr.insert(it.row() * 2, it.col() * 2) = -it.value();// * M.coeffRef(it.row(), it.row());
+                    LaplacianMtr.insert(it.row() * 2 + 1, it.col() * 2 + 1) = -it.value();// * M.coeffRef(it.row(), it.row());
+                }
             }
+        }
+        for(const auto fixedVI : fixedVert) {
+            LaplacianMtr.insert(2 * fixedVI, 2 * fixedVI) = 1.0;
+            LaplacianMtr.insert(2 * fixedVI + 1, 2 * fixedVI + 1) = 1.0;
         }
         LaplacianMtr.makeCompressed();
         
@@ -209,6 +218,26 @@ namespace FracCuts {
                 seamScore[cohI] = std::max((V.row(cohE(cohI, 0)) - V.row(cohE(cohI, 2))).norm(),
                     (V.row(cohE(cohI, 1)) - V.row(cohE(cohI, 3))).norm()) / avgEdgeLen;
             }
+        }
+    }
+    
+    void TriangleSoup::initRigidUV(void)
+    {
+        for(int triI = 0; triI < F.rows(); triI++)
+        {
+            const Eigen::Vector3i& triVInd = F.row(triI);
+            
+            const Eigen::Vector3d x_3D[3] = {
+                V_rest.row(triVInd[0]),
+                V_rest.row(triVInd[1]),
+                V_rest.row(triVInd[2])
+            };
+            Eigen::Vector2d x[3];
+            IglUtils::mapTriangleTo2D(x_3D, x);
+            
+            V.row(triVInd[0]) = x[0];
+            V.row(triVInd[1]) = x[1];
+            V.row(triVInd[2]) = x[2];
         }
     }
     

@@ -141,4 +141,50 @@ namespace FracCuts {
             }
         }
     }
+    
+    void IglUtils::writeSparseMatrixToFile(const std::string& filePath, const Eigen::SparseMatrix<double>& mtr)
+    {
+        std::ofstream out;
+        out.open(filePath);
+        if(out.is_open()) {
+            out << mtr.rows() << " " << mtr.cols() << " " << mtr.nonZeros() << std::endl;
+            for (int k = 0; k < mtr.outerSize(); ++k)
+            {
+                for (Eigen::SparseMatrix<double>::InnerIterator it(mtr, k); it; ++it)
+                {
+                    out << it.row() << " " << it.col() << " " << it.value() << std::endl;
+                }
+            }
+            out.close();
+        }
+        else {
+            std::cout << "writeSparseMatrixToFile failed! file open error!" << std::endl;
+        }
+    }
+    
+    void IglUtils::loadSparseMatrixFromFile(const std::string& filePath, Eigen::SparseMatrix<double>& mtr)
+    {
+        std::ifstream in;
+        in.open(filePath);
+        if(in.is_open()) {
+            int rows, cols, nonZeroAmt;
+            in >> rows >> cols >> nonZeroAmt;
+            mtr.resize(rows, cols);
+            std::vector<Eigen::Triplet<double>> IJV;
+            IJV.reserve(nonZeroAmt);
+            int i, j;
+            double v;
+            for(int nzI = 0; nzI < nonZeroAmt; nzI++) {
+                assert(!in.eof());
+                in >> i >> j >> v;
+                IJV.emplace_back(Eigen::Triplet<double>(i, j, v));
+            }
+            in.close();
+            mtr.setFromTriplets(IJV.begin(), IJV.end());
+        }
+        else {
+            std::cout << "loadSparseMatrixToFile failed! file open error!" << std::endl;
+        }
+    }
+    
 }

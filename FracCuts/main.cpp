@@ -35,21 +35,22 @@ int iterNum = 0;
 std::vector<FracCuts::Energy*> energyTerms;
 std::vector<double> energyParams;
 bool converged = false;
+bool autoHomotopy = true;
 
 std::ofstream logFile;
 std::string outputFolderPath = "/Users/mincli/Desktop/output_FracCuts/";
 
 // visualization
 igl::viewer::Viewer viewer;
-int viewChannel = 0;
 const int channel_initial = 0;
 const int channel_result = 1;
-bool viewUV = false;
+int viewChannel = channel_result;
+bool viewUV = true;
 const double texScale = 20.0;
-bool showSeam = false;
-bool showDistortion = false;
+bool showSeam = true;
+bool showDistortion = true;
 bool showTexture = true;
-bool isLighting = true;
+bool isLighting = false;
 
 
 void proceedOptimization(void)
@@ -57,7 +58,7 @@ void proceedOptimization(void)
     std::cout << "Iteration" << iterNum << ":" << std::endl;
     converged = optimizer->solve(1);
     UV[channel_result] = optimizer->getResult().V * texScale;
-    iterNum++;
+    iterNum = optimizer->getIterNum();
 }
 
 void updateViewerData(void)
@@ -76,9 +77,9 @@ void updateViewerData(void)
         
         if(showDistortion) {
             Eigen::VectorXd distortionPerElem;
-            energyTerms[0]->getEnergyValPerElem(triSoup, distortionPerElem, true);
+            energyTerms[0]->getEnergyValPerElem(optimizer->getResult(), distortionPerElem, true);
             Eigen::MatrixXd color_distortionVis;
-            FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 20.0);
+            FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 6.0);
             viewer.data.set_colors(color_distortionVis);
         }
         else {
@@ -138,9 +139,9 @@ void updateViewerData(void)
         
         if(showDistortion) {
             Eigen::VectorXd distortionPerElem;
-            energyTerms[0]->getEnergyValPerElem(triSoup, distortionPerElem, true);
+            energyTerms[0]->getEnergyValPerElem(optimizer->getResult(), distortionPerElem, true);
             Eigen::MatrixXd color_distortionVis;
-            FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 20.0);
+            FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 6.0);
             viewer.data.set_colors(color_distortionVis);
         }
         else {
@@ -217,6 +218,9 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                         std::cout << "optimization converged." << std::endl;
                     }
                     else {
+                        if(iterNum == 0) {
+                            saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 0.5);
+                        }
                         std::cout << "start/resume optimization, press again to pause." << std::endl;
                         viewer.core.is_animating = true;
                     }
@@ -289,11 +293,26 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
         proceedOptimization();
         viewChannel = channel_result;
         updateViewerData();
-//        saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 0.5);
+        
+        if((iterNum < 10) || (iterNum % 10 == 0)) {
+            saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
+        }
+        
         if(converged) {
-            optimization_on = false;
-            viewer.core.is_animating = false;
-            std::cout << "optimization converged." << std::endl;
+            saveScreenshot(outputFolderPath + "homotopy_" + std::to_string(
+                dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms[1])->getSigmaParam()) + ".png", 1.0);
+            
+            if(autoHomotopy &&
+               dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms.back())->decreaseSigma())
+            {
+                optimizer->computeLastEnergyVal();
+                converged = false;
+            }
+            else {
+                optimization_on = false;
+                viewer.core.is_animating = false;
+                std::cout << "optimization converged." << std::endl;
+            }
         }
     }
     return false;
@@ -301,8 +320,57 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
 
 int main(int argc, char *argv[])
 {
+    int progMode = 0;
     if(argc > 1) {
-        outputFolderPath += argv[1];
+        progMode = std::stoi(argv[1]);
+    }
+    switch(progMode) {
+        case 0:
+            // optimization mode
+            std::cout << "Optimization mode" << std::endl;
+            break;
+            
+        case 1: {
+            // diagnostic mode
+            if(argc > 2) {
+                int diagMode = 0;
+                diagMode = std::stoi(argv[2]);
+                switch(diagMode) {
+                    case 0: {
+                        // compute SVD to a sparse matrix
+                        if(argc > 3) {
+                            Eigen::SparseMatrix<double> mtr;
+                            FracCuts::IglUtils::loadSparseMatrixFromFile(argv[3], mtr);
+                            Eigen::MatrixXd mtr_dense(mtr);
+                            Eigen::BDCSVD<Eigen::MatrixXd> svd(mtr_dense);
+                            std::cout << "singular values of mtr:" << std::endl << svd.singularValues() << std::endl;
+                            std::cout << "det(mtr) = " << mtr_dense.determinant() << std::endl;
+                        }
+                        else {
+                            std::cout << "Please enter matrix file path!" << std::endl;
+                        }
+                        break;
+                    }
+                        
+                    default:
+                        std::cout << "No diagMode " << diagMode << std::endl;
+                        break;
+                }
+            }
+            else {
+                std::cout << "Please enter diagMode!" << std::endl;
+            }
+            return 0;
+        }
+            
+        default: {
+            std::cout<< "Automatically enter optimization mode." << std::endl;
+            break;
+        }
+    }
+    
+    if(argc > 2) {
+        outputFolderPath += argv[2];
         if(outputFolderPath.back() != '/') {
             outputFolderPath += '/';
         }
@@ -355,10 +423,12 @@ int main(int argc, char *argv[])
     
     // * Our approach
     triSoup = FracCuts::TriangleSoup(V[0], F[0], UV[0]);
-    energyParams.emplace_back(1.0e0);
+//    triSoup.initRigidUV();
+    const double lambda = 0.2;
+    energyParams.emplace_back(1.0 - lambda);
 //    energyTerms.emplace_back(new FracCuts::ARAPEnergy());
     energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
-    energyParams.emplace_back(1.0e0);
+    energyParams.emplace_back(lambda);
     energyTerms.emplace_back(new FracCuts::SeparationEnergy(edgeLen * edgeLen, 8.0));
 //    energyTerms.back()->checkEnergyVal(triSoup);
 //    energyTerms.back()->checkGradient(triSoup);

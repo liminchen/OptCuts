@@ -100,46 +100,20 @@ namespace FracCuts {
                 int vI_pre = (vI + 2) % 3;
                 const Eigen::Vector2d vec = cotVals(triI, vI_pre) * ((targetRotMtr * (x[vI] - x[vI_post])) -
                     (u[vI] - u[vI_post])); // this makes the solve to give search direction rather than new configuration as in [Liu et al. 2008]
-                gradient.block(triVInd[vI] * 2, 0, 2, 1) += vec;
-                gradient.block(triVInd[vI_post] * 2, 0, 2, 1) -= vec;
+                gradient.block(triVInd[vI] * 2, 0, 2, 1) -= vec;
+                gradient.block(triVInd[vI_post] * 2, 0, 2, 1) += vec;
             }
+        }
+        
+        for(const auto fixedVI : data.fixedVert) {
+            gradient[2 * fixedVI] = 0.0;
+            gradient[2 * fixedVI + 1] = 0.0;
         }
     }
     
     void ARAPEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr) const
     {
-        Eigen::MatrixXd cotVals;
-        igl::cotmatrix_entries(data.V_rest, data.F, cotVals);
-        
-        precondMtr.resize(data.V.rows() * 2, data.V.rows() * 2);
-        precondMtr.setZero();
-        for(int triI = 0; triI < data.F.rows(); triI++)
-        {
-            const Eigen::Vector3i& triVInd = data.F.row(triI);
-            
-            const Eigen::Vector3d x_3D[3] = {
-                data.V_rest.row(triVInd[0]),
-                data.V_rest.row(triVInd[1]),
-                data.V_rest.row(triVInd[2])
-            };
-            Eigen::Vector2d x[3];
-            IglUtils::mapTriangleTo2D(x_3D, x);
-            
-            for(int vI = 0; vI < 3; vI++)
-            {
-                int vI_post = (vI + 1) % 3;
-                int vI_pre = (vI + 2) % 3;
-                
-                precondMtr.coeffRef(triVInd[vI] * 2, triVInd[vI] * 2) -= cotVals(triI, vI_pre);
-                precondMtr.coeffRef(triVInd[vI] * 2 + 1, triVInd[vI] * 2 + 1) -= cotVals(triI, vI_pre);
-                precondMtr.coeffRef(triVInd[vI_post] * 2, triVInd[vI_post] * 2) -= cotVals(triI, vI_pre);
-                precondMtr.coeffRef(triVInd[vI_post] * 2 + 1, triVInd[vI_post] * 2 + 1) -= cotVals(triI, vI_pre);
-                precondMtr.coeffRef(triVInd[vI] * 2, triVInd[vI_post] * 2) += cotVals(triI, vI_pre);
-                precondMtr.coeffRef(triVInd[vI] * 2 + 1, triVInd[vI_post] * 2 + 1) += cotVals(triI, vI_pre);
-                precondMtr.coeffRef(triVInd[vI_post] * 2, triVInd[vI] * 2) += cotVals(triI, vI_pre);
-                precondMtr.coeffRef(triVInd[vI_post] * 2 + 1, triVInd[vI] * 2 + 1) += cotVals(triI, vI_pre);
-            }
-        }
+        precondMtr = data.LaplacianMtr;
     }
     
     void ARAPEnergy::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const

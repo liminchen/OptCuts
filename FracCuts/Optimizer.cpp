@@ -8,6 +8,7 @@
 
 #include "Optimizer.hpp"
 #include "SymStretchEnergy.hpp"
+#include "IglUtils.hpp"
 
 #include <igl/avg_edge_length.h>
 
@@ -25,11 +26,14 @@ namespace FracCuts {
         assert(energyTerms.size() == energyParams.size());
         
         file_energyValPerIter.open(outputFolderPath + "energyValPerIter.txt");
+        file_gradientPerIter.open(outputFolderPath + "gradientPerIter.txt");
         
         if(!energyTerms[0]->checkInversion(data0))
         {
             std::cout << "***Warning: element inversion detected in initial configuration!" << std::endl;
         }
+        
+        globalIterNum = 0;
     }
     
     Optimizer::~Optimizer(void)
@@ -46,6 +50,10 @@ namespace FracCuts {
         return result;
     }
     
+    int Optimizer::getIterNum(void) const {
+        return globalIterNum;
+    }
+    
     void Optimizer::precompute(void)
     {
         computePrecondMtr(data0, precondMtr);
@@ -54,6 +62,7 @@ namespace FracCuts {
             assert(0 && "Cholesky decomposition failed!");
         }
         result = data0;
+        targetGRes = data0.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
         computeEnergyVal(result, lastEnergyVal);
         file_energyValPerIter << lastEnergyVal << std::endl;
         std::cout << "E_initial = " << lastEnergyVal << std::endl;
@@ -61,21 +70,24 @@ namespace FracCuts {
     
     bool Optimizer::solve(int maxIter)
     {
-        const double targetRes = data0.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
         for(int iterI = 0; iterI < maxIter; iterI++)
         {
             computeGradient(result, gradient);
             const double sqn_g = gradient.squaredNorm();
-            std::cout << "||gradient||^2 = " << sqn_g << ", targetRes = " << targetRes << std::endl;
-            if(sqn_g < targetRes) {
+            std::cout << "||gradient||^2 = " << sqn_g << ", targetGRes = " << targetGRes << std::endl;
+            file_gradientPerIter << sqn_g << std::endl;
+            if(sqn_g < targetGRes) {
                 // converged
+                globalIterNum++;
                 return true;
             }
             else {
                 if(solve_oneStep()) {
+                    globalIterNum++;
                     return true;
                 }
             }
+            globalIterNum++;
         }
         return false;
     }
@@ -86,6 +98,7 @@ namespace FracCuts {
         computePrecondMtr(result, precondMtr);
         cholSolver.compute(precondMtr);
         if(cholSolver.info() != Eigen::Success) {
+            IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_decomposeFailed", precondMtr);
             assert(0 && "Cholesky decomposition failed!");
         }
         
@@ -93,13 +106,17 @@ namespace FracCuts {
         if(cholSolver.info() != Eigen::Success) {
             assert(0 && "Cholesky solve failed!");
         }
-        return lineSearch();
+        
+        bool stopped = lineSearch();
+        if(stopped) {
+            IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_stopped_" + std::to_string(globalIterNum), precondMtr);
+        }
+        return stopped;
     }
     
     bool Optimizer::lineSearch(void)
     {
-        bool converged = false;
-        const double eps = 1.0e-12;
+        bool stopped = false;
         double stepSize = 1.0;
         initStepSize(result, stepSize);
         stepSize *= 0.99; // producing degenerated element is not allowed
@@ -109,6 +126,7 @@ namespace FracCuts {
         const double c1m = 1.0e-4 * m, c2m = 0.9 * m;
         TriangleSoup testingData = result;
         stepForward(testingData, stepSize);
+//        double stepLen = (stepSize * searchDir).squaredNorm();
         double testingE;
         Eigen::VectorXd testingG;
         computeEnergyVal(testingData, testingE);
@@ -119,8 +137,10 @@ namespace FracCuts {
 //        while(0)
         {
             stepSize /= 2.0;
-            if(stepSize < eps) {
-                converged = true;
+//            stepLen = (stepSize * searchDir).squaredNorm();
+//            if(stepLen < targetGRes) {
+            if(stepSize < 1e-12) {
+                stopped = true;
                 break;
             }
             
@@ -131,11 +151,12 @@ namespace FracCuts {
         lastEnergyVal = testingE;
         
         std::cout << stepSize << std::endl;
+        std::cout << "stepLen = " << (stepSize * searchDir).squaredNorm() << std::endl;
         std::cout << "E_cur = " << testingE << std::endl;
         
         file_energyValPerIter << lastEnergyVal << std::endl;
         
-        return converged;
+        return stopped;
     }
     
     void Optimizer::stepForward(TriangleSoup& data, double stepSize) const
@@ -197,8 +218,20 @@ namespace FracCuts {
             energyTerms[eI]->computePrecondMtr(data, precondMtrI);
             precondMtr += energyParams[eI] * precondMtrI;
         }
-        std::cout << "det(precondMtr) = " << Eigen::MatrixXd(precondMtr).determinant() << std::endl;
-//        logFile << precondMtr << std::endl;
+        
+//        Eigen::BDCSVD<Eigen::MatrixXd> svd((Eigen::MatrixXd(precondMtr)));
+//        logFile << "singular values of precondMtr_E:" << std::endl << svd.singularValues() << std::endl;
+//        double det = 1.0;
+//        for(int i = svd.singularValues().size() - 1; i >= 0; i--) {
+//            det *= svd.singularValues()[i];
+//        }
+//        std::cout << "det(precondMtr_E) = " << det << std::endl;
+        
+//        const double det = Eigen::MatrixXd(precondMtr).determinant();
+//        logFile << det << std::endl;
+//        if(det <= 1e-10) {
+//            std::cout << "***Warning: Indefinte hessian!" << std::endl;
+//        }
     }
     void Optimizer::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const
     {

@@ -27,7 +27,8 @@ namespace FracCuts {
         SeparationEnergy(double p_sigma_base, double p_sigma_param);
         
     public:
-        void decreaseSigma(void); // decrease sigma by half for homotopy optimization
+        bool decreaseSigma(void); // decrease sigma by half for homotopy optimization
+        double getSigmaParam(void) const;
         
     protected:
         double kernel(double t) const;

@@ -50,6 +50,10 @@ namespace FracCuts {
                 gradient.block(data.cohE(cohI, 3) * 2, 0, 2, 1) -= kG_bd * 2.0 * xbmd;
             }
         }
+        for(const auto fixedVI : data.fixedVert) {
+            gradient[2 * fixedVI] = 0.0;
+            gradient[2 * fixedVI + 1] = 0.0;
+        }
     }
     
     void SeparationEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr) const
@@ -83,23 +87,69 @@ namespace FracCuts {
                     0.0, -2.0, 0.0, 2.0;
                 
                 const double w = data.edgeLen[cohI];
-                
                 Eigen::MatrixXd hessian_ac;
                 hessian_ac.resize(4, 4);
                 const double sqn_xamc = xamc.squaredNorm();
-                hessian_ac = w * (kernelHessian(sqn_xamc) * dtddx_ac * dtddx_ac.transpose() +
+                hessian_ac = w * (//kernelHessian(sqn_xamc) * dtddx_ac * dtddx_ac.transpose() +
                                   kernelGradient(sqn_xamc) * dt2dd2x);
-                IglUtils::addBlockToMatrix(hessian, hessian_ac, Eigen::Vector2i(data.cohE(cohI, 0), data.cohE(cohI, 2)), 2);
-                
                 Eigen::MatrixXd hessian_bd;
                 hessian_bd.resize(4, 4);
                 const double sqn_xbmd = xamc.squaredNorm();
-                hessian_bd = w * (kernelHessian(sqn_xbmd) * dtddx_bd * dtddx_bd.transpose() +
+                hessian_bd = w * (//kernelHessian(sqn_xbmd) * dtddx_bd * dtddx_bd.transpose() +
                                   kernelGradient(sqn_xbmd) * dt2dd2x);
-                IglUtils::addBlockToMatrix(hessian, hessian_bd, Eigen::Vector2i(data.cohE(cohI, 1), data.cohE(cohI, 3)), 2);
+                
+                bool fixed[4];
+                for(int vI = 0; vI < 4; vI++) {
+                    fixed[vI] = (data.fixedVert.find(data.cohE(cohI, vI)) != data.fixedVert.end());
+                }
+                Eigen::VectorXi vInd;
+                vInd.resize(1);
+                if(fixed[0]) {
+                    if(!fixed[2]) {
+                        vInd[0] = data.cohE(cohI, 2);
+                        IglUtils::addBlockToMatrix(hessian, hessian_ac.block(2, 2, 2, 2), vInd, 1);
+                    }
+                }
+                else {
+                    if(fixed[2]) {
+                        vInd[0] = data.cohE(cohI, 0);
+                        IglUtils::addBlockToMatrix(hessian, hessian_ac.block(0, 0, 2, 2), vInd, 1);
+                    }
+                    else {
+                        IglUtils::addBlockToMatrix(hessian, hessian_ac, Eigen::Vector2i(data.cohE(cohI, 0), data.cohE(cohI, 2)), 2);
+                    }
+                }
+                
+                if(fixed[1]) {
+                    if(!fixed[3]) {
+                        vInd[0] = data.cohE(cohI, 3);
+                        IglUtils::addBlockToMatrix(hessian, hessian_bd.block(2, 2, 2, 2), vInd, 1);
+                    }
+                }
+                else {
+                    if(fixed[3]) {
+                        vInd[0] = data.cohE(cohI, 1);
+                        IglUtils::addBlockToMatrix(hessian, hessian_bd.block(0, 0, 2, 2), vInd, 1);
+                    }
+                    else {
+                        IglUtils::addBlockToMatrix(hessian, hessian_bd, Eigen::Vector2i(data.cohE(cohI, 1), data.cohE(cohI, 3)), 2);
+                    }
+                }
             }
         }
+        for(const auto fixedVI : data.fixedVert) {
+            hessian.insert(2 * fixedVI, 2 * fixedVI) = 1.0;
+            hessian.insert(2 * fixedVI + 1, 2 * fixedVI + 1) = 1.0;
+        }
         hessian.makeCompressed();
+        
+//        Eigen::BDCSVD<Eigen::MatrixXd> svd((Eigen::MatrixXd(hessian)));
+//        logFile << "singular values of hessian_ES:" << std::endl << svd.singularValues() << std::endl;
+//        double det = 1.0;
+//        for(int i = svd.singularValues().size() - 1; i >= 0; i--) {
+//            det *= svd.singularValues()[i];
+//        }
+//        std::cout << "det(hessian_ES) = " << det << std::endl;
     }
     
     void SeparationEnergy::checkEnergyVal(const TriangleSoup& data) const
@@ -113,17 +163,26 @@ namespace FracCuts {
         sigma = sigma_param * sigma_base;
     }
     
-    void SeparationEnergy::decreaseSigma(void)
+    bool SeparationEnergy::decreaseSigma(void)
     {
-        if(sigma_param > 1.0e-6) {
+        if(sigma_param > 1.0e-4) {
             sigma_param /= 2.0;
             sigma = sigma_param * sigma_base;
             std::cout << "sigma decreased to ";
+            std::cout << sigma_param << " * " << sigma_base << " = " << sigma << std::endl;
+            return true;
         }
         else {
             std::cout << "sigma stays at it's predefined minimum ";
+            std::cout << sigma_param << " * " << sigma_base << " = " << sigma << std::endl;
+            return false;
         }
-        std::cout << sigma_param << " * " << sigma_base << " = " << sigma << std::endl;
+        
+    }
+    
+    double SeparationEnergy::getSigmaParam(void) const
+    {
+        return sigma_param;
     }
     
     double SeparationEnergy::kernel(double t) const

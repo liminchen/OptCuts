@@ -24,6 +24,7 @@ namespace FracCuts {
         // E = \Sigma_i a_i E_i
         
     protected: // owned data
+        int globalIterNum;
         TriangleSoup result; // intermediate results of each iteration
         // constant precondition matrix for solving the linear system for search directions
         Eigen::SparseMatrix<double> precondMtr;
@@ -33,8 +34,10 @@ namespace FracCuts {
         Eigen::VectorXd gradient; // energy gradient computed in each iteration
         Eigen::VectorXd searchDir; // search direction comptued in each iteration
         double lastEnergyVal; // for output and line search
+        double targetGRes;
         
         std::ofstream file_energyValPerIter;
+        std::ofstream file_gradientPerIter;
         
     public: // constructor and destructor
         Optimizer(const TriangleSoup& p_data0, const std::vector<Energy*>& p_energyTerms, const std::vector<double>& p_energyParams);
@@ -52,6 +55,7 @@ namespace FracCuts {
         
         void getGradientVisual(Eigen::MatrixXd& arrowVec) const;
         const TriangleSoup& getResult(void) const;
+        int getIterNum(void) const;
         
     protected: // helper functions
         // solve for new configuration in the next iteration
