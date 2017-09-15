@@ -36,6 +36,7 @@ std::vector<FracCuts::Energy*> energyTerms;
 std::vector<double> energyParams;
 bool converged = false;
 bool autoHomotopy = true;
+std::ofstream homoTransFile;
 
 std::ofstream logFile;
 std::string outputFolderPath = "/Users/mincli/Desktop/output_FracCuts/";
@@ -219,6 +220,8 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                     }
                     else {
                         if(iterNum == 0) {
+                            homoTransFile.open(outputFolderPath + "homotopyTransition.txt");
+                            assert(homoTransFile.is_open());
                             saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 0.5);
                         }
                         std::cout << "start/resume optimization, press again to pause." << std::endl;
@@ -305,6 +308,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
             if(autoHomotopy &&
                dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms.back())->decreaseSigma())
             {
+                homoTransFile << iterNum << std::endl;
                 optimizer->computeLastEnergyVal();
                 converged = false;
             }
@@ -312,6 +316,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                 optimization_on = false;
                 viewer.core.is_animating = false;
                 std::cout << "optimization converged." << std::endl;
+                homoTransFile.close();
             }
         }
     }
@@ -422,14 +427,15 @@ int main(int argc, char *argv[])
 //    arap_solve(bc, arap_data, UV[0]);
     
     // * Our approach
-    triSoup = FracCuts::TriangleSoup(V[0], F[0], UV[0]);
+//    triSoup = FracCuts::TriangleSoup(V[0], F[0], UV[0]);
+    triSoup = FracCuts::TriangleSoup(FracCuts::Primitive::P_CYLINDER, 1.0, 1.0);
 //    triSoup.initRigidUV();
-    const double lambda = 0.2;
+    const double lambda = 0.01;
     energyParams.emplace_back(1.0 - lambda);
 //    energyTerms.emplace_back(new FracCuts::ARAPEnergy());
     energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
     energyParams.emplace_back(lambda);
-    energyTerms.emplace_back(new FracCuts::SeparationEnergy(edgeLen * edgeLen, 8.0));
+    energyTerms.emplace_back(new FracCuts::SeparationEnergy(edgeLen * edgeLen, 256.0));
 //    energyTerms.back()->checkEnergyVal(triSoup);
 //    energyTerms.back()->checkGradient(triSoup);
 //    energyTerms.back()->checkHessian(triSoup);

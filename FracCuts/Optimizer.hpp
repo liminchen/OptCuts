@@ -35,6 +35,8 @@ namespace FracCuts {
         Eigen::VectorXd searchDir; // search direction comptued in each iteration
         double lastEnergyVal; // for output and line search
         double targetGRes;
+        std::vector<Eigen::VectorXd> gradient_ET;
+        std::vector<double> energyVal_ET;
         
         std::ofstream file_energyValPerIter;
         std::ofstream file_gradientPerIter;
@@ -66,8 +68,8 @@ namespace FracCuts {
 
         void stepForward(TriangleSoup& data, double stepSize) const;
         
-        void computeEnergyVal(const TriangleSoup& data, double& energyVal) const;
-        void computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const;
+        void computeEnergyVal(const TriangleSoup& data, double& energyVal);
+        void computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient);
         void computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr) const;
         void computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const;
         

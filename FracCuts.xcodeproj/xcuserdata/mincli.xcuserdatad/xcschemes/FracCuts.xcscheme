@@ -67,11 +67,19 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 cmH1000_tutte_SD"
+            argument = "0 cone_tutte_0.1"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 cmH1000_tutte_0.2_8.0_modifiedSH"
+            argument = "0 cylinder"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 cmH1000_tutte_SD"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 cmH1000_tutte_0.2_8.0"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument

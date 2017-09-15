@@ -25,6 +25,9 @@ namespace FracCuts {
     {
         assert(energyTerms.size() == energyParams.size());
         
+        gradient_ET.resize(energyTerms.size());
+        energyVal_ET.resize(energyTerms.size());
+        
         file_energyValPerIter.open(outputFolderPath + "energyValPerIter.txt");
         file_gradientPerIter.open(outputFolderPath + "gradientPerIter.txt");
         
@@ -64,7 +67,11 @@ namespace FracCuts {
         result = data0;
         targetGRes = data0.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
         computeEnergyVal(result, lastEnergyVal);
-        file_energyValPerIter << lastEnergyVal << std::endl;
+        file_energyValPerIter << lastEnergyVal;
+        for(int eI = 0; eI < energyTerms.size(); eI++) {
+            file_energyValPerIter << " " << energyVal_ET[eI];
+        }
+        file_energyValPerIter << std::endl;
         std::cout << "E_initial = " << lastEnergyVal << std::endl;
     }
     
@@ -75,7 +82,11 @@ namespace FracCuts {
             computeGradient(result, gradient);
             const double sqn_g = gradient.squaredNorm();
             std::cout << "||gradient||^2 = " << sqn_g << ", targetGRes = " << targetGRes << std::endl;
-            file_gradientPerIter << sqn_g << std::endl;
+            file_gradientPerIter << sqn_g;
+            for(int eI = 0; eI < energyTerms.size(); eI++) {
+                file_gradientPerIter << " " << gradient_ET[eI].squaredNorm();
+            }
+            file_gradientPerIter << std::endl;
             if(sqn_g < targetGRes) {
                 // converged
                 globalIterNum++;
@@ -154,7 +165,11 @@ namespace FracCuts {
         std::cout << "stepLen = " << (stepSize * searchDir).squaredNorm() << std::endl;
         std::cout << "E_cur = " << testingE << std::endl;
         
-        file_energyValPerIter << lastEnergyVal << std::endl;
+        file_energyValPerIter << lastEnergyVal;
+        for(int eI = 0; eI < energyTerms.size(); eI++) {
+            file_energyValPerIter << " " << energyVal_ET[eI];
+        }
+        file_energyValPerIter << std::endl;
         
         return stopped;
     }
@@ -189,24 +204,26 @@ namespace FracCuts {
         }
     }
     
-    void Optimizer::computeEnergyVal(const TriangleSoup& data, double& energyVal) const
+    void Optimizer::computeEnergyVal(const TriangleSoup& data, double& energyVal)
     {
-        energyTerms[0]->computeEnergyVal(data, energyVal);
-        energyVal *= energyParams[0];
+        energyTerms[0]->computeEnergyVal(data, energyVal_ET[0]);
+        energyVal_ET[0] *= energyParams[0];
+        energyVal = energyVal_ET[0];
         for(int eI = 1; eI < energyTerms.size(); eI++) {
-            double energyValI;
-            energyTerms[eI]->computeEnergyVal(data, energyValI);
-            energyVal += energyParams[eI] * energyValI;
+            energyTerms[eI]->computeEnergyVal(data, energyVal_ET[eI]);
+            energyVal_ET[eI] *= energyParams[eI];
+            energyVal += energyVal_ET[eI];
         }
     }
-    void Optimizer::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const
+    void Optimizer::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient)
     {
-        energyTerms[0]->computeGradient(data, gradient);
-        gradient *= energyParams[0];
+        energyTerms[0]->computeGradient(data, gradient_ET[0]);
+        gradient_ET[0] *= energyParams[0];
+        gradient = gradient_ET[0];
         for(int eI = 1; eI < energyTerms.size(); eI++) {
-            Eigen::VectorXd gradientI;
-            energyTerms[eI]->computeGradient(data, gradientI);
-            gradient += energyParams[eI] * gradientI;
+            energyTerms[eI]->computeGradient(data, gradient_ET[eI]);
+            gradient_ET[eI] *= energyParams[eI];
+            gradient += gradient_ET[eI];
         }
     }
     void Optimizer::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr) const

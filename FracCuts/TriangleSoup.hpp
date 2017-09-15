@@ -17,7 +17,8 @@ namespace FracCuts{
     
     enum Primitive
     {
-        P_SQUARE
+        P_SQUARE,
+        P_CYLINDER
     };
     
     // duplicate the vertices and edges of a mesh to separate its triangles,
