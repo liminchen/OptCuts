@@ -100,7 +100,7 @@ namespace FracCuts {
         color.resize(scalar.size(), 3);
         for(int elemI = 0; elemI < scalar.size(); elemI++)
         {
-            const double s = ((scalar[elemI] > 1.0e-1) ? 1.0 : 0.0);
+            const double s = ((scalar[elemI] > 1.0e-2) ? 1.0 : 0.0);
             color.row(elemI) = Eigen::RowVector3d(1.0 - s, 1.0 - s, 1.0 - s);
         }
     }

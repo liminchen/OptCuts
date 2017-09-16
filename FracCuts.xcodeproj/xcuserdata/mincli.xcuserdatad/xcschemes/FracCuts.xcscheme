@@ -63,16 +63,20 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = ""
+            argument = "0 sphere_rigid_0.01_256 sphere.obj"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 cone_tutte_0.1"
+            argument = "0 sphere_rigid_0.01_256_count sphere.obj"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 cone1.0_tutte_0.1_16 cone1.0.obj"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 cylinder"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 cmH1000_tutte_SD"

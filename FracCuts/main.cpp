@@ -40,6 +40,7 @@ std::ofstream homoTransFile;
 
 std::ofstream logFile;
 std::string outputFolderPath = "/Users/mincli/Desktop/output_FracCuts/";
+std::string meshFolder = "/Users/mincli/Desktop/meshes/";
 
 // visualization
 igl::viewer::Viewer viewer;
@@ -382,34 +383,50 @@ int main(int argc, char *argv[])
     }
     logFile.open(outputFolderPath + "log.txt");
     
-    // Load a mesh in OFF format
+    std::string meshPath = TUTORIAL_SHARED_PATH "/camelhead_f1000.off";
+    if(argc > 3) {
+        meshPath = meshFolder + std::string(argv[3]);
+    }
+    
+    // Load a mesh
     V.resize(V.size() + 1);
     F.resize(F.size() + 1);
     E.resize(E.size() + 1);
-    igl::readOFF(TUTORIAL_SHARED_PATH "/camelhead_f1000.off", V[0], F[0]);
+    const std::string suffix = meshPath.substr(meshPath.find_last_of('.'));
+    if(suffix == ".off") {
+        igl::readOFF(meshPath, V[0], F[0]);
+    }
+    else if(suffix == ".obj") {
+        igl::readOBJ(meshPath, V[0], F[0]);
+    }
+    else {
+        std::cout << "unkown mesh file format!" << std::endl;
+        return -1;
+    }
 //    FracCuts::TriangleSoup squareMesh(FracCuts::Primitive::P_SQUARE, 1.0, 0.1, false);
 //    V[0] = squareMesh.V_rest;
 //    F[0] = squareMesh.F;
     const double edgeLen = igl::avg_edge_length(V[0], F[0]);
+    UV.resize(UV.size() + 1);
     
     // Harmonic map
     // Find the open boundary
     Eigen::VectorXi bnd;
     igl::boundary_loop(F[0], bnd);
-    
-    // Map the boundary to a circle, preserving edge proportions
-    Eigen::MatrixXd bnd_uv;
-    igl::map_vertices_to_circle(V[0], bnd, bnd_uv);
-    
-//    // * Harmonic parametrization for the internal vertices
-//    UV.resize(UV.size() + 1);
-//    igl::harmonic(V[0], F[0], bnd, bnd_uv, 1, UV[0]);
-    
-    // * Harmonic map with uniform weights
-    Eigen::SparseMatrix<double> A, M;
-    FracCuts::IglUtils::computeUniformLaplacian(F[0], A);
-    UV.resize(UV.size() + 1);
-    igl::harmonic(A, M, bnd, bnd_uv, 1, UV[0]);
+    if(bnd.size()) {
+        // Map the boundary to a circle, preserving edge proportions
+        Eigen::MatrixXd bnd_uv;
+        igl::map_vertices_to_circle(V[0], bnd, bnd_uv);
+        
+    //    // * Harmonic parametrization for the internal vertices
+    //    UV.resize(UV.size() + 1);
+    //    igl::harmonic(V[0], F[0], bnd, bnd_uv, 1, UV[0]);
+        
+        // * Harmonic map with uniform weights
+        Eigen::SparseMatrix<double> A, M;
+        FracCuts::IglUtils::computeUniformLaplacian(F[0], A);
+        igl::harmonic(A, M, bnd, bnd_uv, 1, UV[0]);
+    }
     
 //    // * ARAP
 //    igl::ARAPData arap_data;
@@ -427,15 +444,15 @@ int main(int argc, char *argv[])
 //    arap_solve(bc, arap_data, UV[0]);
     
     // * Our approach
-//    triSoup = FracCuts::TriangleSoup(V[0], F[0], UV[0]);
-    triSoup = FracCuts::TriangleSoup(FracCuts::Primitive::P_CYLINDER, 1.0, 1.0);
+    triSoup = FracCuts::TriangleSoup(V[0], F[0], UV[0]);
+//    triSoup = FracCuts::TriangleSoup(FracCuts::Primitive::P_CYLINDER, 1.0, 1.0);
 //    triSoup.initRigidUV();
-    const double lambda = 0.01;
+    const double lambda = 0.1;
     energyParams.emplace_back(1.0 - lambda);
 //    energyTerms.emplace_back(new FracCuts::ARAPEnergy());
     energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
     energyParams.emplace_back(lambda);
-    energyTerms.emplace_back(new FracCuts::SeparationEnergy(edgeLen * edgeLen, 256.0));
+    energyTerms.emplace_back(new FracCuts::SeparationEnergy(edgeLen * edgeLen, 16.0));
 //    energyTerms.back()->checkEnergyVal(triSoup);
 //    energyTerms.back()->checkGradient(triSoup);
 //    energyTerms.back()->checkHessian(triSoup);

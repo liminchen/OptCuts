@@ -256,6 +256,12 @@ namespace FracCuts {
             e0dote1[triI] = P2m1.dot(P3m1);
         }
         avgEdgeLen = igl::avg_edge_length(V_rest, F);
+        
+//        //!! for edge count minimization of separation energy
+//        for(int cohI = 0; cohI < cohE.rows(); cohI++)
+//        {
+//            edgeLen[cohI] = avgEdgeLen;
+//        }
     }
     
     void TriangleSoup::computeSeamScore(Eigen::VectorXd& seamScore) const

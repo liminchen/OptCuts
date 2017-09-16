@@ -89,6 +89,11 @@ namespace FracCuts {
             file_gradientPerIter << std::endl;
             if(sqn_g < targetGRes) {
                 // converged
+                file_energyValPerIter << lastEnergyVal;
+                for(int eI = 0; eI < energyTerms.size(); eI++) {
+                    file_energyValPerIter << " " << energyVal_ET[eI];
+                }
+                file_energyValPerIter << std::endl;
                 globalIterNum++;
                 return true;
             }
