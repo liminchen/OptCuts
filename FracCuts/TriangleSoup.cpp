@@ -11,6 +11,7 @@
 
 #include <igl/cotmatrix.h>
 #include <igl/avg_edge_length.h>
+#include <igl/writeOBJ.h>
 
 #include <fstream>
 
@@ -262,6 +263,20 @@ namespace FracCuts {
 //        {
 //            edgeLen[cohI] = avgEdgeLen;
 //        }
+        
+        bbox.block(0, 0, 1, 3) = V_rest.row(0);
+        bbox.block(1, 0, 1, 3) = V_rest.row(0);
+        for(int vI = 1; vI < V_rest.rows(); vI++) {
+            const Eigen::RowVector3d& v = V_rest.row(vI);
+            for(int dimI = 0; dimI < 3; dimI++) {
+                if(v[dimI] < bbox(0, dimI)) {
+                    bbox(0, dimI) = v[dimI];
+                }
+                if(v[dimI] > bbox(1, dimI)) {
+                    bbox(1, dimI) = v[dimI];
+                }
+            }
+        }
     }
     
     void TriangleSoup::computeSeamScore(Eigen::VectorXd& seamScore) const
@@ -270,7 +285,7 @@ namespace FracCuts {
         for(int cohI = 0; cohI < cohE.rows(); cohI++)
         {
             if(boundaryEdge[cohI]) {
-                seamScore[cohI] = 0.0;
+                seamScore[cohI] = -1.0;
             }
             else {
                 seamScore[cohI] = std::max((V.row(cohE(cohI, 0)) - V.row(cohE(cohI, 2))).norm(),
@@ -298,6 +313,32 @@ namespace FracCuts {
             V.row(triVInd[1]) = x[1];
             V.row(triVInd[2]) = x[2];
         }
+    }
+    
+    void TriangleSoup::save(const std::string& filePath) const
+    {
+        std::ofstream out;
+        out.open(filePath);
+        assert(out.is_open());
+        
+        for(int vI = 0; vI < V_rest.rows(); vI++) {
+            const Eigen::RowVector3d& v = V_rest.row(vI);
+            out << "v " << v[0] << " " << v[1] << " " << v[2] << std::endl;
+        }
+        
+        for(int vI = 0; vI < V.rows(); vI++) {
+            const Eigen::RowVector2d& uv = V.row(vI);
+            out << "vt " << uv[0] << " " << uv[1] << std::endl;
+        }
+        
+        for(int triI = 0; triI < F.rows(); triI++) {
+            const Eigen::RowVector3i& tri = F.row(triI);
+            out << "f " << tri[0] + 1 << "/" << tri[0] + 1 <<
+                " " << tri[1] + 1 << "/" << tri[1] + 1 <<
+                " " << tri[2] + 1 << "/" << tri[2] + 1 << std::endl;
+        }
+        
+        out.close();
     }
     
 }

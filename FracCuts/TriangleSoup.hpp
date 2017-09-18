@@ -41,6 +41,7 @@ namespace FracCuts{
         Eigen::VectorXd e0SqLen, e1SqLen; // triangle edge rest squared length
         double avgEdgeLen;
         std::set<int> fixedVert; // for linear solve
+        Eigen::Matrix<double, 2, 3> bbox;
 //        Eigen::MatrixXd cotVals; // cotangent values of rest triangle corners
         
     public: // constructor
@@ -60,6 +61,8 @@ namespace FracCuts{
         void computeSeamScore(Eigen::VectorXd& seamScore) const;
         
         void initRigidUV(void);
+        
+        void save(const std::string& filePath) const;
     };
     
 }

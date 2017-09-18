@@ -95,13 +95,20 @@ namespace FracCuts {
             splitRGB(colorMap[1][99], rgb);
         }
     }
-    void IglUtils::mapScalarToColor_bin(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color)
+    void IglUtils::mapScalarToColor_bin(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color, double thres)
     {
+        assert(thres > 0.0);
         color.resize(scalar.size(), 3);
         for(int elemI = 0; elemI < scalar.size(); elemI++)
         {
-            const double s = ((scalar[elemI] > 1.0e-2) ? 1.0 : 0.0);
-            color.row(elemI) = Eigen::RowVector3d(1.0 - s, 1.0 - s, 1.0 - s);
+            if(scalar[elemI] < 0.0) {
+                // boundary edge
+                color.row(elemI) = Eigen::RowVector3d(0.0, 0.2, 0.8);
+            }
+            else {
+                const double s = ((scalar[elemI] > thres) ? 1.0 : 0.0);
+                color.row(elemI) = Eigen::RowVector3d(1.0 - s, 1.0 - s, 1.0 - s);
+            }
         }
     }
     void IglUtils::mapScalarToColor(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color, double lowerBound, double upperBound)
@@ -184,6 +191,29 @@ namespace FracCuts {
         }
         else {
             std::cout << "loadSparseMatrixToFile failed! file open error!" << std::endl;
+        }
+    }
+    
+    const std::string IglUtils::rtos(double real)
+    {
+        std::string str_real = std::to_string(real);
+        size_t pointPos = str_real.find_last_of('.');
+        if(pointPos == std::string::npos) {
+            return str_real;
+        }
+        else {
+            const char* str = str_real.c_str();
+            size_t cI = str_real.length() - 1;
+            while((cI > pointPos) && (str[cI] == '0')) {
+                cI--;
+            }
+            
+            if(cI == pointPos) {
+                return str_real.substr(0, pointPos);
+            }
+            else {
+                return str_real.substr(0, cI + 1);
+            }
         }
     }
     

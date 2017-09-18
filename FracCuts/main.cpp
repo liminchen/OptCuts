@@ -13,45 +13,38 @@
 #include <igl/viewer/Viewer.h>
 #include <igl/png/writePNG.h>
 
+#include <sys/stat.h> // for mkdir
+
 #include <fstream>
 #include <string>
 
-#ifndef TUTORIAL_SHARED_PATH
-#define TUTORIAL_SHARED_PATH "/Users/mincli/Documents/libigl/tutorial/shared"
-#endif
-
-
-// mesh
-std::vector<Eigen::MatrixXd> V;
-std::vector<Eigen::MatrixXi> F;
-std::vector<Eigen::MatrixXd> UV;
-std::vector<Eigen::MatrixXi> E; //!! change to triSoup
 
 // optimization
-FracCuts::TriangleSoup triSoup;
+std::vector<const FracCuts::TriangleSoup*> triSoup;
 FracCuts::Optimizer* optimizer;
-bool optimization_on = false;
-int iterNum = 0;
 std::vector<FracCuts::Energy*> energyTerms;
 std::vector<double> energyParams;
+bool optimization_on = false;
+int iterNum = 0;
 bool converged = false;
 bool autoHomotopy = true;
 std::ofstream homoTransFile;
 
 std::ofstream logFile;
 std::string outputFolderPath = "/Users/mincli/Desktop/output_FracCuts/";
-std::string meshFolder = "/Users/mincli/Desktop/meshes/";
+const std::string meshFolder = "/Users/mincli/Desktop/meshes/";
 
 // visualization
 igl::viewer::Viewer viewer;
 const int channel_initial = 0;
 const int channel_result = 1;
 int viewChannel = channel_result;
-bool viewUV = true;
-const double texScale = 20.0;
+bool viewUV = true; // view UV or 3D model
+double texScale = 1.0;
 bool showSeam = true;
+bool showBoundary = false;
 bool showDistortion = true;
-bool showTexture = true;
+bool showTexture = true; // show checkerboard
 bool isLighting = false;
 
 
@@ -59,73 +52,86 @@ void proceedOptimization(void)
 {
     std::cout << "Iteration" << iterNum << ":" << std::endl;
     converged = optimizer->solve(1);
-    UV[channel_result] = optimizer->getResult().V * texScale;
     iterNum = optimizer->getIterNum();
+}
+
+void updateViewerData_seam(const Eigen::MatrixXd& V)
+{
+    if(showSeam) {
+        const double seamDistThres = 1.0e-2;
+        
+        viewer.core.show_lines = false;
+        Eigen::VectorXd seamScore;
+        triSoup[viewChannel]->computeSeamScore(seamScore);
+        Eigen::MatrixXd color;
+        FracCuts::IglUtils::mapScalarToColor_bin(seamScore, color, seamDistThres);
+        viewer.data.set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
+        for(int eI = 0; eI < triSoup[viewChannel]->cohE.rows(); eI++) {
+            if(seamScore[eI] > seamDistThres) {
+                viewer.data.add_edges(V.row(triSoup[viewChannel]->cohE.row(eI)[0]),
+                    V.row(triSoup[viewChannel]->cohE.row(eI)[1]), color.row(eI));
+                if(triSoup[viewChannel]->cohE.row(eI)[2] >= 0) {
+                    viewer.data.add_edges(V.row(triSoup[viewChannel]->cohE.row(eI)[2]),
+                        V.row(triSoup[viewChannel]->cohE.row(eI)[3]), color.row(eI));
+                }
+            }
+            else if((seamScore[eI] < 0.0) && showBoundary) {
+                viewer.data.add_edges(V.row(triSoup[viewChannel]->cohE.row(eI)[0]),
+                    V.row(triSoup[viewChannel]->cohE.row(eI)[1]), color.row(eI));
+            }
+        }
+    }
+    else {
+        viewer.core.show_lines = true;
+        viewer.data.set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
+    }
+}
+
+void updateViewerData_distortion(void)
+{
+    if(showDistortion) {
+        Eigen::VectorXd distortionPerElem;
+        energyTerms[0]->getEnergyValPerElem(*triSoup[viewChannel], distortionPerElem, true);
+        Eigen::MatrixXd color_distortionVis;
+        FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 6.0);
+        viewer.data.set_colors(color_distortionVis);
+    }
+    else {
+        viewer.data.set_colors(Eigen::RowVector3d(1.0, 1.0, 0.0));
+    }
 }
 
 void updateViewerData(void)
 {
     if(viewUV) {
-        if((UV[viewChannel].rows() != viewer.data.V.rows()) ||
-           (F[viewChannel].rows() != viewer.data.F.rows()))
+        if((triSoup[viewChannel]->V.rows() != viewer.data.V.rows()) ||
+           (triSoup[viewChannel]->F.rows() != viewer.data.F.rows()))
         {
             viewer.data.clear();
         }
-        viewer.data.set_mesh(UV[viewChannel], F[viewChannel]);
+        const Eigen::MatrixXd UV_vis = triSoup[viewChannel]->V * texScale;
+        viewer.data.set_mesh(UV_vis, triSoup[viewChannel]->F);
 //        viewer.core.align_camera_center(UV[0], F[0]);
-        viewer.core.align_camera_center(UV[viewChannel], F[viewChannel]);
+        viewer.core.align_camera_center(UV_vis, triSoup[viewChannel]->F);
+        
         viewer.core.show_texture = false;
         viewer.core.lighting_factor = 0.0;
-        
-        if(showDistortion) {
-            Eigen::VectorXd distortionPerElem;
-            energyTerms[0]->getEnergyValPerElem(optimizer->getResult(), distortionPerElem, true);
-            Eigen::MatrixXd color_distortionVis;
-            FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 6.0);
-            viewer.data.set_colors(color_distortionVis);
-        }
-        else {
-            viewer.data.set_colors(Eigen::RowVector3d(1.0, 1.0, 0.0));
-        }
-        
-        if(showSeam) {
-            viewer.core.show_lines = false;
-            Eigen::MatrixXd UV_3D(UV[viewChannel].rows(), 3);
-            UV_3D << UV[viewChannel], Eigen::VectorXd::Zero(UV[viewChannel].rows());
-            Eigen::VectorXd seamScore;
-            optimizer->getResult().computeSeamScore(seamScore);
-            Eigen::MatrixXd color;
-            FracCuts::IglUtils::mapScalarToColor_bin(seamScore, color);
-            viewer.data.set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
-            for(int eI = 0; eI < E[viewChannel].rows(); eI++) {
-                if(seamScore[eI] > 1e-1) {
-                    viewer.data.add_edges(UV_3D.row(E[viewChannel].row(eI)[0]),
-                        UV_3D.row(E[viewChannel].row(eI)[1]), color.row(eI));
-                    if(E[viewChannel].row(eI)[2] >= 0) {
-                        viewer.data.add_edges(UV_3D.row(E[viewChannel].row(eI)[2]),
-                            UV_3D.row(E[viewChannel].row(eI)[3]), color.row(eI));
-                    }
-                }
-            }
-        }
-        else {
-            viewer.core.show_lines = true;
-            viewer.data.set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
-        }
+
+        updateViewerData_seam(UV_vis);
     }
     else {
-        if((V[viewChannel].rows() != viewer.data.V.rows()) ||
-           (UV[viewChannel].rows() != viewer.data.V_uv.rows()) ||
-           (F[viewChannel].rows() != viewer.data.F.rows()))
+        if((triSoup[viewChannel]->V_rest.rows() != viewer.data.V.rows()) ||
+           (triSoup[viewChannel]->V.rows() != viewer.data.V_uv.rows()) ||
+           (triSoup[viewChannel]->F.rows() != viewer.data.F.rows()))
         {
             viewer.data.clear();
         }
-        viewer.data.set_mesh(V[viewChannel], F[viewChannel]);
+        viewer.data.set_mesh(triSoup[viewChannel]->V_rest, triSoup[viewChannel]->F);
 //        viewer.core.align_camera_center(V[0], F[0]);
-        viewer.core.align_camera_center(V[viewChannel], F[viewChannel]);
+        viewer.core.align_camera_center(triSoup[viewChannel]->V_rest, triSoup[viewChannel]->F);
         
         if(showTexture) {
-            viewer.data.set_uv(UV[viewChannel]);
+            viewer.data.set_uv(triSoup[viewChannel]->V);
             viewer.core.show_texture = true;
         }
         else {
@@ -139,40 +145,9 @@ void updateViewerData(void)
             viewer.core.lighting_factor = 0.0;
         }
         
-        if(showDistortion) {
-            Eigen::VectorXd distortionPerElem;
-            energyTerms[0]->getEnergyValPerElem(optimizer->getResult(), distortionPerElem, true);
-            Eigen::MatrixXd color_distortionVis;
-            FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 6.0);
-            viewer.data.set_colors(color_distortionVis);
-        }
-        else {
-            viewer.data.set_colors(Eigen::RowVector3d(1.0, 1.0, 0.0));
-        }
-        
-        if(showSeam) {
-            viewer.core.show_lines = false;
-            Eigen::VectorXd seamScore;
-            optimizer->getResult().computeSeamScore(seamScore);
-            Eigen::MatrixXd color;
-            FracCuts::IglUtils::mapScalarToColor_bin(seamScore, color);
-            viewer.data.set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
-            for(int eI = 0; eI < E[viewChannel].rows(); eI++) {
-                if(seamScore[eI] > 1e-1) {
-                    viewer.data.add_edges(V[viewChannel].row(E[viewChannel].row(eI)[0]),
-                        V[viewChannel].row(E[viewChannel].row(eI)[1]), color.row(eI));
-                    if(E[viewChannel].row(eI)[2] >= 0) {
-                        viewer.data.add_edges(V[viewChannel].row(E[viewChannel].row(eI)[2]),
-                            V[viewChannel].row(E[viewChannel].row(eI)[3]), color.row(eI));
-                    }
-                }
-            }
-        }
-        else {
-            viewer.core.show_lines = true;
-            viewer.data.set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
-        }
+        updateViewerData_seam(triSoup[viewChannel]->V_rest);
     }
+    updateViewerData_distortion();
     
     viewer.data.compute_normals();
 }
@@ -199,7 +174,7 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
 {
     if((key >= '0') && (key <= '9')) {
         int changeToChannel = key - '0';
-        if((changeToChannel < V.size()) && (viewChannel != changeToChannel)) {
+        if((changeToChannel < triSoup.size()) && (viewChannel != changeToChannel)) {
             viewChannel = changeToChannel;
         }
     }
@@ -223,7 +198,7 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                         if(iterNum == 0) {
                             homoTransFile.open(outputFolderPath + "homotopyTransition.txt");
                             assert(homoTransFile.is_open());
-                            saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 0.5);
+                            saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
                         }
                         std::cout << "start/resume optimization, press again to pause." << std::endl;
                         viewer.core.is_animating = true;
@@ -245,6 +220,12 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
             case 's':
             case 'S': {
                 showSeam = !showSeam;
+                break;
+            }
+                
+            case 'e':
+            case 'E': {
+                showBoundary = !showBoundary;
                 break;
             }
                 
@@ -276,7 +257,7 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                 
             case 'o':
             case 'O': {
-                saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 0.5);
+                saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
                 break;
             }
                 
@@ -305,6 +286,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
         if(converged) {
             saveScreenshot(outputFolderPath + "homotopy_" + std::to_string(
                 dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms[1])->getSigmaParam()) + ".png", 1.0);
+            triSoup[channel_result]->save(outputFolderPath + "homotopy_" + std::to_string(
+                dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms[1])->getSigmaParam()) + ".obj");
             
             if(autoHomotopy &&
                dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms.back())->decreaseSigma())
@@ -369,63 +352,155 @@ int main(int argc, char *argv[])
             return 0;
         }
             
+        case 2: {
+            // mesh processing mode
+            if(argc > 2) {
+                int procMode = 0;
+                procMode = std::stoi(argv[2]);
+                switch(procMode) {
+                    case 0: {
+                        // invert normal of a mesh
+                        if(argc > 3) {
+                            Eigen::MatrixXd V;
+                            Eigen::MatrixXi F;
+                            std::string meshPath = meshFolder + std::string(argv[3]);
+                            const std::string suffix = meshPath.substr(meshPath.find_last_of('.'));
+                            if(suffix == ".off") {
+                                igl::readOFF(meshPath, V, F);
+                            }
+                            else if(suffix == ".obj") {
+                                igl::readOBJ(meshPath, V, F);
+                            }
+                            else {
+                                std::cout << "unkown mesh file format!" << std::endl;
+                                return -1;
+                            }
+                            
+                            for(int triI = 0; triI < F.rows(); triI++) {
+                                const Eigen::RowVector3i temp = F.row(triI);
+                                F(triI, 1) = temp[2];
+                                F(triI, 2) = temp[1];
+                            }
+                            igl::writeOBJ(meshFolder + "processedMesh.obj", V, F);
+                        }
+                        else {
+                            std::cout << "Please enter mesh file path!" << std::endl;
+                        }
+                        break;
+                    }
+                        
+                    default:
+                        std::cout << "No procMode " << procMode << std::endl;
+                        break;
+                }
+            }
+            else {
+                std::cout << "Please enter procMode!" << std::endl;
+            }
+            return 0;
+        }
+            
         default: {
-            std::cout<< "Automatically enter optimization mode." << std::endl;
-            break;
+            std::cout<< "No progMode " << progMode << std::endl;
+            return 0;
         }
     }
     
+    // Optimization mode
+    
+    std::string meshFileName("cone2.0.obj");
     if(argc > 2) {
-        outputFolderPath += argv[2];
-        if(outputFolderPath.back() != '/') {
-            outputFolderPath += '/';
-        }
+        meshFileName = std::string(argv[2]);
     }
-    logFile.open(outputFolderPath + "log.txt");
-    
-    std::string meshPath = TUTORIAL_SHARED_PATH "/camelhead_f1000.off";
-    if(argc > 3) {
-        meshPath = meshFolder + std::string(argv[3]);
-    }
-    
-    // Load a mesh
-    V.resize(V.size() + 1);
-    F.resize(F.size() + 1);
-    E.resize(E.size() + 1);
-    const std::string suffix = meshPath.substr(meshPath.find_last_of('.'));
+    std::string meshFilePath = meshFolder + meshFileName;
+    std::string meshName = meshFileName.substr(0, meshFileName.find_last_of('.'));
+    // Load mesh
+    Eigen::MatrixXd V;
+    Eigen::MatrixXi F;
+    const std::string suffix = meshFilePath.substr(meshFilePath.find_last_of('.'));
+    bool loadSucceed = false;
     if(suffix == ".off") {
-        igl::readOFF(meshPath, V[0], F[0]);
+        loadSucceed = igl::readOFF(meshFilePath, V, F);
     }
     else if(suffix == ".obj") {
-        igl::readOBJ(meshPath, V[0], F[0]);
+        loadSucceed = igl::readOBJ(meshFilePath, V, F);
     }
     else {
         std::cout << "unkown mesh file format!" << std::endl;
         return -1;
     }
-//    FracCuts::TriangleSoup squareMesh(FracCuts::Primitive::P_SQUARE, 1.0, 0.1, false);
-//    V[0] = squareMesh.V_rest;
-//    F[0] = squareMesh.F;
-    const double edgeLen = igl::avg_edge_length(V[0], F[0]);
-    UV.resize(UV.size() + 1);
+    if(!loadSucceed) {
+        std::cout << "failed to load mesh!" << std::endl;
+        return -1;
+    }
     
-    // Harmonic map
-    // Find the open boundary
+    // Set lambda
+    double lambda = 0.5;
+    if(argc > 3) {
+        lambda = std::stod(argv[3]);
+        if((lambda != lambda) || (lambda <= 0.0) || (lambda >= 1.0)) {
+            std::cout << "Overwrite invalid lambda " << lambda << " to 0.5" << std::endl;
+            lambda = 0.5;
+        }
+    }
+    else {
+        std::cout << "Use default lambda = " << lambda << std::endl;
+    }
+    
+    // Set delta
+    double delta = 16;
+    if(argc > 4) {
+        delta = std::stod(argv[4]);
+        if((delta != delta) || (delta <= 0.0)) {
+            std::cout << "Overwrite invalid delta " << delta << " to 16" << std::endl;
+            delta = 16;
+        }
+    }
+    else {
+        std::cout << "Use default delta = " << delta << std::endl;
+    }
+    
+    std::string folderTail = "";
+    if(argc > 5) {
+        if(argv[5][0] != '_') {
+            folderTail += '_';
+        }
+        folderTail += argv[5];
+    }
+    
+    // * Harmonic map for initialization
     Eigen::VectorXi bnd;
-    igl::boundary_loop(F[0], bnd);
+    igl::boundary_loop(F, bnd); // Find the open boundary
     if(bnd.size()) {
         // Map the boundary to a circle, preserving edge proportions
         Eigen::MatrixXd bnd_uv;
-        igl::map_vertices_to_circle(V[0], bnd, bnd_uv);
+        igl::map_vertices_to_circle(V, bnd, bnd_uv);
         
-    //    // * Harmonic parametrization for the internal vertices
+    //    // Harmonic parametrization
     //    UV.resize(UV.size() + 1);
     //    igl::harmonic(V[0], F[0], bnd, bnd_uv, 1, UV[0]);
         
-        // * Harmonic map with uniform weights
+        // Harmonic map with uniform weights
         Eigen::SparseMatrix<double> A, M;
-        FracCuts::IglUtils::computeUniformLaplacian(F[0], A);
-        igl::harmonic(A, M, bnd, bnd_uv, 1, UV[0]);
+        FracCuts::IglUtils::computeUniformLaplacian(F, A);
+        Eigen::MatrixXd UV_Tutte;
+        igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
+        
+        triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV_Tutte));
+        outputFolderPath += meshName + "_Tutte_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) + folderTail;
+    }
+    else {
+        // rigid initialization for UV
+        triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, Eigen::MatrixXd()));
+        outputFolderPath += meshName + "_rigid_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) + folderTail;
+    }
+    
+    mkdir(outputFolderPath.c_str(), 0777);
+    outputFolderPath += '/';
+    logFile.open(outputFolderPath + "log.txt");
+    if(!logFile.is_open()) {
+        std::cout << "failed to create log file, please ensure output directory is created successfully!" << std::endl;
+        return -1;
     }
     
 //    // * ARAP
@@ -444,44 +519,34 @@ int main(int argc, char *argv[])
 //    arap_solve(bc, arap_data, UV[0]);
     
     // * Our approach
-    triSoup = FracCuts::TriangleSoup(V[0], F[0], UV[0]);
-//    triSoup = FracCuts::TriangleSoup(FracCuts::Primitive::P_CYLINDER, 1.0, 1.0);
-//    triSoup.initRigidUV();
-    const double lambda = 0.1;
+    texScale = 10.0 / (triSoup[0]->bbox.row(1) - triSoup[0]->bbox.row(0)).minCoeff();
     energyParams.emplace_back(1.0 - lambda);
 //    energyTerms.emplace_back(new FracCuts::ARAPEnergy());
     energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
     energyParams.emplace_back(lambda);
-    energyTerms.emplace_back(new FracCuts::SeparationEnergy(edgeLen * edgeLen, 16.0));
+    energyTerms.emplace_back(new FracCuts::SeparationEnergy(triSoup[0]->avgEdgeLen * triSoup[0]->avgEdgeLen, delta));
 //    energyTerms.back()->checkEnergyVal(triSoup);
 //    energyTerms.back()->checkGradient(triSoup);
 //    energyTerms.back()->checkHessian(triSoup);
-    optimizer = new FracCuts::Optimizer(triSoup, energyTerms, energyParams);
+    optimizer = new FracCuts::Optimizer(*triSoup[0], energyTerms, energyParams);
     optimizer->precompute();
+    triSoup.emplace_back(&optimizer->getResult());
     
-    
-    // Scale UV to make the texture more clear
-    UV[0] *= texScale;
-    V.emplace_back(triSoup.V_rest);
-    F.emplace_back(triSoup.F);
-    UV.emplace_back(triSoup.V * texScale);
-    E.emplace_back(triSoup.cohE);
-    
-    // setup viewer
+    // Setup viewer and launch
     viewer.core.background_color << 1.0f, 1.0f, 1.0f, 0.0f;
     viewer.callback_key_down = &key_down;
     viewer.callback_pre_draw = &preDrawFunc;
     viewer.core.show_lines = true;
     viewer.core.orthographic = true;
     updateViewerData();
-    
-    // Launch the viewer
     viewer.launch();
     
     
+    // Before exit
+    logFile.close();
     for(auto& eI : energyTerms) {
         delete eI;
     }
     delete optimizer;
-    logFile.close();
+    delete triSoup[0];
 }

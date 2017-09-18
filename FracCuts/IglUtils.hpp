@@ -26,7 +26,7 @@ namespace FracCuts {
         
         static void mapTriangleTo2D(const Eigen::Vector3d v[3], Eigen::Vector2d u[3]);
         
-        static void mapScalarToColor_bin(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color);
+        static void mapScalarToColor_bin(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color, double thres);
         static void mapScalarToColor(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color, double lowerBound, double upperBound);
         
         static void addBlockToMatrix(Eigen::SparseMatrix<double>& mtr, const Eigen::MatrixXd& block,
@@ -34,6 +34,8 @@ namespace FracCuts {
         
         static void writeSparseMatrixToFile(const std::string& filePath, const Eigen::SparseMatrix<double>& mtr);
         static void loadSparseMatrixFromFile(const std::string& filePath, Eigen::SparseMatrix<double>& mtr);
+        
+        static const std::string rtos(double real);
     };
     
 }
