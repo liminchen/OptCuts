@@ -103,13 +103,13 @@ void updateViewerData_distortion(void)
 
 void updateViewerData(void)
 {
+    const Eigen::MatrixXd UV_vis = triSoup[viewChannel]->V * texScale;
     if(viewUV) {
-        if((triSoup[viewChannel]->V.rows() != viewer.data.V.rows()) ||
+        if((UV_vis.rows() != viewer.data.V.rows()) ||
            (triSoup[viewChannel]->F.rows() != viewer.data.F.rows()))
         {
             viewer.data.clear();
         }
-        const Eigen::MatrixXd UV_vis = triSoup[viewChannel]->V * texScale;
         viewer.data.set_mesh(UV_vis, triSoup[viewChannel]->F);
 //        viewer.core.align_camera_center(UV[0], F[0]);
         viewer.core.align_camera_center(UV_vis, triSoup[viewChannel]->F);
@@ -121,7 +121,7 @@ void updateViewerData(void)
     }
     else {
         if((triSoup[viewChannel]->V_rest.rows() != viewer.data.V.rows()) ||
-           (triSoup[viewChannel]->V.rows() != viewer.data.V_uv.rows()) ||
+           (UV_vis.rows() != viewer.data.V_uv.rows()) ||
            (triSoup[viewChannel]->F.rows() != viewer.data.F.rows()))
         {
             viewer.data.clear();
@@ -131,7 +131,7 @@ void updateViewerData(void)
         viewer.core.align_camera_center(triSoup[viewChannel]->V_rest, triSoup[viewChannel]->F);
         
         if(showTexture) {
-            viewer.data.set_uv(triSoup[viewChannel]->V);
+            viewer.data.set_uv(UV_vis);
             viewer.core.show_texture = true;
         }
         else {
@@ -258,6 +258,8 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
             case 'o':
             case 'O': {
                 saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
+                triSoup[channel_result]->save(outputFolderPath + std::to_string(iterNum) + ".obj");
+                triSoup[channel_result]->saveAsMesh(outputFolderPath + std::to_string(iterNum) + "_mesh.obj");
                 break;
             }
                 
@@ -288,6 +290,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                 dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms[1])->getSigmaParam()) + ".png", 1.0);
             triSoup[channel_result]->save(outputFolderPath + "homotopy_" + std::to_string(
                 dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms[1])->getSigmaParam()) + ".obj");
+            triSoup[channel_result]->saveAsMesh(outputFolderPath + "homotopy_" + std::to_string(
+                dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms[1])->getSigmaParam()) + "_mesh.obj");
             
             if(autoHomotopy &&
                dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms.back())->decreaseSigma())

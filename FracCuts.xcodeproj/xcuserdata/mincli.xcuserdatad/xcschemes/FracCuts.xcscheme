@@ -63,7 +63,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "0 cat.obj 0.1 16"
+            argument = "0 pyramid_f256.obj 0.01 16 test"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

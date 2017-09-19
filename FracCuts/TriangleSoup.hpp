@@ -62,7 +62,10 @@ namespace FracCuts{
         
         void initRigidUV(void);
         
+        void save(const std::string& filePath, const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, const Eigen::MatrixXd UV) const;
         void save(const std::string& filePath) const;
+        
+        void saveAsMesh(const std::string& filePath) const;
     };
     
 }

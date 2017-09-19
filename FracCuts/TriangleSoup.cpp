@@ -85,7 +85,7 @@ namespace FracCuts {
                     cohE.row(-cohPI.second[0] - 1)[3] = cohPI.second[1];
                 }
             }
-//            logFile << cohE;
+//            std::cout << cohE << std::endl;
         }
         else {
             // deal with regular mesh
@@ -201,7 +201,7 @@ namespace FracCuts {
         edgeLen.resize(cohE.rows());
         for(int cohI = 0; cohI < cohE.rows(); cohI++)
         {
-            if(cohE.row(cohI).minCoeff() > 0) {
+            if(cohE.row(cohI).minCoeff() >= 0) {
                 boundaryEdge[cohI] = 0;
             }
             else {
@@ -315,30 +315,108 @@ namespace FracCuts {
         }
     }
     
-    void TriangleSoup::save(const std::string& filePath) const
+    void TriangleSoup::save(const std::string& filePath, const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, const Eigen::MatrixXd UV) const
     {
         std::ofstream out;
         out.open(filePath);
         assert(out.is_open());
         
-        for(int vI = 0; vI < V_rest.rows(); vI++) {
-            const Eigen::RowVector3d& v = V_rest.row(vI);
+        for(int vI = 0; vI < V.rows(); vI++) {
+            const Eigen::RowVector3d& v = V.row(vI);
             out << "v " << v[0] << " " << v[1] << " " << v[2] << std::endl;
         }
         
-        for(int vI = 0; vI < V.rows(); vI++) {
-            const Eigen::RowVector2d& uv = V.row(vI);
+        for(int vI = 0; vI < UV.rows(); vI++) {
+            const Eigen::RowVector2d& uv = UV.row(vI);
             out << "vt " << uv[0] << " " << uv[1] << std::endl;
         }
         
         for(int triI = 0; triI < F.rows(); triI++) {
             const Eigen::RowVector3i& tri = F.row(triI);
             out << "f " << tri[0] + 1 << "/" << tri[0] + 1 <<
-                " " << tri[1] + 1 << "/" << tri[1] + 1 <<
-                " " << tri[2] + 1 << "/" << tri[2] + 1 << std::endl;
+            " " << tri[1] + 1 << "/" << tri[1] + 1 <<
+            " " << tri[2] + 1 << "/" << tri[2] + 1 << std::endl;
         }
         
         out.close();
+    }
+    
+    void TriangleSoup::save(const std::string& filePath) const
+    {
+        save(filePath, V_rest, F, V);
+    }
+    
+    void TriangleSoup::saveAsMesh(const std::string& filePath) const
+    {
+        const double thres = 1.0e-2;
+        std::vector<int> dupVI2GroupI(V.rows());
+        std::vector<std::set<int>> meshVGroup(V.rows());
+        for(int dupI = 0; dupI < V.rows(); dupI++) {
+            dupVI2GroupI[dupI] = dupI;
+            meshVGroup[dupI].insert(dupI);
+        }
+        for(int cohI = 0; cohI < cohE.rows(); cohI++) {
+            if(boundaryEdge[cohI]) {
+                continue;
+            }
+            
+            for(int pI = 0; pI < 2; pI++) {
+//                if((V.row(cohE(cohI, 0 + pI)) - V.row(cohE(cohI, 2 + pI))).norm() > thres) {
+//                    continue;
+//                }
+                
+                int groupI0 = dupVI2GroupI[cohE(cohI, 0 + pI)];
+                int groupI2 = dupVI2GroupI[cohE(cohI, 2 + pI)];
+                if(groupI0 != groupI2) {
+                    for(const auto& vI : meshVGroup[groupI2]) {
+                        dupVI2GroupI[vI] = groupI0;
+                        meshVGroup[groupI0].insert(vI);
+                    }
+                    meshVGroup[groupI2].clear();
+                }
+            }
+        }
+        
+        int meshVAmt = 0;
+        for(int gI = 0; gI < meshVGroup.size(); gI++) {
+            if(!meshVGroup[gI].empty()) {
+                meshVAmt++;
+            }
+        }
+        std::vector<int> groupI2meshVI(meshVGroup.size(), -1);
+        Eigen::MatrixXd V_mesh;
+        V_mesh.resize(meshVAmt, 3);
+        Eigen::MatrixXd UV_mesh;
+        UV_mesh.resize(meshVAmt, 2);
+        int nextVI = 0;
+        for(int gI = 0; gI < meshVGroup.size(); gI++) {
+            if(meshVGroup[gI].empty()) {
+                continue;
+            }
+            
+            groupI2meshVI[gI] = nextVI;
+            V_mesh.row(nextVI) = V_rest.row(*meshVGroup[gI].begin());
+            UV_mesh.row(nextVI) = Eigen::RowVector2d::Zero();
+            for(const auto dupVI : meshVGroup[gI]) {
+                UV_mesh.row(nextVI) += V.row(dupVI);
+            }
+            UV_mesh.row(nextVI) /= meshVGroup[gI].size();
+            nextVI++;
+        }
+        
+        Eigen::MatrixXi F_mesh;
+        F_mesh.resize(F.rows(), 3);
+        for(int triI = 0; triI < F.rows(); triI++) {
+            for(int vI = 0; vI < 3; vI++) {
+                int groupI = dupVI2GroupI[F(triI, vI)];
+                assert(groupI >= 0);
+                int meshVI = groupI2meshVI[groupI];
+                assert(meshVI >= 0);
+                F_mesh(triI, vI) = meshVI;
+            }
+        }
+        
+        save(filePath, V_mesh, F_mesh, UV_mesh);
     }
     
 }
