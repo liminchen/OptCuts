@@ -359,48 +359,85 @@ int main(int argc, char *argv[])
         case 2: {
             // mesh processing mode
             if(argc > 2) {
-                int procMode = 0;
-                procMode = std::stoi(argv[2]);
-                switch(procMode) {
-                    case 0: {
-                        // invert normal of a mesh
-                        if(argc > 3) {
-                            Eigen::MatrixXd V;
-                            Eigen::MatrixXi F;
-                            std::string meshPath = meshFolder + std::string(argv[3]);
-                            const std::string suffix = meshPath.substr(meshPath.find_last_of('.'));
-                            if(suffix == ".off") {
-                                igl::readOFF(meshPath, V, F);
-                            }
-                            else if(suffix == ".obj") {
-                                igl::readOBJ(meshPath, V, F);
-                            }
-                            else {
-                                std::cout << "unkown mesh file format!" << std::endl;
-                                return -1;
-                            }
-                            
+                Eigen::MatrixXd V, UV, N;
+                Eigen::MatrixXi F, FUV, FN;
+                std::string meshPath = meshFolder + std::string(argv[2]);
+                const std::string suffix = meshPath.substr(meshPath.find_last_of('.'));
+                if(suffix == ".off") {
+                    igl::readOFF(meshPath, V, F);
+                }
+                else if(suffix == ".obj") {
+                    igl::readOBJ(meshPath, V, UV, N, F, FUV, FN);
+                }
+                else {
+                    std::cout << "unkown mesh file format!" << std::endl;
+                    return -1;
+                }
+                
+                if(argc > 3) {
+                    int procMode = 0;
+                    procMode = std::stoi(argv[3]);
+                    switch(procMode) {
+                        case 0: {
+                            // invert normal of a mesh
                             for(int triI = 0; triI < F.rows(); triI++) {
                                 const Eigen::RowVector3i temp = F.row(triI);
                                 F(triI, 1) = temp[2];
                                 F(triI, 2) = temp[1];
                             }
                             igl::writeOBJ(meshFolder + "processedMesh.obj", V, F);
+                            break;
                         }
-                        else {
-                            std::cout << "Please enter mesh file path!" << std::endl;
+                            
+                        case 1: {
+                            // turn a triangle soup into a mesh
+                            if(V.rows() != F.rows() * 3) {
+                                std::cout << "Input model is not a triangle soup!" << std::endl;
+                                return -1;
+                            }
+                            
+                            if(UV.rows() != V.rows()) {
+                                std::cout << "UV coordinates not valid, will generate separate rigid mapping UV!" << std::endl;
+                            }
+                            
+                            FracCuts::TriangleSoup inputTriSoup(V, F, UV, false);
+                            if(argc > 4) {
+                                // input original model to get cohesive edge information
+                                Eigen::MatrixXd V0;
+                                Eigen::MatrixXi F0;
+                                std::string meshPath = meshFolder + std::string(argv[4]);
+                                const std::string suffix = meshPath.substr(meshPath.find_last_of('.'));
+                                if(suffix == ".off") {
+                                    igl::readOFF(meshPath, V0, F0);
+                                }
+                                else if(suffix == ".obj") {
+                                    igl::readOBJ(meshPath, V0, F0);
+                                }
+                                else {
+                                    std::cout << "unkown mesh file format!" << std::endl;
+                                    return -1;
+                                }
+
+                                inputTriSoup.cohE = FracCuts::TriangleSoup(V0, F0, Eigen::MatrixXd()).cohE;
+                                inputTriSoup.computeFeatures();
+                            }
+                            inputTriSoup.saveAsMesh(meshFolder + "processedMesh.obj");
+                            break;
                         }
-                        break;
+                            
+                        default:
+                            std::cout << "No procMode " << procMode << std::endl;
+                            break;
                     }
-                        
-                    default:
-                        std::cout << "No procMode " << procMode << std::endl;
-                        break;
+                }
+                else {
+                    std::cout << "Please enter procMode!" << std::endl;
                 }
             }
             else {
-                std::cout << "Please enter procMode!" << std::endl;
+                std::cout << "Please enter mesh file path!" << std::endl;
             }
+            
             return 0;
         }
             

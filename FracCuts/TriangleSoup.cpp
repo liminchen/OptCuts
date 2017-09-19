@@ -315,7 +315,8 @@ namespace FracCuts {
         }
     }
     
-    void TriangleSoup::save(const std::string& filePath, const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, const Eigen::MatrixXd UV) const
+    void TriangleSoup::save(const std::string& filePath, const Eigen::MatrixXd& V, const Eigen::MatrixXi& F,
+                            const Eigen::MatrixXd UV, const Eigen::MatrixXi& FUV) const
     {
         std::ofstream out;
         out.open(filePath);
@@ -331,11 +332,22 @@ namespace FracCuts {
             out << "vt " << uv[0] << " " << uv[1] << std::endl;
         }
         
-        for(int triI = 0; triI < F.rows(); triI++) {
-            const Eigen::RowVector3i& tri = F.row(triI);
-            out << "f " << tri[0] + 1 << "/" << tri[0] + 1 <<
-            " " << tri[1] + 1 << "/" << tri[1] + 1 <<
-            " " << tri[2] + 1 << "/" << tri[2] + 1 << std::endl;
+        if(FUV.rows() == F.rows()) {
+            for(int triI = 0; triI < F.rows(); triI++) {
+                const Eigen::RowVector3i& tri = F.row(triI);
+                const Eigen::RowVector3i& tri_UV = FUV.row(triI);
+                out << "f " << tri[0] + 1 << "/" << tri_UV[0] + 1 <<
+                " " << tri[1] + 1 << "/" << tri_UV[1] + 1 <<
+                " " << tri[2] + 1 << "/" << tri_UV[2] + 1 << std::endl;
+            }
+        }
+        else {
+            for(int triI = 0; triI < F.rows(); triI++) {
+                const Eigen::RowVector3i& tri = F.row(triI);
+                out << "f " << tri[0] + 1 << "/" << tri[0] + 1 <<
+                " " << tri[1] + 1 << "/" << tri[1] + 1 <<
+                " " << tri[2] + 1 << "/" << tri[2] + 1 << std::endl;
+            }
         }
         
         out.close();
@@ -351,9 +363,13 @@ namespace FracCuts {
         const double thres = 1.0e-2;
         std::vector<int> dupVI2GroupI(V.rows());
         std::vector<std::set<int>> meshVGroup(V.rows());
+        std::vector<int> dupVI2GroupI_3D(V_rest.rows());
+        std::vector<std::set<int>> meshVGroup_3D(V_rest.rows());
         for(int dupI = 0; dupI < V.rows(); dupI++) {
             dupVI2GroupI[dupI] = dupI;
             meshVGroup[dupI].insert(dupI);
+            dupVI2GroupI_3D[dupI] = dupI;
+            meshVGroup_3D[dupI].insert(dupI);
         }
         for(int cohI = 0; cohI < cohE.rows(); cohI++) {
             if(boundaryEdge[cohI]) {
@@ -361,9 +377,19 @@ namespace FracCuts {
             }
             
             for(int pI = 0; pI < 2; pI++) {
-//                if((V.row(cohE(cohI, 0 + pI)) - V.row(cohE(cohI, 2 + pI))).norm() > thres) {
-//                    continue;
-//                }
+                int groupI0_3D = dupVI2GroupI_3D[cohE(cohI, 0 + pI)];
+                int groupI2_3D = dupVI2GroupI_3D[cohE(cohI, 2 + pI)];
+                if(groupI0_3D != groupI2_3D) {
+                    for(const auto& vI : meshVGroup_3D[groupI2_3D]) {
+                        dupVI2GroupI_3D[vI] = groupI0_3D;
+                        meshVGroup_3D[groupI0_3D].insert(vI);
+                    }
+                    meshVGroup_3D[groupI2_3D].clear();
+                }
+                
+                if((V.row(cohE(cohI, 0 + pI)) - V.row(cohE(cohI, 2 + pI))).norm() / avgEdgeLen > thres) {
+                    continue;
+                }
                 
                 int groupI0 = dupVI2GroupI[cohE(cohI, 0 + pI)];
                 int groupI2 = dupVI2GroupI[cohE(cohI, 2 + pI)];
@@ -384,10 +410,19 @@ namespace FracCuts {
             }
         }
         std::vector<int> groupI2meshVI(meshVGroup.size(), -1);
-        Eigen::MatrixXd V_mesh;
-        V_mesh.resize(meshVAmt, 3);
         Eigen::MatrixXd UV_mesh;
         UV_mesh.resize(meshVAmt, 2);
+        
+        int meshVAmt_3D = 0;
+        for(int gI = 0; gI < meshVGroup_3D.size(); gI++) {
+            if(!meshVGroup_3D[gI].empty()) {
+                meshVAmt_3D++;
+            }
+        }
+        std::vector<int> groupI2meshVI_3D(meshVGroup_3D.size(), -1);
+        Eigen::MatrixXd V_mesh;
+        V_mesh.resize(meshVAmt_3D, 3);
+        
         int nextVI = 0;
         for(int gI = 0; gI < meshVGroup.size(); gI++) {
             if(meshVGroup[gI].empty()) {
@@ -395,7 +430,6 @@ namespace FracCuts {
             }
             
             groupI2meshVI[gI] = nextVI;
-            V_mesh.row(nextVI) = V_rest.row(*meshVGroup[gI].begin());
             UV_mesh.row(nextVI) = Eigen::RowVector2d::Zero();
             for(const auto dupVI : meshVGroup[gI]) {
                 UV_mesh.row(nextVI) += V.row(dupVI);
@@ -403,20 +437,41 @@ namespace FracCuts {
             UV_mesh.row(nextVI) /= meshVGroup[gI].size();
             nextVI++;
         }
+        int nextVI_3D = 0;
+        for(int gI = 0; gI < meshVGroup_3D.size(); gI++) {
+            if(meshVGroup_3D[gI].empty()) {
+                continue;
+            }
+            
+            groupI2meshVI_3D[gI] = nextVI_3D;
+            V_mesh.row(nextVI_3D) = Eigen::RowVector3d::Zero();
+            for(const auto dupVI : meshVGroup_3D[gI]) {
+                V_mesh.row(nextVI_3D) += V_rest.row(dupVI);
+            }
+            V_mesh.row(nextVI_3D) /= meshVGroup_3D[gI].size();
+            nextVI_3D++;
+        }
         
-        Eigen::MatrixXi F_mesh;
+        Eigen::MatrixXi F_mesh, FUV_mesh;
         F_mesh.resize(F.rows(), 3);
+        FUV_mesh.resize(F.rows(), 3);
         for(int triI = 0; triI < F.rows(); triI++) {
             for(int vI = 0; vI < 3; vI++) {
                 int groupI = dupVI2GroupI[F(triI, vI)];
                 assert(groupI >= 0);
                 int meshVI = groupI2meshVI[groupI];
                 assert(meshVI >= 0);
-                F_mesh(triI, vI) = meshVI;
+                FUV_mesh(triI, vI) = meshVI;
+                
+                int groupI_3D = dupVI2GroupI_3D[F(triI, vI)];
+                assert(groupI_3D >= 0);
+                int meshVI_3D = groupI2meshVI_3D[groupI_3D];
+                assert(meshVI_3D >= 0);
+                F_mesh(triI, vI) = meshVI_3D;
             }
         }
         
-        save(filePath, V_mesh, F_mesh, UV_mesh);
+        save(filePath, V_mesh, F_mesh, UV_mesh, FUV_mesh);
     }
     
 }

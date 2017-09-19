@@ -64,7 +64,31 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "0 pyramid_f256.obj 0.01 16 test"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "2 test.obj 1 bishop_part.obj"
             isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 sphere.obj 0.5 16 count"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 cat.obj 0.01 16"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 cone2.0.obj 0.1 16"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 bishop_part.obj 0.1 16"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 camelhead_f1000.off 0.1 16"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = ""
