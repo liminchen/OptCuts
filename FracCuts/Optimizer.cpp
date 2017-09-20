@@ -8,6 +8,7 @@
 
 #include "Optimizer.hpp"
 #include "SymStretchEnergy.hpp"
+#include "SeparationEnergy.hpp"
 #include "IglUtils.hpp"
 
 #include <igl/avg_edge_length.h>
@@ -42,6 +43,7 @@ namespace FracCuts {
     Optimizer::~Optimizer(void)
     {
         file_energyValPerIter.close();
+        file_gradientPerIter.close();
     }
     
     void Optimizer::computeLastEnergyVal(void)
@@ -60,10 +62,19 @@ namespace FracCuts {
     void Optimizer::precompute(void)
     {
         computePrecondMtr(data0, precondMtr);
+        
         cholSolver.compute(precondMtr);
         if(cholSolver.info() != Eigen::Success) {
             assert(0 && "Cholesky decomposition failed!");
         }
+//        pardisoSolver.set_type(11);
+//        Eigen::VectorXi I, J;
+//        Eigen::VectorXd V;
+//        IglUtils::sparseMatrixToTriplet(precondMtr, I, J, V);
+//        pardisoSolver.set_pattern(I, J, V);
+//        pardisoSolver.analyze_pattern();
+//        pardisoSolver.factorize();
+        
         result = data0;
         targetGRes = data0.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
         computeEnergyVal(result, lastEnergyVal);
@@ -71,7 +82,9 @@ namespace FracCuts {
         for(int eI = 0; eI < energyTerms.size(); eI++) {
             file_energyValPerIter << " " << energyVal_ET[eI];
         }
-        file_energyValPerIter << std::endl;
+        double exactSepEVal;
+        dynamic_cast<SeparationEnergy*>(energyTerms[1])->computeExactEnergyVal(result, exactSepEVal);
+        file_energyValPerIter << " " << exactSepEVal << std::endl;
         std::cout << "E_initial = " << lastEnergyVal << std::endl;
     }
     
@@ -93,7 +106,9 @@ namespace FracCuts {
                 for(int eI = 0; eI < energyTerms.size(); eI++) {
                     file_energyValPerIter << " " << energyVal_ET[eI];
                 }
-                file_energyValPerIter << std::endl;
+                double exactSepEVal;
+                dynamic_cast<SeparationEnergy*>(energyTerms[1])->computeExactEnergyVal(result, exactSepEVal);
+                file_energyValPerIter << " " << exactSepEVal << std::endl;
                 globalIterNum++;
                 return true;
             }
@@ -117,11 +132,19 @@ namespace FracCuts {
             IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_decomposeFailed", precondMtr);
             assert(0 && "Cholesky decomposition failed!");
         }
+//        Eigen::VectorXi I, J;
+//        Eigen::VectorXd V;
+//        IglUtils::sparseMatrixToTriplet(precondMtr, I, J, V);
+//        pardisoSolver.set_pattern(I, J, V);
+//        pardisoSolver.analyze_pattern();
+//        pardisoSolver.factorize();
         
         searchDir = cholSolver.solve(-gradient);
         if(cholSolver.info() != Eigen::Success) {
             assert(0 && "Cholesky solve failed!");
         }
+//        Eigen::VectorXd minusG = -gradient;
+//        pardisoSolver.solve(minusG, searchDir);
         
         bool stopped = lineSearch();
         if(stopped) {
@@ -174,7 +197,9 @@ namespace FracCuts {
         for(int eI = 0; eI < energyTerms.size(); eI++) {
             file_energyValPerIter << " " << energyVal_ET[eI];
         }
-        file_energyValPerIter << std::endl;
+        double exactSepEVal;
+        dynamic_cast<SeparationEnergy*>(energyTerms[1])->computeExactEnergyVal(result, exactSepEVal);
+        file_energyValPerIter << " " << exactSepEVal << std::endl;
         
         return stopped;
     }

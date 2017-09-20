@@ -16,6 +16,8 @@
 		988ED1351F5871F200B21181 /* Optimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 988ED1331F5871F200B21181 /* Optimizer.cpp */; };
 		98A5A32B1F5F5BB900584EFD /* ARAPEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98A5A3291F5F5BB900584EFD /* ARAPEnergy.cpp */; };
 		98C2D8F41F6348820048B18A /* SeparationEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98C2D8F21F6348820048B18A /* SeparationEnergy.cpp */; };
+		98CE47681F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 98CE47671F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib */; };
+		98CE476F1F71E66300627725 /* PardisoSolver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98CE476D1F71E66300627725 /* PardisoSolver.cpp */; };
 		98D10F2D1F5CA12C0010E1A6 /* SymStretchEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98D10F2B1F5CA12C0010E1A6 /* SymStretchEnergy.cpp */; };
 		98D5B2101F67274100DCE9F4 /* libstb_image.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 98D5B20F1F67274100DCE9F4 /* libstb_image.a */; };
 /* End PBXBuildFile section */
@@ -50,6 +52,10 @@
 		98A5A32A1F5F5BB900584EFD /* ARAPEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ARAPEnergy.hpp; sourceTree = "<group>"; };
 		98C2D8F21F6348820048B18A /* SeparationEnergy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SeparationEnergy.cpp; sourceTree = "<group>"; };
 		98C2D8F31F6348820048B18A /* SeparationEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SeparationEnergy.hpp; sourceTree = "<group>"; };
+		98CE47671F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libpardiso500-MACOS-X86-64.dylib"; path = "../../../../usr/local/lib/libpardiso500-MACOS-X86-64.dylib"; sourceTree = "<group>"; };
+		98CE47691F71E2DC00627725 /* gfortran */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gfortran; path = ../../../../usr/local/gfortran; sourceTree = "<group>"; };
+		98CE476D1F71E66300627725 /* PardisoSolver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PardisoSolver.cpp; sourceTree = "<group>"; };
+		98CE476E1F71E66300627725 /* PardisoSolver.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PardisoSolver.hpp; sourceTree = "<group>"; };
 		98D10F2B1F5CA12C0010E1A6 /* SymStretchEnergy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SymStretchEnergy.cpp; sourceTree = "<group>"; };
 		98D10F2C1F5CA12C0010E1A6 /* SymStretchEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SymStretchEnergy.hpp; sourceTree = "<group>"; };
 		98D5B20F1F67274100DCE9F4 /* libstb_image.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libstb_image.a; path = ../../../../usr/local/lib/libstb_image.a; sourceTree = "<group>"; };
@@ -60,6 +66,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				98CE47681F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib in Frameworks */,
 				98D5B2101F67274100DCE9F4 /* libstb_image.a in Frameworks */,
 				988ED12C1F57237F00B21181 /* libglfw.3.2.dylib in Frameworks */,
 				988ED1281F57211500B21181 /* OpenGL.framework in Frameworks */,
@@ -89,6 +96,8 @@
 		980180BA1F552CDA00C64B43 /* FracCuts */ = {
 			isa = PBXGroup;
 			children = (
+				98CE476D1F71E66300627725 /* PardisoSolver.cpp */,
+				98CE476E1F71E66300627725 /* PardisoSolver.hpp */,
 				98D10F2B1F5CA12C0010E1A6 /* SymStretchEnergy.cpp */,
 				98D10F2C1F5CA12C0010E1A6 /* SymStretchEnergy.hpp */,
 				980180BB1F552CDA00C64B43 /* main.cpp */,
@@ -111,6 +120,8 @@
 		988ED1261F57211500B21181 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				98CE47691F71E2DC00627725 /* gfortran */,
+				98CE47671F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib */,
 				98D5B20F1F67274100DCE9F4 /* libstb_image.a */,
 				988ED12B1F57237F00B21181 /* libglfw.3.2.dylib */,
 				988ED1291F57212300B21181 /* lib */,
@@ -179,6 +190,7 @@
 				988ED1321F575C3C00B21181 /* IglUtils.cpp in Sources */,
 				982CE6131F5DB358004176A8 /* Energy.cpp in Sources */,
 				988ED1351F5871F200B21181 /* Optimizer.cpp in Sources */,
+				98CE476F1F71E66300627725 /* PardisoSolver.cpp in Sources */,
 				98D10F2D1F5CA12C0010E1A6 /* SymStretchEnergy.cpp in Sources */,
 				98A5A32B1F5F5BB900584EFD /* ARAPEnergy.cpp in Sources */,
 				98C2D8F41F6348820048B18A /* SeparationEnergy.cpp in Sources */,
@@ -288,7 +300,10 @@
 					"/Users/mincli/Documents/glfw-3.2.1/include",
 					/Users/mincli/Documents/libigl/external/stb_image,
 				);
-				LIBRARY_SEARCH_PATHS = /usr/local/lib;
+				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
+					/usr/local/gfortran/lib,
+				);
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -303,7 +318,10 @@
 					"/Users/mincli/Documents/glfw-3.2.1/include",
 					/Users/mincli/Documents/libigl/external/stb_image,
 				);
-				LIBRARY_SEARCH_PATHS = /usr/local/lib;
+				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
+					/usr/local/gfortran/lib,
+				);
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};

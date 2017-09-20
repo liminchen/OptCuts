@@ -194,6 +194,37 @@ namespace FracCuts {
         }
     }
     
+    void IglUtils::sparseMatrixToTriplet(const Eigen::SparseMatrix<double>& mtr,
+                                         Eigen::VectorXi& I, Eigen::VectorXi& J, Eigen::VectorXd& V)
+    {
+        I.resize(mtr.nonZeros() + 1);
+        J.resize(mtr.nonZeros() + 1);
+        V.resize(mtr.nonZeros() + 1);
+        int entryI = 0;
+        for (int k = 0; k < mtr.outerSize(); ++k)
+        {
+            for (Eigen::SparseMatrix<double>::InnerIterator it(mtr, k); it; ++it)
+            {
+                I[entryI] = static_cast<int>(it.row());
+                J[entryI] = static_cast<int>(it.col());
+                V[entryI] = it.value();
+                entryI++;
+            }
+        }
+        I[entryI] = mtr.rows() - 1;
+        J[entryI] = mtr.rows() - 1;
+        V[entryI] = 0.0;
+//        int n = mtr.rows();
+//        I.resize(n);
+//        J.resize(n);
+//        V.resize(n);
+//        for(int i = 0; i < n; i++) {
+//            I[i] = i;
+//            J[i] = i;
+//            V[i] = 1.0;
+//        }
+    }
+    
     const std::string IglUtils::rtos(double real)
     {
         std::string str_real = std::to_string(real);

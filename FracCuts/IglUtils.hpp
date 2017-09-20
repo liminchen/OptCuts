@@ -35,6 +35,9 @@ namespace FracCuts {
         static void writeSparseMatrixToFile(const std::string& filePath, const Eigen::SparseMatrix<double>& mtr);
         static void loadSparseMatrixFromFile(const std::string& filePath, Eigen::SparseMatrix<double>& mtr);
         
+        static void sparseMatrixToTriplet(const Eigen::SparseMatrix<double>& mtr,
+                                          Eigen::VectorXi& I, Eigen::VectorXi& J, Eigen::VectorXd& V);
+        
         static const std::string rtos(double real);
     };
     

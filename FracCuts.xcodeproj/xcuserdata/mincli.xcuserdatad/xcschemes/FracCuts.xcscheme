@@ -68,7 +68,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "2 test.obj 1 bishop_part.obj"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 sphere.obj 0.5 16 count"
@@ -79,8 +79,8 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 cone2.0.obj 0.1 16"
-            isEnabled = "NO">
+            argument = "0 cone2.0.obj 0.1 16 test"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 bishop_part.obj 0.1 16"

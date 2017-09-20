@@ -11,6 +11,8 @@
 
 #include "Energy.hpp"
 
+#include "PardisoSolver.hpp"
+
 #include <fstream>
 
 namespace FracCuts {
@@ -30,7 +32,7 @@ namespace FracCuts {
         Eigen::SparseMatrix<double> precondMtr;
         // cholesky solver for solving the linear system for search directions
         Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> cholSolver;
-//        Eigen::SparseLU<Eigen::SparseMatrix<double>> cholSolver;
+        PardisoSolver<Eigen::VectorXi, Eigen::VectorXd> pardisoSolver;
         Eigen::VectorXd gradient; // energy gradient computed in each iteration
         Eigen::VectorXd searchDir; // search direction comptued in each iteration
         double lastEnergyVal; // for output and line search
