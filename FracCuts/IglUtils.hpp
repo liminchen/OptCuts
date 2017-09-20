@@ -37,6 +37,7 @@ namespace FracCuts {
         
         static void sparseMatrixToTriplet(const Eigen::SparseMatrix<double>& mtr,
                                           Eigen::VectorXi& I, Eigen::VectorXi& J, Eigen::VectorXd& V);
+        static void sparseMatrixToTriplet(const Eigen::SparseMatrix<double>& mtr, Eigen::VectorXd& V);
         
         static const std::string rtos(double real);
     };

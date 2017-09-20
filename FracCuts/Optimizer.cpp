@@ -13,6 +13,8 @@
 
 #include <igl/avg_edge_length.h>
 
+//#include <omp.h>
+
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -63,17 +65,18 @@ namespace FracCuts {
     {
         computePrecondMtr(data0, precondMtr);
         
-        cholSolver.compute(precondMtr);
-        if(cholSolver.info() != Eigen::Success) {
-            assert(0 && "Cholesky decomposition failed!");
-        }
-//        pardisoSolver.set_type(11);
-//        Eigen::VectorXi I, J;
-//        Eigen::VectorXd V;
-//        IglUtils::sparseMatrixToTriplet(precondMtr, I, J, V);
-//        pardisoSolver.set_pattern(I, J, V);
-//        pardisoSolver.analyze_pattern();
-//        pardisoSolver.factorize();
+//        cholSolver.compute(precondMtr);
+//        if(cholSolver.info() != Eigen::Success) {
+//            assert(0 && "Cholesky decomposition failed!");
+//        }
+//        omp_set_num_threads(1);
+        pardisoSolver.set_type(2);
+        Eigen::VectorXi I, J;
+        Eigen::VectorXd V;
+        IglUtils::sparseMatrixToTriplet(precondMtr, I, J, V);
+        pardisoSolver.set_pattern(I, J, V);
+        pardisoSolver.analyze_pattern();
+        pardisoSolver.factorize();
         
         result = data0;
         targetGRes = data0.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
@@ -126,25 +129,23 @@ namespace FracCuts {
     bool Optimizer::solve_oneStep(void)
     {
         //!! for the changing hessian
-        computePrecondMtr(result, precondMtr);
-        cholSolver.compute(precondMtr);
-        if(cholSolver.info() != Eigen::Success) {
-            IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_decomposeFailed", precondMtr);
-            assert(0 && "Cholesky decomposition failed!");
-        }
-//        Eigen::VectorXi I, J;
-//        Eigen::VectorXd V;
-//        IglUtils::sparseMatrixToTriplet(precondMtr, I, J, V);
-//        pardisoSolver.set_pattern(I, J, V);
-//        pardisoSolver.analyze_pattern();
-//        pardisoSolver.factorize();
+//        computePrecondMtr(result, precondMtr);
+//        cholSolver.compute(precondMtr);
+//        if(cholSolver.info() != Eigen::Success) {
+//            IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_decomposeFailed", precondMtr);
+//            assert(0 && "Cholesky decomposition failed!");
+//        }
+        Eigen::VectorXd V;
+        IglUtils::sparseMatrixToTriplet(precondMtr, V);
+        pardisoSolver.update_a(V);
+        pardisoSolver.factorize();
         
-        searchDir = cholSolver.solve(-gradient);
-        if(cholSolver.info() != Eigen::Success) {
-            assert(0 && "Cholesky solve failed!");
-        }
-//        Eigen::VectorXd minusG = -gradient;
-//        pardisoSolver.solve(minusG, searchDir);
+//        searchDir = cholSolver.solve(-gradient);
+//        if(cholSolver.info() != Eigen::Success) {
+//            assert(0 && "Cholesky solve failed!");
+//        }
+        Eigen::VectorXd minusG = -gradient;
+        pardisoSolver.solve(minusG, searchDir);
         
         bool stopped = lineSearch();
         if(stopped) {

@@ -197,9 +197,9 @@ namespace FracCuts {
     void IglUtils::sparseMatrixToTriplet(const Eigen::SparseMatrix<double>& mtr,
                                          Eigen::VectorXi& I, Eigen::VectorXi& J, Eigen::VectorXd& V)
     {
-        I.resize(mtr.nonZeros() + 1);
-        J.resize(mtr.nonZeros() + 1);
-        V.resize(mtr.nonZeros() + 1);
+        I.resize(mtr.nonZeros());
+        J.resize(mtr.nonZeros());
+        V.resize(mtr.nonZeros());
         int entryI = 0;
         for (int k = 0; k < mtr.outerSize(); ++k)
         {
@@ -211,18 +211,19 @@ namespace FracCuts {
                 entryI++;
             }
         }
-        I[entryI] = mtr.rows() - 1;
-        J[entryI] = mtr.rows() - 1;
-        V[entryI] = 0.0;
-//        int n = mtr.rows();
-//        I.resize(n);
-//        J.resize(n);
-//        V.resize(n);
-//        for(int i = 0; i < n; i++) {
-//            I[i] = i;
-//            J[i] = i;
-//            V[i] = 1.0;
-//        }
+    }
+    
+    void IglUtils::sparseMatrixToTriplet(const Eigen::SparseMatrix<double>& mtr, Eigen::VectorXd& V)
+    {
+        V.resize(mtr.nonZeros());
+        int entryI = 0;
+        for (int k = 0; k < mtr.outerSize(); ++k)
+        {
+            for (Eigen::SparseMatrix<double>::InnerIterator it(mtr, k); it; ++it)
+            {
+                V[entryI++] = it.value();
+            }
+        }
     }
     
     const std::string IglUtils::rtos(double real)

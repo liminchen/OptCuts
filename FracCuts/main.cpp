@@ -474,6 +474,10 @@ int main(int argc, char *argv[])
         std::cout << "failed to load mesh!" << std::endl;
         return -1;
     }
+//    //DEBUG
+//    FracCuts::TriangleSoup squareMesh(FracCuts::P_SQUARE, 1.0, 0.33, false);
+//    V = squareMesh.V_rest;
+//    F = squareMesh.F;
     
     // Set lambda
     double lambda = 0.5;

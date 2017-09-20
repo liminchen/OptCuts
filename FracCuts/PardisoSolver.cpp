@@ -67,7 +67,7 @@ void PardisoSolver<vectorTypeI,vectorTypeS>::init()
     
     
     /* Numbers of processors, value of OMP_NUM_THREADS */
-    setenv("OMP_NUM_THREADS", "4", 1);
+    setenv("OMP_NUM_THREADS", "1", 1);
     var = getenv("OMP_NUM_THREADS");
     if(var != NULL)
         sscanf( var, "%d", &num_procs );
