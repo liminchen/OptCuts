@@ -40,6 +40,10 @@ namespace FracCuts {
         static void sparseMatrixToTriplet(const Eigen::SparseMatrix<double>& mtr, Eigen::VectorXd& V);
         
         static const std::string rtos(double real);
+        
+        static void differentiate_normalize(const Eigen::Vector2d& var, Eigen::Matrix2d& deriv);
+        static void differentiate_xxT(const Eigen::Vector2d& var, Eigen::Matrix<Eigen::RowVector2d, 2, 2>& deriv,
+                                      double param = 1.0);
     };
     
 }

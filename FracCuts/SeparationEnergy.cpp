@@ -25,7 +25,7 @@ namespace FracCuts {
                 energyValPerElem[cohI] = 0.0;
             }
             else {
-                const double w = data.edgeLen[cohI];
+                const double w = (uniformWeight ? 1.0 : data.edgeLen[cohI]);
                 energyValPerElem[cohI] = w * kernel((data.V.row(data.cohE(cohI, 0)) - data.V.row(data.cohE(cohI, 2))).squaredNorm());
                 energyValPerElem[cohI] += w * kernel((data.V.row(data.cohE(cohI, 1)) - data.V.row(data.cohE(cohI, 3))).squaredNorm());
             }

@@ -3,6 +3,7 @@
 #include "SymStretchEnergy.hpp"
 #include "ARAPEnergy.hpp"
 #include "SeparationEnergy.hpp"
+#include "CohesiveEnergy.hpp"
 
 #include <igl/readOFF.h>
 #include <igl/boundary_loop.h>
@@ -281,9 +282,9 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
         viewChannel = channel_result;
         updateViewerData();
         
-        if((iterNum < 10) || (iterNum % 10 == 0)) {
-            saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
-        }
+//        if((iterNum < 10) || (iterNum % 10 == 0)) {
+//            saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
+//        }
         
         if(converged) {
             saveScreenshot(outputFolderPath + "homotopy_" + std::to_string(
@@ -301,6 +302,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                 converged = false;
             }
             else {
+                triSoup[channel_result]->saveAsMesh(outputFolderPath + "result.obj", true);
+                
                 optimization_on = false;
                 viewer.core.is_animating = false;
                 std::cout << "optimization converged." << std::endl;
@@ -421,7 +424,7 @@ int main(int argc, char *argv[])
                                 inputTriSoup.cohE = FracCuts::TriangleSoup(V0, F0, Eigen::MatrixXd()).cohE;
                                 inputTriSoup.computeFeatures();
                             }
-                            inputTriSoup.saveAsMesh(meshFolder + "processedMesh.obj");
+                            inputTriSoup.saveAsMesh(meshFolder + "processedMesh.obj", true);
                             break;
                         }
                             
@@ -570,9 +573,10 @@ int main(int argc, char *argv[])
     energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
     energyParams.emplace_back(lambda);
     energyTerms.emplace_back(new FracCuts::SeparationEnergy(triSoup[0]->avgEdgeLen * triSoup[0]->avgEdgeLen, delta));
-//    energyTerms.back()->checkEnergyVal(triSoup);
-//    energyTerms.back()->checkGradient(triSoup);
-//    energyTerms.back()->checkHessian(triSoup);
+//    energyTerms.emplace_back(new FracCuts::CohesiveEnergy());
+//    energyTerms.back()->checkEnergyVal(*triSoup[0]);
+//    energyTerms.back()->checkGradient(*triSoup[0]);
+//    energyTerms.back()->checkHessian(*triSoup[0]);
     optimizer = new FracCuts::Optimizer(*triSoup[0], energyTerms, energyParams);
     optimizer->precompute();
     triSoup.emplace_back(&optimizer->getResult());

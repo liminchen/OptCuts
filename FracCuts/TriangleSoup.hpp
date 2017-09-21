@@ -66,7 +66,7 @@ namespace FracCuts{
                   const Eigen::MatrixXd UV, const Eigen::MatrixXi& FUV = Eigen::MatrixXi()) const;
         void save(const std::string& filePath) const;
         
-        void saveAsMesh(const std::string& filePath) const;
+        void saveAsMesh(const std::string& filePath, bool scaleUV = false) const;
     };
     
 }

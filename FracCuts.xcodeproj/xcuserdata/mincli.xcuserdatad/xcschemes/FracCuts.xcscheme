@@ -67,6 +67,18 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "0 cow_head.obj 0.02 16"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 torus2.obj 0.1 16"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 rabbit.obj 0.1 16"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "2 test.obj 1 bishop_part.obj"
             isEnabled = "NO">
          </CommandLineArgument>
@@ -88,7 +100,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 camelhead_f1000.off 0.1 16 test"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = ""

@@ -16,6 +16,7 @@
 		988ED1351F5871F200B21181 /* Optimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 988ED1331F5871F200B21181 /* Optimizer.cpp */; };
 		98A5A32B1F5F5BB900584EFD /* ARAPEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98A5A3291F5F5BB900584EFD /* ARAPEnergy.cpp */; };
 		98C2D8F41F6348820048B18A /* SeparationEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98C2D8F21F6348820048B18A /* SeparationEnergy.cpp */; };
+		98CD13DD1F7306C800350DFD /* CohesiveEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98CD13DB1F7306C800350DFD /* CohesiveEnergy.cpp */; };
 		98CE47681F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 98CE47671F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib */; };
 		98CE476F1F71E66300627725 /* PardisoSolver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98CE476D1F71E66300627725 /* PardisoSolver.cpp */; };
 		98D10F2D1F5CA12C0010E1A6 /* SymStretchEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98D10F2B1F5CA12C0010E1A6 /* SymStretchEnergy.cpp */; };
@@ -52,6 +53,8 @@
 		98A5A32A1F5F5BB900584EFD /* ARAPEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ARAPEnergy.hpp; sourceTree = "<group>"; };
 		98C2D8F21F6348820048B18A /* SeparationEnergy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SeparationEnergy.cpp; sourceTree = "<group>"; };
 		98C2D8F31F6348820048B18A /* SeparationEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SeparationEnergy.hpp; sourceTree = "<group>"; };
+		98CD13DB1F7306C800350DFD /* CohesiveEnergy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CohesiveEnergy.cpp; sourceTree = "<group>"; };
+		98CD13DC1F7306C800350DFD /* CohesiveEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CohesiveEnergy.hpp; sourceTree = "<group>"; };
 		98CE47671F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libpardiso500-MACOS-X86-64.dylib"; path = "../../../../usr/local/lib/libpardiso500-MACOS-X86-64.dylib"; sourceTree = "<group>"; };
 		98CE47691F71E2DC00627725 /* gfortran */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gfortran; path = ../../../../usr/local/gfortran; sourceTree = "<group>"; };
 		98CE476D1F71E66300627725 /* PardisoSolver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PardisoSolver.cpp; sourceTree = "<group>"; };
@@ -113,6 +116,8 @@
 				98A5A32A1F5F5BB900584EFD /* ARAPEnergy.hpp */,
 				98C2D8F21F6348820048B18A /* SeparationEnergy.cpp */,
 				98C2D8F31F6348820048B18A /* SeparationEnergy.hpp */,
+				98CD13DB1F7306C800350DFD /* CohesiveEnergy.cpp */,
+				98CD13DC1F7306C800350DFD /* CohesiveEnergy.hpp */,
 			);
 			path = FracCuts;
 			sourceTree = "<group>";
@@ -196,6 +201,7 @@
 				98C2D8F41F6348820048B18A /* SeparationEnergy.cpp in Sources */,
 				988ED12F1F5727F400B21181 /* TriangleSoup.cpp in Sources */,
 				980180BC1F552CDA00C64B43 /* main.cpp in Sources */,
+				98CD13DD1F7306C800350DFD /* CohesiveEnergy.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -358,7 +358,7 @@ namespace FracCuts {
         save(filePath, V_rest, F, V);
     }
     
-    void TriangleSoup::saveAsMesh(const std::string& filePath) const
+    void TriangleSoup::saveAsMesh(const std::string& filePath, bool scaleUV) const
     {
         const double thres = 1.0e-2;
         std::vector<int> dupVI2GroupI(V.rows());
@@ -468,6 +468,20 @@ namespace FracCuts {
                 int meshVI_3D = groupI2meshVI_3D[groupI_3D];
                 assert(meshVI_3D >= 0);
                 F_mesh(triI, vI) = meshVI_3D;
+            }
+        }
+        
+        if(scaleUV) {
+            const Eigen::VectorXd& u = UV_mesh.col(0);
+            const Eigen::VectorXd& v = UV_mesh.col(1);
+            const double uMin = u.minCoeff();
+            const double vMin = v.minCoeff();
+            const double uScale = u.maxCoeff() - uMin;
+            const double vScale = v.maxCoeff() - vMin;
+            const double scale = std::max(uScale, vScale);
+            for(int uvI = 0; uvI < UV_mesh.rows(); uvI++) {
+                UV_mesh(uvI, 0) = (UV_mesh(uvI, 0) - uMin) / scale;
+                UV_mesh(uvI, 1) = (UV_mesh(uvI, 1) - vMin) / scale;
             }
         }
         
