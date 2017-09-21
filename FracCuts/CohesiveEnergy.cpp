@@ -178,10 +178,11 @@ namespace FracCuts
         
     }
     
-    CohesiveEnergy::CohesiveEnergy(double p_tau, double p_alpha, double p_lambda) :
-        tau(p_tau), alpha(p_alpha), lambda(p_lambda)
+    CohesiveEnergy::CohesiveEnergy(double avgEdgeLen, double p_tau_param, double p_alpha, double p_lambda) :
+        tau_param(p_tau_param), alpha(p_alpha), lambda(p_lambda), Energy(false)
     {
-    
+        tau_base = lambda / 3.0 * avgEdgeLen * avgEdgeLen * avgEdgeLen;
+        tau = tau_param * tau_base;
     }
     
     void CohesiveEnergy::compute_dd_div_dx_M(const Eigen::RowVector4d& difVec, const Eigen::Matrix<Eigen::RowVector2d, 2, 2>& dP_div_dx,

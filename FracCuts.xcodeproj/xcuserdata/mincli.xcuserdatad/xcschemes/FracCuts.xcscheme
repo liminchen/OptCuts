@@ -71,8 +71,12 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 torus2.obj 0.1 16"
+            argument = "0 torus2.obj 0.1 16 coh_test"
             isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 cone2.0.obj 0.5 1 coh_test"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 rabbit.obj 0.1 16"
@@ -88,7 +92,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 cat.obj 0.5 16 test"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 pyramid.obj 0.9 16 test"

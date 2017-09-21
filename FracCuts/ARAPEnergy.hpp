@@ -23,6 +23,9 @@ namespace FracCuts
         virtual void computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const;
         
         virtual void checkEnergyVal(const TriangleSoup& data) const;
+        
+    public:
+        ARAPEnergy(void);
     };
     
 }

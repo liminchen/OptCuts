@@ -193,4 +193,10 @@ namespace FracCuts {
         std::cout << "energyVal computation error = " << err << std::endl;
         logFile << "energyVal computation error = " << err << std::endl;
     }
+    
+    SymStretchEnergy::SymStretchEnergy(void) :
+        Energy(false)
+    {
+        
+    }
 }

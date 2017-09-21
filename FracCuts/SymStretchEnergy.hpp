@@ -25,6 +25,9 @@ namespace FracCuts {
         virtual void initStepSize(const TriangleSoup& data, const Eigen::VectorXd& searchDir, double& stepSize) const;
         
         virtual void checkEnergyVal(const TriangleSoup& data) const; // check with isometric case
+        
+    public:
+        SymStretchEnergy(void);
     };
     
 }

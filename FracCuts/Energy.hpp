@@ -15,8 +15,15 @@ namespace FracCuts {
     
     // an abstract class for energy terms in the objective of an optimization problem
     class Energy {
+    protected:
+        const bool needRefactorize;
+        
     public:
+        Energy(bool p_needRefactorize);
         virtual ~Energy(void);
+        
+    public:
+        bool getNeedRefactorize(void) const;
         
     public:
         virtual void computeEnergyVal(const TriangleSoup& data, double& energyVal) const;

@@ -158,9 +158,10 @@ namespace FracCuts {
     }
     
     SeparationEnergy::SeparationEnergy(double p_sigma_base, double p_sigma_param) :
-        sigma_base(p_sigma_base), sigma_param(p_sigma_param)
+        sigma_base(p_sigma_base), sigma_param(p_sigma_param), Energy(true)
     {
         sigma = sigma_param * sigma_base;
+        assert(sigma > 0);
     }
     
     bool SeparationEnergy::decreaseSigma(void)

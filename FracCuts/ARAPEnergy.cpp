@@ -126,4 +126,10 @@ namespace FracCuts {
         // not quite necessary
     }
     
+    ARAPEnergy::ARAPEnergy(void) :
+        Energy(false)
+    {
+        
+    }
+    
 }

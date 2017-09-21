@@ -23,14 +23,14 @@ namespace FracCuts {
         virtual void checkEnergyVal(const TriangleSoup& data) const;
         
     public:
-        CohesiveEnergy(double p_tau = 1.0, double p_alpha = 0.5, double p_lambda = 1.0);
+        CohesiveEnergy(double avgEdgeLen, double p_tau_param = 1.0, double p_alpha = 0.5, double p_lambda = 1.0);
         
     protected:
         void compute_dd_div_dx_M(const Eigen::RowVector4d& difVec, const Eigen::Matrix<Eigen::RowVector2d, 2, 2>& dP_div_dx,
                                  Eigen::Vector2d& result, double elemWeight = 1.0) const;
         
     protected:
-        double tau;
+        double tau, tau_base, tau_param;
         double alpha;
         double lambda;
     };

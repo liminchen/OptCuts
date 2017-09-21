@@ -42,6 +42,7 @@ namespace FracCuts {
                 int vDupIndStart = triI * 3;
                 
                 if(UV_mesh.rows() == V_mesh.rows()) {
+                    // bijective map without seams, usually Tutte
                     V.row(vDupIndStart) = UV_mesh.row(F_mesh.row(triI)[0]);
                     V.row(vDupIndStart + 1) = UV_mesh.row(F_mesh.row(triI)[1]);
                     V.row(vDupIndStart + 2) = UV_mesh.row(F_mesh.row(triI)[2]);
@@ -86,16 +87,24 @@ namespace FracCuts {
                 }
             }
 //            std::cout << cohE << std::endl;
+            
+            if(UV_mesh.rows() == 0) {
+                // no input UV
+                initRigidUV();
+            }
+            else if(UV_mesh.rows() != V_mesh.rows()) {
+                // input UV with seams
+                assert(0 && "TODO: separate each triangle in UV space according to FUV!");
+                //TODO: for verifying cohesive energy implementation, don't define cohesive edges pairs on seams?
+            }
         }
         else {
             // deal with regular mesh
+            assert((UV_mesh.rows() == V_mesh.rows()) &&
+                   "TODO: load FUV, also support FUV in the energies!");
             V_rest = V_mesh;
             V = UV_mesh;
             F = F_mesh;
-        }
-        
-        if(UV_mesh.rows() != V_mesh.rows()) {
-            initRigidUV();
         }
         
         computeFeatures();

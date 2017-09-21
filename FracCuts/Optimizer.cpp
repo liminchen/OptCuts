@@ -40,6 +40,14 @@ namespace FracCuts {
         }
         
         globalIterNum = 0;
+        
+        needRefactorize = false;
+        for(const auto& energyTermI : energyTerms) {
+            if(energyTermI->getNeedRefactorize()) {
+                needRefactorize = true;
+                break;
+            }
+        }
     }
     
     Optimizer::~Optimizer(void)
@@ -128,17 +136,19 @@ namespace FracCuts {
     
     bool Optimizer::solve_oneStep(void)
     {
-        //!! for the changing hessian
-//        computePrecondMtr(result, precondMtr);
-//        cholSolver.compute(precondMtr);
-//        if(cholSolver.info() != Eigen::Success) {
-//            IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_decomposeFailed", precondMtr);
-//            assert(0 && "Cholesky decomposition failed!");
-//        }
-//        Eigen::VectorXd V;
-//        IglUtils::sparseMatrixToTriplet(precondMtr, V);
-//        pardisoSolver.update_a(V);
-//        pardisoSolver.factorize();
+        if(needRefactorize) {
+            // for the changing hessian
+            computePrecondMtr(result, precondMtr);
+    //        cholSolver.compute(precondMtr);
+    //        if(cholSolver.info() != Eigen::Success) {
+    //            IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_decomposeFailed", precondMtr);
+    //            assert(0 && "Cholesky decomposition failed!");
+    //        }
+            Eigen::VectorXd V;
+            IglUtils::sparseMatrixToTriplet(precondMtr, V);
+            pardisoSolver.update_a(V);
+            pardisoSolver.factorize();
+        }
         
 //        searchDir = cholSolver.solve(-gradient);
 //        if(cholSolver.info() != Eigen::Success) {

@@ -17,9 +17,20 @@ extern std::ofstream logFile;
 
 namespace FracCuts {
     
+    Energy::Energy(bool p_needRefactorize) :
+        needRefactorize(p_needRefactorize)
+    {
+        
+    }
+    
     Energy::~Energy(void)
     {
         
+    }
+    
+    bool Energy::getNeedRefactorize(void) const
+    {
+        return needRefactorize;
     }
     
     void Energy::computeEnergyVal(const TriangleSoup& data, double& energyVal) const

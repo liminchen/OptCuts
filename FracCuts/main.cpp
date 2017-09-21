@@ -287,22 +287,29 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
 //        }
         
         if(converged) {
-            saveScreenshot(outputFolderPath + "homotopy_" + std::to_string(
-                dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms[1])->getSigmaParam()) + ".png", 1.0);
-            triSoup[channel_result]->save(outputFolderPath + "homotopy_" + std::to_string(
-                dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms[1])->getSigmaParam()) + ".obj");
-            triSoup[channel_result]->saveAsMesh(outputFolderPath + "homotopy_" + std::to_string(
-                dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms[1])->getSigmaParam()) + "_mesh.obj");
+            FracCuts::SeparationEnergy *sepE = dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms[1]);
+            if(sepE != NULL) {
+                saveScreenshot(outputFolderPath + "homotopy_" + std::to_string(
+                    sepE->getSigmaParam()) + ".png", 1.0);
+                triSoup[channel_result]->save(outputFolderPath + "homotopy_" + std::to_string(
+                    sepE->getSigmaParam()) + ".obj");
+                triSoup[channel_result]->saveAsMesh(outputFolderPath + "homotopy_" + std::to_string(
+                    sepE->getSigmaParam()) + "_mesh.obj");
+            }
+            else {
+                saveScreenshot(outputFolderPath + "result.png", 1.0);
+                triSoup[channel_result]->save(outputFolderPath + "result_triSoup.obj");
+                triSoup[channel_result]->saveAsMesh(outputFolderPath + "result_mesh.obj");
+            }
             
-            if(autoHomotopy &&
-               dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms.back())->decreaseSigma())
+            if(autoHomotopy && sepE && sepE->decreaseSigma())
             {
                 homoTransFile << iterNum << std::endl;
                 optimizer->computeLastEnergyVal();
                 converged = false;
             }
             else {
-                triSoup[channel_result]->saveAsMesh(outputFolderPath + "result.obj", true);
+                triSoup[channel_result]->saveAsMesh(outputFolderPath + "result_mesh_01UV.obj", true);
                 
                 optimization_on = false;
                 viewer.core.is_animating = false;
@@ -459,15 +466,15 @@ int main(int argc, char *argv[])
     std::string meshFilePath = meshFolder + meshFileName;
     std::string meshName = meshFileName.substr(0, meshFileName.find_last_of('.'));
     // Load mesh
-    Eigen::MatrixXd V;
-    Eigen::MatrixXi F;
+    Eigen::MatrixXd V, UV, N;
+    Eigen::MatrixXi F, FUV, FN;
     const std::string suffix = meshFilePath.substr(meshFilePath.find_last_of('.'));
     bool loadSucceed = false;
     if(suffix == ".off") {
         loadSucceed = igl::readOFF(meshFilePath, V, F);
     }
     else if(suffix == ".obj") {
-        loadSucceed = igl::readOBJ(meshFilePath, V, F);
+        loadSucceed = igl::readOBJ(meshFilePath, V, UV, N, F, FUV, FN);
     }
     else {
         std::cout << "unkown mesh file format!" << std::endl;
@@ -499,7 +506,7 @@ int main(int argc, char *argv[])
     double delta = 16;
     if(argc > 4) {
         delta = std::stod(argv[4]);
-        if((delta != delta) || (delta <= 0.0)) {
+        if((delta != delta) || (delta < 0.0)) {
             std::cout << "Overwrite invalid delta " << delta << " to 16" << std::endl;
             delta = 16;
         }
@@ -516,31 +523,38 @@ int main(int argc, char *argv[])
         folderTail += argv[5];
     }
     
-    // * Harmonic map for initialization
-    Eigen::VectorXi bnd;
-    igl::boundary_loop(F, bnd); // Find the open boundary
-    if(bnd.size()) {
-        // Map the boundary to a circle, preserving edge proportions
-        Eigen::MatrixXd bnd_uv;
-        igl::map_vertices_to_circle(V, bnd, bnd_uv);
-        
-    //    // Harmonic parametrization
-    //    UV.resize(UV.size() + 1);
-    //    igl::harmonic(V[0], F[0], bnd, bnd_uv, 1, UV[0]);
-        
-        // Harmonic map with uniform weights
-        Eigen::SparseMatrix<double> A, M;
-        FracCuts::IglUtils::computeUniformLaplacian(F, A);
-        Eigen::MatrixXd UV_Tutte;
-        igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
-        
-        triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV_Tutte));
-        outputFolderPath += meshName + "_Tutte_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) + folderTail;
+    if(UV.rows() != 0) {
+        // use input UV as initial
+        triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV, FUV));//!!!
+        outputFolderPath += meshName + "_input_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) + folderTail;
     }
     else {
-        // rigid initialization for UV
-        triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, Eigen::MatrixXd()));
-        outputFolderPath += meshName + "_rigid_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) + folderTail;
+        // * Harmonic map for initialization
+        Eigen::VectorXi bnd;
+        igl::boundary_loop(F, bnd); // Find the open boundary
+        if(bnd.size()) {
+            // Map the boundary to a circle, preserving edge proportions
+            Eigen::MatrixXd bnd_uv;
+            igl::map_vertices_to_circle(V, bnd, bnd_uv);
+            
+        //    // Harmonic parametrization
+        //    UV.resize(UV.size() + 1);
+        //    igl::harmonic(V[0], F[0], bnd, bnd_uv, 1, UV[0]);
+            
+            // Harmonic map with uniform weights
+            Eigen::SparseMatrix<double> A, M;
+            FracCuts::IglUtils::computeUniformLaplacian(F, A);
+            Eigen::MatrixXd UV_Tutte;
+            igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
+            
+            triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV_Tutte));
+            outputFolderPath += meshName + "_Tutte_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) + folderTail;
+        }
+        else {
+            // rigid initialization for UV
+            triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, Eigen::MatrixXd()));
+            outputFolderPath += meshName + "_rigid_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) + folderTail;
+        }
     }
     
     mkdir(outputFolderPath.c_str(), 0777);
@@ -573,7 +587,7 @@ int main(int argc, char *argv[])
     energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
     energyParams.emplace_back(lambda);
 //    energyTerms.emplace_back(new FracCuts::SeparationEnergy(triSoup[0]->avgEdgeLen * triSoup[0]->avgEdgeLen, delta));
-    energyTerms.emplace_back(new FracCuts::CohesiveEnergy());
+    energyTerms.emplace_back(new FracCuts::CohesiveEnergy(triSoup[0]->avgEdgeLen, delta));
 //    energyTerms.back()->checkEnergyVal(*triSoup[0]);
 //    energyTerms.back()->checkGradient(*triSoup[0]);
 //    energyTerms.back()->checkHessian(*triSoup[0]);
