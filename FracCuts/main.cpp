@@ -572,8 +572,8 @@ int main(int argc, char *argv[])
 //    energyTerms.emplace_back(new FracCuts::ARAPEnergy());
     energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
     energyParams.emplace_back(lambda);
-    energyTerms.emplace_back(new FracCuts::SeparationEnergy(triSoup[0]->avgEdgeLen * triSoup[0]->avgEdgeLen, delta));
-//    energyTerms.emplace_back(new FracCuts::CohesiveEnergy());
+//    energyTerms.emplace_back(new FracCuts::SeparationEnergy(triSoup[0]->avgEdgeLen * triSoup[0]->avgEdgeLen, delta));
+    energyTerms.emplace_back(new FracCuts::CohesiveEnergy());
 //    energyTerms.back()->checkEnergyVal(*triSoup[0]);
 //    energyTerms.back()->checkGradient(*triSoup[0]);
 //    energyTerms.back()->checkHessian(*triSoup[0]);

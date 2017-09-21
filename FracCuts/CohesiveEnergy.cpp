@@ -86,12 +86,86 @@ namespace FracCuts
                 gradient.block(data.cohE(cohI, 3) * 2, 0, 2, 1) += -dd_div_dv.block(2, 0, 2, 1) - dd_div_dx_M_base;
             }
         }
+        for(const auto fixedVI : data.fixedVert) {
+            gradient[2 * fixedVI] = 0.0;
+            gradient[2 * fixedVI + 1] = 0.0;
+        }
     }
     
     void CohesiveEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr) const
     {
-        //TODO: fix vert, clamped precondMtr?
-        
+        precondMtr.resize(data.V.rows() * 2, data.V.rows() * 2);
+        precondMtr.setZero();
+        for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
+        {
+            if(!data.boundaryEdge[cohI]) {
+                const Eigen::RowVector2d& xa = data.V.row(data.cohE(cohI, 0));
+                const Eigen::RowVector2d& xb = data.V.row(data.cohE(cohI, 1));
+                const Eigen::RowVector2d& xc = data.V.row(data.cohE(cohI, 2));
+                const Eigen::RowVector2d& xd = data.V.row(data.cohE(cohI, 3));
+                
+                const Eigen::RowVector2d xhat_bn = xa + xc - xb - xd;
+                const Eigen::RowVector2d xhat = xhat_bn.normalized();
+                const Eigen::Matrix2d P = alpha * Eigen::Matrix2d::Identity() + ((1.0 - 2.0 * alpha) * xhat.transpose()) * xhat;
+                Eigen::RowVector4d difVec; difVec << xa - xc, xb - xd;
+                Eigen::Matrix4d m; m << P, P / 2.0, P / 2.0, P;
+                const double w = data.edgeLen[cohI] / 3.0;
+                
+//                if(w * lambda * difVec * m * difVec.transpose() > tau) {
+//                    continue;
+//                }
+                
+                const Eigen::Matrix4d wl2m = w * lambda * 2.0 * m;
+                Eigen::MatrixXd proxy;
+                proxy.resize(8, 8);
+                proxy << wl2m, -wl2m, -wl2m, wl2m;
+                
+                bool fixed[4];
+                int fixedAmt = 0;
+                for(int vI = 0; vI < 4; vI++) {
+                    if(data.fixedVert.find(data.cohE(cohI, vI)) != data.fixedVert.end()) {
+                        fixed[vI] = true;
+                        fixedAmt++;
+                    }
+                    else {
+                        fixed[vI] = false;
+                    }
+                }
+                if(fixedAmt == 0) {
+                    IglUtils::addBlockToMatrix(precondMtr, proxy, data.cohE.row(cohI), 2);
+                }
+                else {
+                    Eigen::MatrixXd proxy_sub;
+                    proxy_sub.resize(2 * (4 - fixedAmt), 2 * (4 - fixedAmt));
+                    Eigen::VectorXi index;
+                    index.resize(4 - fixedAmt);
+                    int curBRowI = 0;
+                    for(int blockRowI = 0; blockRowI < 4; blockRowI++) {
+                        if(fixed[blockRowI]) {
+                            continue;
+                        }
+                    
+                        int curBColI = 0;
+                        for(int blockColI = 0; blockColI < 4; blockColI++) {
+                            if(fixed[blockColI]) {
+                                continue;
+                            }
+                            
+                            proxy_sub.block(curBRowI * 2, curBColI * 2, 2, 2) = proxy.block(blockRowI * 2, blockColI * 2, 2, 2);
+                            curBColI++;
+                        }
+                        index[curBRowI] = data.cohE(cohI, blockRowI);
+                        curBRowI++;
+                    }
+                    IglUtils::addBlockToMatrix(precondMtr, proxy_sub, index, 2);
+                }
+            }
+        }
+        for(const auto fixedVI : data.fixedVert) {
+            precondMtr.insert(2 * fixedVI, 2 * fixedVI) = 1.0;
+            precondMtr.insert(2 * fixedVI + 1, 2 * fixedVI + 1) = 1.0;
+        }
+        precondMtr.makeCompressed();
     }
     
     void CohesiveEnergy::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const

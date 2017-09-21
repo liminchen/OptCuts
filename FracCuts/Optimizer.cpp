@@ -135,10 +135,10 @@ namespace FracCuts {
 //            IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_decomposeFailed", precondMtr);
 //            assert(0 && "Cholesky decomposition failed!");
 //        }
-        Eigen::VectorXd V;
-        IglUtils::sparseMatrixToTriplet(precondMtr, V);
-        pardisoSolver.update_a(V);
-        pardisoSolver.factorize();
+//        Eigen::VectorXd V;
+//        IglUtils::sparseMatrixToTriplet(precondMtr, V);
+//        pardisoSolver.update_a(V);
+//        pardisoSolver.factorize();
         
 //        searchDir = cholSolver.solve(-gradient);
 //        if(cholSolver.info() != Eigen::Success) {
