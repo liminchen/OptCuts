@@ -250,9 +250,30 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                 
             case 'h':
             case 'H': { // mannual homotopy optimization
-                dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms.back())->decreaseSigma();
-                optimizer->computeLastEnergyVal();
-                converged = false;
+                FracCuts::SeparationEnergy *sepE = dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms[1]);
+                if(sepE != NULL) {
+                    saveScreenshot(outputFolderPath + "homotopyFS_" + std::to_string(sepE->getSigmaParam()) + ".png", 1.0);
+                    triSoup[channel_result]->save(outputFolderPath + "homotopyFS_" + std::to_string(sepE->getSigmaParam()) + ".obj");
+                    triSoup[channel_result]->saveAsMesh(outputFolderPath + "homotopyFS_" + std::to_string(sepE->getSigmaParam()) + "_mesh.obj");
+                    
+                    if(sepE->decreaseSigma())
+                    {
+                        homoTransFile << iterNum << std::endl;
+                        optimizer->computeLastEnergyVal();
+                        converged = false;
+                    }
+                    else {
+                        triSoup[channel_result]->saveAsMesh(outputFolderPath + "result_mesh_01UV.obj", true);
+                        
+                        optimization_on = false;
+                        viewer.core.is_animating = false;
+                        std::cout << "optimization converged." << std::endl;
+                        homoTransFile.close();
+                    }
+                }
+                else {
+                    std::cout << "No homotopy settings!" << std::endl;
+                }
                 break;
             }
                 
@@ -525,7 +546,7 @@ int main(int argc, char *argv[])
     
     if(UV.rows() != 0) {
         // use input UV as initial
-        triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV, FUV));//!!!
+//        triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV, FUV));//!!!
         outputFolderPath += meshName + "_input_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) + folderTail;
     }
     else {

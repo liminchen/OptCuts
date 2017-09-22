@@ -87,7 +87,7 @@ namespace FracCuts {
         pardisoSolver.factorize();
         
         result = data0;
-        targetGRes = data0.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
+        targetGRes = data0.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen; //!! also need to consider min edge len in current UV
         computeEnergyVal(result, lastEnergyVal);
         file_energyValPerIter << lastEnergyVal;
         for(int eI = 0; eI < energyTerms.size(); eI++) {
@@ -137,6 +137,7 @@ namespace FracCuts {
     bool Optimizer::solve_oneStep(void)
     {
         if(needRefactorize) {
+            std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
             // for the changing hessian
             computePrecondMtr(result, precondMtr);
     //        cholSolver.compute(precondMtr);
@@ -189,6 +190,16 @@ namespace FracCuts {
             stepSize /= 2.0;
 //            stepLen = (stepSize * searchDir).squaredNorm();
 //            if(stepLen < targetGRes) {
+            if(stepSize < 1e-12) {
+                stopped = true;
+                break;
+            }
+            
+            stepForward(testingData, stepSize);
+            computeEnergyVal(testingData, testingE);
+        }
+        while(!energyTerms[0]->checkInversion(testingData)) {
+            stepSize /= 2.0;
             if(stepSize < 1e-12) {
                 stopped = true;
                 break;

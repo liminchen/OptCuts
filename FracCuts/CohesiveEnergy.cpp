@@ -26,8 +26,13 @@ namespace FracCuts
                 const Eigen::RowVector2d& xc = data.V.row(data.cohE(cohI, 2));
                 const Eigen::RowVector2d& xd = data.V.row(data.cohE(cohI, 3));
                 
-                const Eigen::RowVector2d xhat = (xa + xc - xb - xd).normalized();
-                const Eigen::Matrix2d P = alpha * Eigen::Matrix2d::Identity() + ((1.0 - 2.0 * alpha) * xhat.transpose()) * xhat;
+                Eigen::Matrix2d P = alpha * Eigen::Matrix2d::Identity();
+                const Eigen::RowVector2d xhat_bn = xa + xc - xb - xd;
+                const double xhat_bn_norm = xhat_bn.norm();
+                if(xhat_bn_norm > 1.0e-3 * data.avgEdgeLen) {
+                    const Eigen::RowVector2d xhat = xhat_bn / xhat_bn_norm;
+                    P += ((1.0 - 2.0 * alpha) * xhat.transpose()) * xhat;
+                }
                 Eigen::RowVector4d difVec; difVec << xa - xc, xb - xd;
                 Eigen::Matrix4d m; m << P, P / 2.0, P / 2.0, P;
                 const double w = (uniformWeight ? 1.0 : (data.edgeLen[cohI] / 3.0));
@@ -42,8 +47,6 @@ namespace FracCuts
     
     void CohesiveEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const
     {
-        //TODO: fix vert
-        
         gradient.resize(data.V.rows() * 2);
         gradient.setZero();
         for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
@@ -54,36 +57,49 @@ namespace FracCuts
                 const Eigen::RowVector2d& xc = data.V.row(data.cohE(cohI, 2));
                 const Eigen::RowVector2d& xd = data.V.row(data.cohE(cohI, 3));
                 
+                Eigen::Matrix2d P = alpha * Eigen::Matrix2d::Identity();
                 const Eigen::RowVector2d xhat_bn = xa + xc - xb - xd;
-                const Eigen::RowVector2d xhat = xhat_bn.normalized();
-                const Eigen::Matrix2d P = alpha * Eigen::Matrix2d::Identity() + ((1.0 - 2.0 * alpha) * xhat.transpose()) * xhat;
+                const double xhat_bn_norm = xhat_bn.norm();
+                Eigen::RowVector2d xhat;
+                bool dropxxT = true;
+                if(xhat_bn_norm > 1.0e-3 * data.avgEdgeLen) {
+                    dropxxT = false;
+                    xhat = xhat_bn / xhat_bn_norm;
+                    P += ((1.0 - 2.0 * alpha) * xhat.transpose()) * xhat;
+                }
+                
                 Eigen::RowVector4d difVec; difVec << xa - xc, xb - xd;
                 Eigen::Matrix4d m; m << P, P / 2.0, P / 2.0, P;
                 const double w = data.edgeLen[cohI] / 3.0;
-                
                 if(w * lambda * difVec * m * difVec.transpose() > tau) {
                     continue;
                 }
                 
-                Eigen::Matrix<Eigen::RowVector2d, 2, 2> dP_div_dxhat;
-                IglUtils::differentiate_xxT(xhat, dP_div_dxhat, 1.0 - 2.0 * alpha);
-                Eigen::Matrix2d dxhat_div_dx_base;
-                IglUtils::differentiate_normalize(xhat_bn, dxhat_div_dx_base);
-                Eigen::Matrix<Eigen::RowVector2d, 2, 2> dP_div_dx_base;
-                for(int rowI = 0; rowI < 2; rowI++) {
-                    for(int colI = 0; colI < 2; colI++) {
-                        dP_div_dx_base(rowI, colI) = dP_div_dxhat(rowI, colI) * dxhat_div_dx_base;
-                    }
-                }
-                Eigen::Vector2d dd_div_dx_M_base;
-                compute_dd_div_dx_M(difVec, dP_div_dx_base, dd_div_dx_M_base, w);
-                
                 Eigen::Vector4d dd_div_dv = w * 2.0 * lambda * m * difVec.transpose();
+                gradient.block(data.cohE(cohI, 0) * 2, 0, 2, 1) += dd_div_dv.block(0, 0, 2, 1);
+                gradient.block(data.cohE(cohI, 1) * 2, 0, 2, 1) += dd_div_dv.block(2, 0, 2, 1);
+                gradient.block(data.cohE(cohI, 2) * 2, 0, 2, 1) -= dd_div_dv.block(0, 0, 2, 1);
+                gradient.block(data.cohE(cohI, 3) * 2, 0, 2, 1) -= dd_div_dv.block(2, 0, 2, 1);
                 
-                gradient.block(data.cohE(cohI, 0) * 2, 0, 2, 1) += dd_div_dv.block(0, 0, 2, 1) + dd_div_dx_M_base;
-                gradient.block(data.cohE(cohI, 1) * 2, 0, 2, 1) += dd_div_dv.block(2, 0, 2, 1) - dd_div_dx_M_base;
-                gradient.block(data.cohE(cohI, 2) * 2, 0, 2, 1) += -dd_div_dv.block(0, 0, 2, 1) + dd_div_dx_M_base;
-                gradient.block(data.cohE(cohI, 3) * 2, 0, 2, 1) += -dd_div_dv.block(2, 0, 2, 1) - dd_div_dx_M_base;
+                if(!dropxxT) {
+                    Eigen::Matrix<Eigen::RowVector2d, 2, 2> dP_div_dxhat;
+                    IglUtils::differentiate_xxT(xhat, dP_div_dxhat, 1.0 - 2.0 * alpha);
+                    Eigen::Matrix2d dxhat_div_dx_base;
+                    IglUtils::differentiate_normalize(xhat_bn, dxhat_div_dx_base);
+                    Eigen::Matrix<Eigen::RowVector2d, 2, 2> dP_div_dx_base;
+                    for(int rowI = 0; rowI < 2; rowI++) {
+                        for(int colI = 0; colI < 2; colI++) {
+                            dP_div_dx_base(rowI, colI) = dP_div_dxhat(rowI, colI) * dxhat_div_dx_base;
+                        }
+                    }
+                    Eigen::Vector2d dd_div_dx_M_base;
+                    compute_dd_div_dx_M(difVec, dP_div_dx_base, dd_div_dx_M_base, w);
+                    
+                    gradient.block(data.cohE(cohI, 0) * 2, 0, 2, 1) += dd_div_dx_M_base;
+                    gradient.block(data.cohE(cohI, 1) * 2, 0, 2, 1) -= dd_div_dx_M_base;
+                    gradient.block(data.cohE(cohI, 2) * 2, 0, 2, 1) += dd_div_dx_M_base;
+                    gradient.block(data.cohE(cohI, 3) * 2, 0, 2, 1) -= dd_div_dx_M_base;
+                }
             }
         }
         for(const auto fixedVI : data.fixedVert) {
@@ -104,16 +120,20 @@ namespace FracCuts
                 const Eigen::RowVector2d& xc = data.V.row(data.cohE(cohI, 2));
                 const Eigen::RowVector2d& xd = data.V.row(data.cohE(cohI, 3));
                 
+                Eigen::Matrix2d P = alpha * Eigen::Matrix2d::Identity();
                 const Eigen::RowVector2d xhat_bn = xa + xc - xb - xd;
-                const Eigen::RowVector2d xhat = xhat_bn.normalized();
-                const Eigen::Matrix2d P = alpha * Eigen::Matrix2d::Identity() + ((1.0 - 2.0 * alpha) * xhat.transpose()) * xhat;
+                const double xhat_bn_norm = xhat_bn.norm();
+                if(xhat_bn_norm > 1.0e-3 * data.avgEdgeLen) {
+                    const Eigen::RowVector2d xhat = xhat_bn / xhat_bn_norm;
+                    P += ((1.0 - 2.0 * alpha) * xhat.transpose()) * xhat;
+                }
                 Eigen::RowVector4d difVec; difVec << xa - xc, xb - xd;
                 Eigen::Matrix4d m; m << P, P / 2.0, P / 2.0, P;
                 const double w = data.edgeLen[cohI] / 3.0;
                 
-//                if(w * lambda * difVec * m * difVec.transpose() > tau) {
-//                    continue;
-//                }
+                //                if(w * lambda * difVec * m * difVec.transpose() > tau) {
+                //                    continue;
+                //                }
                 
                 const Eigen::Matrix4d wl2m = w * lambda * 2.0 * m;
                 Eigen::MatrixXd proxy;
@@ -144,7 +164,7 @@ namespace FracCuts
                         if(fixed[blockRowI]) {
                             continue;
                         }
-                    
+                        
                         int curBColI = 0;
                         for(int blockColI = 0; blockColI < 4; blockColI++) {
                             if(fixed[blockColI]) {
@@ -179,14 +199,14 @@ namespace FracCuts
     }
     
     CohesiveEnergy::CohesiveEnergy(double avgEdgeLen, double p_tau_param, double p_alpha, double p_lambda) :
-        tau_param(p_tau_param), alpha(p_alpha), lambda(p_lambda), Energy(false)
+    tau_param(p_tau_param), alpha(p_alpha), lambda(p_lambda), Energy(false)
     {
         tau_base = lambda / 3.0 * avgEdgeLen * avgEdgeLen * avgEdgeLen;
         tau = tau_param * tau_base;
     }
     
     void CohesiveEnergy::compute_dd_div_dx_M(const Eigen::RowVector4d& difVec, const Eigen::Matrix<Eigen::RowVector2d, 2, 2>& dP_div_dx,
-                             Eigen::Vector2d& result, double elemWeight) const
+                                             Eigen::Vector2d& result, double elemWeight) const
     {
         result.setZero();
         const Eigen::Matrix4d vvT = difVec.transpose() * difVec;

@@ -128,11 +128,13 @@ namespace FracCuts {
             const double a = V2m1[0] * V3m1[1] - V2m1[1] * V3m1[0];
             const double b = U2m1[0] * V3m1[1] - U2m1[1] * V3m1[0] + V2m1[0] * U3m1[1] - V2m1[1] * U3m1[0];
             const double c = U2m1[0] * U3m1[1] - U2m1[1] * U3m1[0];
+            assert(c > 0.0);
             const double delta = b * b - 4.0 * a * c;
             double bound = stepSize;
             if(a > 0.0) {
                 if((b < 0.0) && (delta > 0.0)) {
                     const double r_left = (-b - sqrt(delta)) / 2.0 / a;
+                    assert(r_left > 0.0);
                     const double r_right = (-b + sqrt(delta)) / 2.0 / a;
                     if(r_left < left) {
                         left = r_left;
@@ -159,6 +161,7 @@ namespace FracCuts {
         if((stepSize < right) && (stepSize > left)) {
             stepSize = left;
         }
+        assert(stepSize > 0.0);
     }
     
     void SymStretchEnergy::checkEnergyVal(const TriangleSoup& data) const
@@ -175,7 +178,7 @@ namespace FracCuts {
             const Eigen::Vector3d& P2 = data.V_rest.row(triVInd[1]);
             const Eigen::Vector3d& P3 = data.V_rest.row(triVInd[2]);
             
-            // fake isotropic UV coordinates
+            // fake isometric UV coordinates
             Eigen::Vector3d P[3] = { P1, P2, P3 };
             Eigen::Vector2d U[3]; IglUtils::mapTriangleTo2D(P, U);
             const Eigen::Vector2d U2m1 = U[1];//(P2m1.norm(), 0.0);
