@@ -111,6 +111,7 @@ namespace FracCuts
     void CohesiveEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr) const
     {
         precondMtr.resize(data.V.rows() * 2, data.V.rows() * 2);
+        precondMtr.reserve(data.V.rows() * 5 * 4);
         precondMtr.setZero();
         for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
         {

@@ -63,40 +63,40 @@ namespace FracCuts {
     
     void SeparationEnergy::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const
     {
+        //TODO: use the sparsity structure from last compute
+        
         hessian.resize(data.V.rows() * 2, data.V.rows() * 2);
+        hessian.reserve(data.V.rows() * 3 * 4);
         hessian.setZero();
+        
+        Eigen::Matrix4d dt2dd2x;
+        dt2dd2x <<
+            2.0, 0.0, -2.0, 0.0,
+            0.0, 2.0, 0.0, -2.0,
+            -2.0, 0.0, 2.0, 0.0,
+            0.0, -2.0, 0.0, 2.0;
+        
         for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
         {
             if(!data.boundaryEdge[cohI]) {
                 const Eigen::Vector2d xamc = data.V.row(data.cohE(cohI, 0)) - data.V.row(data.cohE(cohI, 2));
                 const Eigen::Vector2d xbmd = data.V.row(data.cohE(cohI, 1)) - data.V.row(data.cohE(cohI, 3));
                 
-                Eigen::VectorXd dtddx_ac;
-                dtddx_ac.resize(4);
-                dtddx_ac << 2 * xamc, -2 * xamc;
-                Eigen::VectorXd dtddx_bd;
-                dtddx_bd.resize(4);
-                dtddx_bd << 2 * xbmd, -2 * xbmd;
-                
-                Eigen::MatrixXd dt2dd2x;
-                dt2dd2x.resize(4, 4);
-                dt2dd2x <<
-                    2.0, 0.0, -2.0, 0.0,
-                    0.0, 2.0, 0.0, -2.0,
-                    -2.0, 0.0, 2.0, 0.0,
-                    0.0, -2.0, 0.0, 2.0;
+//                Eigen::VectorXd dtddx_ac;
+//                dtddx_ac.resize(4);
+//                dtddx_ac << 2 * xamc, -2 * xamc;
+//                Eigen::VectorXd dtddx_bd;
+//                dtddx_bd.resize(4);
+//                dtddx_bd << 2 * xbmd, -2 * xbmd;
                 
                 const double w = data.edgeLen[cohI];
-                Eigen::MatrixXd hessian_ac;
-                hessian_ac.resize(4, 4);
+                
                 const double sqn_xamc = xamc.squaredNorm();
-                hessian_ac = w * (//kernelHessian(sqn_xamc) * dtddx_ac * dtddx_ac.transpose() +
-                                  kernelGradient(sqn_xamc) * dt2dd2x);
-                Eigen::MatrixXd hessian_bd;
-                hessian_bd.resize(4, 4);
-                const double sqn_xbmd = xamc.squaredNorm();
-                hessian_bd = w * (//kernelHessian(sqn_xbmd) * dtddx_bd * dtddx_bd.transpose() +
-                                  kernelGradient(sqn_xbmd) * dt2dd2x);
+                const Eigen::Matrix4d hessian_ac = (w * //(kernelHessian(sqn_xamc) * dtddx_ac * dtddx_ac.transpose() +
+                                                    kernelGradient(sqn_xamc)) * dt2dd2x;//);
+                const double sqn_xbmd = xbmd.squaredNorm();
+                const Eigen::Matrix4d hessian_bd = (w * //(kernelHessian(sqn_xbmd) * dtddx_bd * dtddx_bd.transpose() +
+                                                    kernelGradient(sqn_xbmd)) * dt2dd2x;//);
                 
                 bool fixed[4];
                 for(int vI = 0; vI < 4; vI++) {

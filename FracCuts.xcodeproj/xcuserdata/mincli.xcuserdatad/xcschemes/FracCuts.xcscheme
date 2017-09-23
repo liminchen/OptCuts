@@ -67,7 +67,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 cow_head.obj 0.02 16"
+            argument = "0 cow1_f1600.obj 0.02 16"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -75,8 +75,8 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 cone2.0.obj 0.9 1 coh_test_"
-            isEnabled = "YES">
+            argument = "0 cone2.0.obj 0.1 16 test_"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 rabbit.obj 0.1 16"
@@ -104,7 +104,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 camelhead_f1000.off 0.1 16 test"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = ""

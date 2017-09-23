@@ -51,7 +51,7 @@ namespace FracCuts{
         // initialize from a triangle mesh, V will be constructed from UV_mesh in 2D,
         // V_mesh will be used to initialize restShape
         TriangleSoup(const Eigen::MatrixXd& V_mesh, const Eigen::MatrixXi& F_mesh,
-                     const Eigen::MatrixXd& UV_mesh, bool separateTri = true);
+                     const Eigen::MatrixXd& UV_mesh, const Eigen::MatrixXi& FUV_mesh = Eigen::MatrixXi(), bool separateTri = true);
         
         TriangleSoup(Primitive primitive, double size = 1.0, double spacing = 0.1, bool separateTri = true);
         

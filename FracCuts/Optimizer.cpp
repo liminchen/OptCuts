@@ -73,11 +73,11 @@ namespace FracCuts {
     {
         computePrecondMtr(data0, precondMtr);
         
-//        cholSolver.compute(precondMtr);
+//        cholSolver.analyzePattern(precondMtr);
+//        cholSolver.factorize(precondMtr);
 //        if(cholSolver.info() != Eigen::Success) {
 //            assert(0 && "Cholesky decomposition failed!");
 //        }
-//        omp_set_num_threads(1);
         pardisoSolver.set_type(2);
         Eigen::VectorXi I, J;
         Eigen::VectorXd V;
@@ -87,7 +87,7 @@ namespace FracCuts {
         pardisoSolver.factorize();
         
         result = data0;
-        targetGRes = data0.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen; //!! also need to consider min edge len in current UV
+        targetGRes = data0.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
         computeEnergyVal(result, lastEnergyVal);
         file_energyValPerIter << lastEnergyVal;
         for(int eI = 0; eI < energyTerms.size(); eI++) {
@@ -137,14 +137,15 @@ namespace FracCuts {
     bool Optimizer::solve_oneStep(void)
     {
         if(needRefactorize) {
-            std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
             // for the changing hessian
+            std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
             computePrecondMtr(result, precondMtr);
-    //        cholSolver.compute(precondMtr);
-    //        if(cholSolver.info() != Eigen::Success) {
-    //            IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_decomposeFailed", precondMtr);
-    //            assert(0 && "Cholesky decomposition failed!");
-    //        }
+            
+//            cholSolver.factorize(precondMtr);
+//            if(cholSolver.info() != Eigen::Success) {
+//                IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_decomposeFailed", precondMtr);
+//                assert(0 && "Cholesky decomposition failed!");
+//            }
             Eigen::VectorXd V;
             IglUtils::sparseMatrixToTriplet(precondMtr, V);
             pardisoSolver.update_a(V);

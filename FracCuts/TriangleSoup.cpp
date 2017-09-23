@@ -25,7 +25,7 @@ namespace FracCuts {
     }
     
     TriangleSoup::TriangleSoup(const Eigen::MatrixXd& V_mesh, const Eigen::MatrixXi& F_mesh,
-                               const Eigen::MatrixXd& UV_mesh, bool separateTri)
+                               const Eigen::MatrixXd& UV_mesh, const Eigen::MatrixXi& FUV_mesh, bool separateTri)
     {
         if(separateTri)
         {
@@ -99,12 +99,32 @@ namespace FracCuts {
             }
         }
         else {
-            // deal with regular mesh
-            assert((UV_mesh.rows() == V_mesh.rows()) &&
-                   "TODO: load FUV, also support FUV in the energies!");
-            V_rest = V_mesh;
-            V = UV_mesh;
-            F = F_mesh;
+            // deal with mesh
+            if(UV_mesh.rows() == V_mesh.rows()) {
+                V_rest = V_mesh;
+                V = UV_mesh;
+                F = F_mesh;
+            }
+            else if(UV_mesh.rows() != 0){
+                assert(F_mesh.rows() == FUV_mesh.rows());
+                // UV map contains seams
+                // Split triangles along the seams on the surface (construct cohesive edges there)
+                // to construct a bijective map
+                std::set<std::pair<int, int>> HE_UV;
+                for(int triI = 0; triI < FUV_mesh.rows(); triI++) {
+                    const Eigen::RowVector3i& triVInd_UV = FUV_mesh.row(triI);
+                    HE_UV.insert(std::pair<int, int>(triVInd_UV[0], triVInd_UV[1]));
+                    HE_UV.insert(std::pair<int, int>(triVInd_UV[1], triVInd_UV[2]));
+                    HE_UV.insert(std::pair<int, int>(triVInd_UV[2], triVInd_UV[0]));
+                }
+                
+                for(int triI = 0; triI < F_mesh.rows(); triI++) {
+                    
+                }
+            }
+            else {
+                assert(0 && "No UV provided!");
+            }
         }
         
         computeFeatures();
@@ -224,6 +244,7 @@ namespace FracCuts {
         Eigen::SparseMatrix<double> L;
         igl::cotmatrix(V_rest, F, L);
         LaplacianMtr.resize(V.rows() * 2, V.rows() * 2);
+        LaplacianMtr.reserve(L.nonZeros());
         for (int k = 0; k < L.outerSize(); ++k)
         {
             for (Eigen::SparseMatrix<double>::InnerIterator it(L, k); it; ++it)

@@ -431,7 +431,7 @@ int main(int argc, char *argv[])
                                 std::cout << "UV coordinates not valid, will generate separate rigid mapping UV!" << std::endl;
                             }
                             
-                            FracCuts::TriangleSoup inputTriSoup(V, F, UV, false);
+                            FracCuts::TriangleSoup inputTriSoup(V, F, UV, Eigen::MatrixXi(), false);
                             if(argc > 4) {
                                 // input original model to get cohesive edge information
                                 Eigen::MatrixXd V0;
@@ -545,7 +545,7 @@ int main(int argc, char *argv[])
     }
     
     if(UV.rows() != 0) {
-        // use input UV as initial
+        //TODO: use input UV as initial
 //        triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV, FUV));//!!!
         outputFolderPath += meshName + "_input_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) + folderTail;
     }
@@ -607,8 +607,8 @@ int main(int argc, char *argv[])
 //    energyTerms.emplace_back(new FracCuts::ARAPEnergy());
     energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
     energyParams.emplace_back(lambda);
-//    energyTerms.emplace_back(new FracCuts::SeparationEnergy(triSoup[0]->avgEdgeLen * triSoup[0]->avgEdgeLen, delta));
-    energyTerms.emplace_back(new FracCuts::CohesiveEnergy(triSoup[0]->avgEdgeLen, delta));
+    energyTerms.emplace_back(new FracCuts::SeparationEnergy(triSoup[0]->avgEdgeLen * triSoup[0]->avgEdgeLen, delta));
+//    energyTerms.emplace_back(new FracCuts::CohesiveEnergy(triSoup[0]->avgEdgeLen, delta));
 //    energyTerms.back()->checkEnergyVal(*triSoup[0]);
 //    energyTerms.back()->checkGradient(*triSoup[0]);
 //    energyTerms.back()->checkHessian(*triSoup[0]);
@@ -622,6 +622,7 @@ int main(int argc, char *argv[])
     viewer.callback_pre_draw = &preDrawFunc;
     viewer.core.show_lines = true;
     viewer.core.orthographic = true;
+    viewer.core.animation_max_fps = 60.0;
     updateViewerData();
     viewer.launch();
     
