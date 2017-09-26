@@ -67,6 +67,14 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "0 sphere_R_0.5.obj 0.0"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 cone2.0.obj 0.1 10000 squareMeshTest"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "0 cow1_f1600.obj 0.02 16"
             isEnabled = "NO">
          </CommandLineArgument>
@@ -75,7 +83,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 cone2.0.obj 0.1 16 test_"
+            argument = "0 cone2.0.obj 0.2 16 refacttest"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -87,7 +95,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 sphere.obj 0.9999 1 coh_test"
+            argument = "0 sphere_uniRemesh.obj 0.5 16 refact"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -99,11 +107,15 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "0 torus2_uniRemesh.obj 0.1 16 refact"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "0 bishop_part.obj 0.1 16"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 camelhead_f1000.off 0.1 16 test"
+            argument = "0 camelhead_f1000.off 0.1 0.00161"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

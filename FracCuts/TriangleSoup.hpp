@@ -56,9 +56,10 @@ namespace FracCuts{
         TriangleSoup(Primitive primitive, double size = 1.0, double spacing = 0.1, bool separateTri = true);
         
     public: // API
-        void computeFeatures(void);
+        void computeFeatures(bool multiComp = false);
         
         void computeSeamScore(Eigen::VectorXd& seamScore) const;
+        void computeSeamSparsity(double& sparsity) const;
         
         void initRigidUV(void);
         

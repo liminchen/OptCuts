@@ -48,6 +48,8 @@ namespace FracCuts {
                 break;
             }
         }
+        
+        pardisoThreadAmt = 1;
     }
     
     Optimizer::~Optimizer(void)
@@ -73,29 +75,34 @@ namespace FracCuts {
     {
         computePrecondMtr(data0, precondMtr);
         
-//        cholSolver.analyzePattern(precondMtr);
-//        cholSolver.factorize(precondMtr);
-//        if(cholSolver.info() != Eigen::Success) {
-//            assert(0 && "Cholesky decomposition failed!");
-//        }
-        pardisoSolver.set_type(2);
-        Eigen::VectorXi I, J;
-        Eigen::VectorXd V;
-        IglUtils::sparseMatrixToTriplet(precondMtr, I, J, V);
-        pardisoSolver.set_pattern(I, J, V);
-        pardisoSolver.analyze_pattern();
-        pardisoSolver.factorize();
+        if(!pardisoThreadAmt) {
+            cholSolver.analyzePattern(precondMtr);
+            cholSolver.factorize(precondMtr);
+            if(cholSolver.info() != Eigen::Success) {
+                assert(0 && "Cholesky decomposition failed!");
+            }
+        }
+        else {
+            pardisoSolver.set_type(pardisoThreadAmt, 2);
+            Eigen::VectorXi I, J;
+            Eigen::VectorXd V;
+            IglUtils::sparseMatrixToTriplet(precondMtr, I, J, V);
+            pardisoSolver.set_pattern(I, J, V);
+            pardisoSolver.analyze_pattern();
+            pardisoSolver.factorize();
+        }
         
         result = data0;
         targetGRes = data0.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
+//        targetGRes = data0.V_rest.rows() * 1.0e-10 * data0.avgEdgeLen * data0.avgEdgeLen;
         computeEnergyVal(result, lastEnergyVal);
         file_energyValPerIter << lastEnergyVal;
         for(int eI = 0; eI < energyTerms.size(); eI++) {
             file_energyValPerIter << " " << energyVal_ET[eI];
         }
-        double exactSepEVal;
-        dynamic_cast<SeparationEnergy*>(energyTerms[1])->computeExactEnergyVal(result, exactSepEVal);
-        file_energyValPerIter << " " << exactSepEVal << std::endl;
+        double seamSparsity;
+        result.computeSeamSparsity(seamSparsity);
+        file_energyValPerIter << " " << seamSparsity << std::endl;
         std::cout << "E_initial = " << lastEnergyVal << std::endl;
     }
     
@@ -117,9 +124,9 @@ namespace FracCuts {
                 for(int eI = 0; eI < energyTerms.size(); eI++) {
                     file_energyValPerIter << " " << energyVal_ET[eI];
                 }
-                double exactSepEVal;
-                dynamic_cast<SeparationEnergy*>(energyTerms[1])->computeExactEnergyVal(result, exactSepEVal);
-                file_energyValPerIter << " " << exactSepEVal << std::endl;
+                double seamSparsity;
+                result.computeSeamSparsity(seamSparsity);
+                file_energyValPerIter << " " << seamSparsity << std::endl;
                 globalIterNum++;
                 return true;
             }
@@ -141,23 +148,31 @@ namespace FracCuts {
             std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
             computePrecondMtr(result, precondMtr);
             
-//            cholSolver.factorize(precondMtr);
-//            if(cholSolver.info() != Eigen::Success) {
-//                IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_decomposeFailed", precondMtr);
-//                assert(0 && "Cholesky decomposition failed!");
-//            }
-            Eigen::VectorXd V;
-            IglUtils::sparseMatrixToTriplet(precondMtr, V);
-            pardisoSolver.update_a(V);
-            pardisoSolver.factorize();
+            if(!pardisoThreadAmt) {
+                cholSolver.factorize(precondMtr);
+                if(cholSolver.info() != Eigen::Success) {
+                    IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_decomposeFailed", precondMtr);
+                    assert(0 && "Cholesky decomposition failed!");
+                }
+            }
+            else {
+                Eigen::VectorXd V;
+                IglUtils::sparseMatrixToTriplet(precondMtr, V);
+                pardisoSolver.update_a(V);
+                pardisoSolver.factorize();
+            }
         }
         
-//        searchDir = cholSolver.solve(-gradient);
-//        if(cholSolver.info() != Eigen::Success) {
-//            assert(0 && "Cholesky solve failed!");
-//        }
-        Eigen::VectorXd minusG = -gradient;
-        pardisoSolver.solve(minusG, searchDir);
+        if(!pardisoThreadAmt) {
+            searchDir = cholSolver.solve(-gradient);
+            if(cholSolver.info() != Eigen::Success) {
+                assert(0 && "Cholesky solve failed!");
+            }
+        }
+        else {
+            Eigen::VectorXd minusG = -gradient;
+            pardisoSolver.solve(minusG, searchDir);
+        }
         
         bool stopped = lineSearch();
         if(stopped) {
@@ -220,9 +235,9 @@ namespace FracCuts {
         for(int eI = 0; eI < energyTerms.size(); eI++) {
             file_energyValPerIter << " " << energyVal_ET[eI];
         }
-        double exactSepEVal;
-        dynamic_cast<SeparationEnergy*>(energyTerms[1])->computeExactEnergyVal(result, exactSepEVal);
-        file_energyValPerIter << " " << exactSepEVal << std::endl;
+        double seamSparsity;
+        result.computeSeamSparsity(seamSparsity);
+        file_energyValPerIter << " " << seamSparsity << std::endl;
         
         return stopped;
     }

@@ -45,9 +45,9 @@ public:
     PardisoSolver() ;
     ~PardisoSolver();
     
-    void set_type(int _mtype, bool is_upper_half = false);
+    void set_type(int threadAmt, int _mtype, bool is_upper_half = false);
     
-    void init();
+    void init(int threadAmt);
     
     void set_pattern(const vectorTypeI &II,
                      const vectorTypeI &JJ,

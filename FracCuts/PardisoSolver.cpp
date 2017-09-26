@@ -21,10 +21,14 @@ mtype(-1)
 {}
 
 template <typename vectorTypeI, typename vectorTypeS>
-void PardisoSolver<vectorTypeI,vectorTypeS>::set_type(int _mtype , bool is_upper_half)
+void PardisoSolver<vectorTypeI,vectorTypeS>::set_type(int threadAmt, int _mtype , bool is_upper_half)
 {
-    if ((_mtype !=-2) && (_mtype !=2) && (_mtype !=1) && (_mtype !=11))
-        throw std::runtime_error(std::string("Pardiso mtype not supported. mtype = ")+std::to_string( _mtype));
+    if((_mtype !=-2) && (_mtype !=2) && (_mtype !=1) && (_mtype !=11)) {
+        throw std::runtime_error(std::string("Pardiso mtype not supported. mtype = ") + std::to_string(_mtype));
+    }
+    if(threadAmt < 1) {
+        throw std::runtime_error(std::string("Pardiso threadAmt not supported. threadAmt = ") + std::to_string(threadAmt));
+    }
     
     mtype = _mtype;
     // As per https://software.intel.com/en-us/forums/intel-math-kernel-library/topic/283738
@@ -36,11 +40,11 @@ void PardisoSolver<vectorTypeI,vectorTypeS>::set_type(int _mtype , bool is_upper
     this->is_upper_half = is_upper_half;
     if(!is_symmetric && is_upper_half)
         throw std::runtime_error("Using upper half is only possible if the matrix is symmetric.");
-    init();
+    init(threadAmt);
 }
 
 template <typename vectorTypeI, typename vectorTypeS>
-void PardisoSolver<vectorTypeI,vectorTypeS>::init()
+void PardisoSolver<vectorTypeI,vectorTypeS>::init(int threadAmt)
 {
     if (mtype ==-1)
         throw std::runtime_error("Pardiso mtype not set.");
@@ -67,7 +71,7 @@ void PardisoSolver<vectorTypeI,vectorTypeS>::init()
     
     
     /* Numbers of processors, value of OMP_NUM_THREADS */
-    setenv("OMP_NUM_THREADS", "1", 1);
+    setenv("OMP_NUM_THREADS", std::to_string(threadAmt).c_str(), 1);
     var = getenv("OMP_NUM_THREADS");
     if(var != NULL)
         sscanf( var, "%d", &num_procs );

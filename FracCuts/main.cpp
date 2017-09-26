@@ -250,7 +250,14 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                 
             case 'h':
             case 'H': { // mannual homotopy optimization
-                FracCuts::SeparationEnergy *sepE = dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms[1]);
+                FracCuts::SeparationEnergy *sepE = NULL;
+                for(const auto eTermI : energyTerms) {
+                    sepE = dynamic_cast<FracCuts::SeparationEnergy*>(eTermI);
+                    if(sepE != NULL) {
+                        break;
+                    }
+                }
+                
                 if(sepE != NULL) {
                     saveScreenshot(outputFolderPath + "homotopyFS_" + std::to_string(sepE->getSigmaParam()) + ".png", 1.0);
                     triSoup[channel_result]->save(outputFolderPath + "homotopyFS_" + std::to_string(sepE->getSigmaParam()) + ".obj");
@@ -308,7 +315,14 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
 //        }
         
         if(converged) {
-            FracCuts::SeparationEnergy *sepE = dynamic_cast<FracCuts::SeparationEnergy*>(energyTerms[1]);
+            FracCuts::SeparationEnergy *sepE = NULL;
+            for(const auto eTermI : energyTerms) {
+                sepE = dynamic_cast<FracCuts::SeparationEnergy*>(eTermI);
+                if(sepE != NULL) {
+                    break;
+                }
+            }
+            
             if(sepE != NULL) {
                 saveScreenshot(outputFolderPath + "homotopy_" + std::to_string(
                     sepE->getSigmaParam()) + ".png", 1.0);
@@ -506,7 +520,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 //    //DEBUG
-//    FracCuts::TriangleSoup squareMesh(FracCuts::P_SQUARE, 1.0, 0.33, false);
+//    FracCuts::TriangleSoup squareMesh(FracCuts::P_SQUARE, 1.0, 0.1, false);
 //    V = squareMesh.V_rest;
 //    F = squareMesh.F;
     
@@ -514,7 +528,7 @@ int main(int argc, char *argv[])
     double lambda = 0.5;
     if(argc > 3) {
         lambda = std::stod(argv[3]);
-        if((lambda != lambda) || (lambda <= 0.0) || (lambda >= 1.0)) {
+        if((lambda != lambda) || (lambda < 0.0) || (lambda > 1.0)) {
             std::cout << "Overwrite invalid lambda " << lambda << " to 0.5" << std::endl;
             lambda = 0.5;
         }
@@ -546,7 +560,7 @@ int main(int argc, char *argv[])
     
     if(UV.rows() != 0) {
         //TODO: use input UV as initial
-//        triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV, FUV));//!!!
+        triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV, FUV, false)); //do not separate all triangles
         outputFolderPath += meshName + "_input_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) + folderTail;
     }
     else {
@@ -602,12 +616,16 @@ int main(int argc, char *argv[])
 //    arap_solve(bc, arap_data, UV[0]);
     
     // * Our approach
-    texScale = 10.0 / (triSoup[0]->bbox.row(1) - triSoup[0]->bbox.row(0)).minCoeff();
-    energyParams.emplace_back(1.0 - lambda);
-//    energyTerms.emplace_back(new FracCuts::ARAPEnergy());
-    energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
-    energyParams.emplace_back(lambda);
-    energyTerms.emplace_back(new FracCuts::SeparationEnergy(triSoup[0]->avgEdgeLen * triSoup[0]->avgEdgeLen, delta));
+    texScale = 10.0 / (triSoup[0]->bbox.row(1) - triSoup[0]->bbox.row(0)).maxCoeff();
+    if(lambda != 1.0) {
+        energyParams.emplace_back(1.0 - lambda);
+    //    energyTerms.emplace_back(new FracCuts::ARAPEnergy());
+        energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
+    }
+    if(lambda != 0.0) {
+        energyParams.emplace_back(lambda);
+        energyTerms.emplace_back(new FracCuts::SeparationEnergy(triSoup[0]->avgEdgeLen * triSoup[0]->avgEdgeLen, delta));
+    }
 //    energyTerms.emplace_back(new FracCuts::CohesiveEnergy(triSoup[0]->avgEdgeLen, delta));
 //    energyTerms.back()->checkEnergyVal(*triSoup[0]);
 //    energyTerms.back()->checkGradient(*triSoup[0]);

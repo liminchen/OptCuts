@@ -26,6 +26,7 @@ namespace FracCuts {
         // E = \Sigma_i a_i E_i
         
     protected: // owned data
+        bool pardisoThreadAmt;
         bool needRefactorize;
         int globalIterNum;
         TriangleSoup result; // intermediate results of each iteration

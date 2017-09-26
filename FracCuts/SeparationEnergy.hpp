@@ -29,7 +29,6 @@ namespace FracCuts {
     public:
         bool decreaseSigma(void); // decrease sigma by half for homotopy optimization
         double getSigmaParam(void) const;
-        void computeExactEnergyVal(const TriangleSoup& data, double& exactEnergyVal);
         
     protected:
         double kernel(double t) const;

@@ -12,6 +12,7 @@
 #include <igl/cotmatrix.h>
 #include <igl/avg_edge_length.h>
 #include <igl/writeOBJ.h>
+#include <igl/list_to_matrix.h>
 
 #include <fstream>
 
@@ -27,6 +28,7 @@ namespace FracCuts {
     TriangleSoup::TriangleSoup(const Eigen::MatrixXd& V_mesh, const Eigen::MatrixXi& F_mesh,
                                const Eigen::MatrixXd& UV_mesh, const Eigen::MatrixXi& FUV_mesh, bool separateTri)
     {
+        bool multiComp = false; //TODO: detect whether the mesh is multi-component
         if(separateTri)
         {
             // duplicate vertices and edges, use new face vertex indices,
@@ -95,7 +97,6 @@ namespace FracCuts {
             else if(UV_mesh.rows() != V_mesh.rows()) {
                 // input UV with seams
                 assert(0 && "TODO: separate each triangle in UV space according to FUV!");
-                //TODO: for verifying cohesive energy implementation, don't define cohesive edges pairs on seams?
             }
         }
         else {
@@ -111,15 +112,53 @@ namespace FracCuts {
                 // Split triangles along the seams on the surface (construct cohesive edges there)
                 // to construct a bijective map
                 std::set<std::pair<int, int>> HE_UV;
+                std::map<std::pair<int, int>, std::pair<int, int>> HE;
                 for(int triI = 0; triI < FUV_mesh.rows(); triI++) {
                     const Eigen::RowVector3i& triVInd_UV = FUV_mesh.row(triI);
                     HE_UV.insert(std::pair<int, int>(triVInd_UV[0], triVInd_UV[1]));
                     HE_UV.insert(std::pair<int, int>(triVInd_UV[1], triVInd_UV[2]));
                     HE_UV.insert(std::pair<int, int>(triVInd_UV[2], triVInd_UV[0]));
+                    const Eigen::RowVector3i& triVInd = F_mesh.row(triI);
+                    HE[std::pair<int, int>(triVInd[0], triVInd[1])] = std::pair<int, int>(triI, 0);
+                    HE[std::pair<int, int>(triVInd[1], triVInd[2])] = std::pair<int, int>(triI, 1);
+                    HE[std::pair<int, int>(triVInd[2], triVInd[0])] = std::pair<int, int>(triI, 2);
                 }
+                std::vector<std::vector<int>> cohEdges;
+                for(int triI = 0; triI < FUV_mesh.rows(); triI++) {
+                    const Eigen::RowVector3i& triVInd_UV = FUV_mesh.row(triI);
+                    const Eigen::RowVector3i& triVInd = F_mesh.row(triI);
+                    for(int eI = 0; eI < 3; eI++) {
+                        int vI = eI, vI_post = (eI + 1) % 3;
+                        if(HE_UV.find(std::pair<int, int>(triVInd_UV[vI_post], triVInd_UV[vI])) == HE_UV.end()) {
+                            // boundary edge in UV space
+                            const auto finder = HE.find(std::pair<int, int>(triVInd[vI_post], triVInd[vI]));
+                            if(finder != HE.end()) {
+                                // non-boundary edge on the surface
+                                // construct cohesive edge pair
+                                cohEdges.resize(cohEdges.size() + 1);
+                                cohEdges.back().emplace_back(triVInd_UV[vI]);
+                                cohEdges.back().emplace_back(triVInd_UV[vI_post]);
+                                cohEdges.back().emplace_back(FUV_mesh(finder->second.first, (finder->second.second + 1) % 3));
+                                cohEdges.back().emplace_back(FUV_mesh(finder->second.first, finder->second.second));
+                            }
+                        }
+                    }
+                }
+                igl::list_to_matrix(cohEdges, cohE);
                 
+                V_rest.resize(UV_mesh.rows(), 3);
+                V = UV_mesh;
+                F = FUV_mesh;
+                std::vector<bool> updated(UV_mesh.rows(), false);
                 for(int triI = 0; triI < F_mesh.rows(); triI++) {
-                    
+                    const Eigen::RowVector3i& triVInd = F_mesh.row(triI);
+                    const Eigen::RowVector3i& triVInd_UV = FUV_mesh.row(triI);
+                    for(int vI = 0; vI < 3; vI++) {
+                        if(!updated[triVInd_UV[vI]]) {
+                            V_rest.row(triVInd_UV[vI]) = V_mesh.row(triVInd[vI]);
+                            updated[triVInd_UV[vI]] = true;
+                        }
+                    }
                 }
             }
             else {
@@ -222,8 +261,9 @@ namespace FracCuts {
         }
     }
     
-    void TriangleSoup::computeFeatures(void)
+    void TriangleSoup::computeFeatures(bool multiComp)
     {
+        //TODO: if the mesh is multi-component, then fix more vertices 
         fixedVert.insert(0);
         
         boundaryEdge.resize(cohE.rows());
@@ -320,6 +360,23 @@ namespace FracCuts {
             else {
                 seamScore[cohI] = std::max((V.row(cohE(cohI, 0)) - V.row(cohE(cohI, 2))).norm(),
                     (V.row(cohE(cohI, 1)) - V.row(cohE(cohI, 3))).norm()) / avgEdgeLen;
+            }
+        }
+    }
+    void TriangleSoup::computeSeamSparsity(double& sparsity) const
+    {
+        const double thres = 1.0e-2;
+        sparsity = 0.0;
+        for(int cohI = 0; cohI < cohE.rows(); cohI++)
+        {
+            if(!boundaryEdge[cohI]) {
+                const double w = edgeLen[cohI];
+                if((V.row(cohE(cohI, 0)) - V.row(cohE(cohI, 2))).norm() / avgEdgeLen > thres) {
+                    sparsity += w;
+                }
+                if((V.row(cohE(cohI, 1)) - V.row(cohE(cohI, 3))).norm() / avgEdgeLen > thres) {
+                    sparsity += w;
+                }
             }
         }
     }

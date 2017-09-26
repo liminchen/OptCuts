@@ -186,24 +186,6 @@ namespace FracCuts {
         return sigma_param;
     }
     
-    void SeparationEnergy::computeExactEnergyVal(const TriangleSoup& data, double& exactEnergyVal)
-    {
-        const double thres = 1.0e-2;
-        exactEnergyVal = 0.0;
-        for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
-        {
-            if(!data.boundaryEdge[cohI]) {
-                const double w = data.edgeLen[cohI];
-                if((data.V.row(data.cohE(cohI, 0)) - data.V.row(data.cohE(cohI, 2))).norm() / data.avgEdgeLen > thres) {
-                    exactEnergyVal += w;
-                }
-                if((data.V.row(data.cohE(cohI, 1)) - data.V.row(data.cohE(cohI, 3))).norm() / data.avgEdgeLen > thres) {
-                    exactEnergyVal += w;
-                }
-            }
-        }
-    }
-    
     double SeparationEnergy::kernel(double t) const
     {
 //        return t * t / (t * t + sigma);
