@@ -59,7 +59,7 @@ namespace FracCuts{
         void computeFeatures(bool multiComp = false);
         void updateFeatures(void);
         
-        void separateTriangle(double thres);
+        bool separateTriangle(const Eigen::VectorXd& measure, double thres);
         
         void computeSeamScore(Eigen::VectorXd& seamScore) const;
         void computeSeamSparsity(double& sparsity) const;
@@ -71,6 +71,10 @@ namespace FracCuts{
         void save(const std::string& filePath) const;
         
         void saveAsMesh(const std::string& filePath, bool scaleUV = false) const;
+        
+    protected: // helper function
+        bool isBoundaryVert(const std::map<std::pair<int, int>, int>& edge2Tri, int vI, int vI_neighbor,
+                            std::vector<int>& tri_toSep, std::pair<int, int>& boundaryEdge) const;
     };
     
 }

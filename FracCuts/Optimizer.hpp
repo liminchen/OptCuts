@@ -57,6 +57,10 @@ namespace FracCuts {
         // the final result will be in result
         bool solve(int maxIter = 100);
         
+        void updatePrecondMtrAndFactorize(void);
+        
+        void createFracture(void);
+        
         void computeLastEnergyVal(void);
         
         void getGradientVisual(Eigen::MatrixXd& arrowVec) const;

@@ -30,6 +30,7 @@ int iterNum = 0;
 bool converged = false;
 bool autoHomotopy = true;
 std::ofstream homoTransFile;
+bool fractureMode = false;
 
 std::ofstream logFile;
 std::string outputFolderPath = "/Users/mincli/Desktop/output_FracCuts/";
@@ -268,6 +269,12 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                         homoTransFile << iterNum << std::endl;
                         optimizer->computeLastEnergyVal();
                         converged = false;
+                        if(fractureMode) {
+                            optimizer->createFracture();
+                        }
+                        else {
+                            optimizer->updatePrecondMtrAndFactorize();
+                        }
                     }
                     else {
                         triSoup[channel_result]->saveAsMesh(outputFolderPath + "result_mesh_01UV.obj", true);
@@ -342,6 +349,12 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                 homoTransFile << iterNum << std::endl;
                 optimizer->computeLastEnergyVal();
                 converged = false;
+                if(fractureMode) {
+                    optimizer->createFracture();
+                }
+                else {
+                    optimizer->updatePrecondMtrAndFactorize();
+                }
             }
             else {
                 triSoup[channel_result]->saveAsMesh(outputFolderPath + "result_mesh_01UV.obj", true);
@@ -573,7 +586,8 @@ int main(int argc, char *argv[])
     if(UV.rows() != 0) {
         triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV, FUV, startWithTriSoup));
 //        FracCuts::TriangleSoup temp(V, F, UV, FUV, false);
-//        temp.separateTriangle(0.0);
+//        Eigen::VectorXd tempVec = Eigen::VectorXd::Zero(F.rows());
+//        temp.separateTriangle(tempVec, -1.0);
 //        triSoup.emplace_back(new FracCuts::TriangleSoup(temp));
         outputFolderPath += meshName + "_input_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +
             "_" +startDS + folderTail;
@@ -651,6 +665,11 @@ int main(int argc, char *argv[])
     optimizer = new FracCuts::Optimizer(*triSoup[0], energyTerms, energyParams);
     optimizer->precompute();
     triSoup.emplace_back(&optimizer->getResult());
+    if((lambda > 0.0) && (!startWithTriSoup)) {
+        // fracture mode
+        fractureMode = true;
+        optimizer->createFracture();
+    }
     
     // Setup viewer and launch
     viewer.core.background_color << 1.0f, 1.0f, 1.0f, 0.0f;
