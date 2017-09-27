@@ -550,18 +550,33 @@ int main(int argc, char *argv[])
         std::cout << "Use default delta = " << delta << std::endl;
     }
     
-    std::string folderTail = "";
+    bool startWithTriSoup = ((lambda == 0.0) ? false : true);
     if(argc > 5) {
-        if(argv[5][0] != '_') {
+        startWithTriSoup = !!std::stoi(argv[5]);
+    }
+    else {
+        std::cout << "Use default, start from " << (startWithTriSoup ? "triangle soup": "full mesh") << std::endl;
+    }
+    if(startWithTriSoup) {
+        assert((lambda > 0.0) && "must have edge energy to start from triangle soup!");
+    }
+    const std::string startDS = (startWithTriSoup ? "soup" : ((lambda == 0.0) ? "SD": "frac"));
+    
+    std::string folderTail = "";
+    if(argc > 6) {
+        if(argv[6][0] != '_') {
             folderTail += '_';
         }
-        folderTail += argv[5];
+        folderTail += argv[6];
     }
     
     if(UV.rows() != 0) {
-        //TODO: use input UV as initial
-        triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV, FUV, false)); //do not separate all triangles
-        outputFolderPath += meshName + "_input_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) + folderTail;
+        triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV, FUV, startWithTriSoup));
+//        FracCuts::TriangleSoup temp(V, F, UV, FUV, false);
+//        temp.separateTriangle(0.0);
+//        triSoup.emplace_back(new FracCuts::TriangleSoup(temp));
+        outputFolderPath += meshName + "_input_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +
+            "_" +startDS + folderTail;
     }
     else {
         // * Harmonic map for initialization
@@ -582,13 +597,16 @@ int main(int argc, char *argv[])
             Eigen::MatrixXd UV_Tutte;
             igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
             
-            triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV_Tutte));
-            outputFolderPath += meshName + "_Tutte_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) + folderTail;
+            triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV_Tutte, Eigen::MatrixXi(), startWithTriSoup));
+            outputFolderPath += meshName + "_Tutte_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +
+                "_" + startDS + folderTail;
         }
         else {
             // rigid initialization for UV
+            assert((lambda > 0.0) && startWithTriSoup);
             triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, Eigen::MatrixXd()));
-            outputFolderPath += meshName + "_rigid_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) + folderTail;
+            outputFolderPath += meshName + "_rigid_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +
+                "_" + startDS + folderTail;
         }
     }
     

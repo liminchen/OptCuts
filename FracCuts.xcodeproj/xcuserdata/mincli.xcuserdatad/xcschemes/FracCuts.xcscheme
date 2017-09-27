@@ -63,64 +63,12 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "0 pyramid_f256.obj 0.1 16 test"
+            argument = "0 camelhead_f1000.off 0.1 16 1"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 sphere_R_0.5.obj 0.0"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "0 cone2.0.obj 0.1 10000 squareMeshTest"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "0 cow1_f1600.obj 0.02 16"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "0 torus2.obj 0.1 16 coh_test"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "0 cone2.0.obj 0.2 16 refacttest"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "0 rabbit.obj 0.1 16"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "2 test.obj 1 cow_head.obj"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "0 sphere_uniRemesh.obj 0.5 16 refact"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "0 cat.obj 0.5 16 test"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "0 pyramid.obj 0.9 16 test"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "0 torus2_uniRemesh.obj 0.1 16 refact"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "0 bishop_part.obj 0.1 16"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "0 camelhead_f1000.off 0.1 0.00161"
+            argument = "0 chf1000_T_0.obj 0.1 16 0"
             isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = ""
-            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "1 0 /Users/mincli/Desktop/output_FracCuts/cmH1000_tutte_0.2_8.0_modifiedSH/precondMtr_140"

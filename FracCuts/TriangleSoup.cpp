@@ -140,6 +140,7 @@ namespace FracCuts {
                                 cohEdges.back().emplace_back(triVInd_UV[vI_post]);
                                 cohEdges.back().emplace_back(FUV_mesh(finder->second.first, (finder->second.second + 1) % 3));
                                 cohEdges.back().emplace_back(FUV_mesh(finder->second.first, finder->second.second));
+                                HE.erase(std::pair<int, int>(triVInd[vI], triVInd[vI_post]));
                             }
                         }
                     }
@@ -347,6 +348,184 @@ namespace FracCuts {
                 }
             }
         }
+    }
+    
+    void TriangleSoup::updateFeatures(void)
+    {
+        const int nCE = static_cast<int>(boundaryEdge.size());
+        boundaryEdge.conservativeResize(cohE.rows());
+        edgeLen.conservativeResize(cohE.rows());
+        for(int cohI = nCE; cohI < cohE.rows(); cohI++)
+        {
+            if(cohE.row(cohI).minCoeff() >= 0) {
+                boundaryEdge[cohI] = 0;
+            }
+            else {
+                boundaryEdge[cohI] = 1;
+            }
+            edgeLen[cohI] = (V_rest.row(cohE(cohI, 0)) - V_rest.row(cohE(cohI, 1))).norm();
+        }
+        
+        //        Eigen::SparseMatrix<double> M;
+        //        massmatrix(data.V_rest, data.F, igl::MASSMATRIX_TYPE_DEFAULT, M);
+        Eigen::SparseMatrix<double> L;
+        igl::cotmatrix(V_rest, F, L);
+        LaplacianMtr.resize(V.rows() * 2, V.rows() * 2);
+        LaplacianMtr.reserve(L.nonZeros());
+        LaplacianMtr.setZero();
+        for (int k = 0; k < L.outerSize(); ++k)
+        {
+            for (Eigen::SparseMatrix<double>::InnerIterator it(L, k); it; ++it)
+            {
+                if((fixedVert.find(static_cast<int>(it.row())) == fixedVert.end()) &&
+                   (fixedVert.find(static_cast<int>(it.col())) == fixedVert.end()))
+                {
+                    LaplacianMtr.insert(it.row() * 2, it.col() * 2) = -it.value();// * M.coeffRef(it.row(), it.row());
+                    LaplacianMtr.insert(it.row() * 2 + 1, it.col() * 2 + 1) = -it.value();// * M.coeffRef(it.row(), it.row());
+                }
+            }
+        }
+        for(const auto fixedVI : fixedVert) {
+            LaplacianMtr.insert(2 * fixedVI, 2 * fixedVI) = 1.0;
+            LaplacianMtr.insert(2 * fixedVI + 1, 2 * fixedVI + 1) = 1.0;
+        }
+        LaplacianMtr.makeCompressed();
+    }
+    
+    void TriangleSoup::separateTriangle(double thres)
+    {
+        // construct edge set and indices for cohesive edges
+        //TODO: precompute this part
+        std::set<std::pair<int, int>> edge;
+        for(int triI = 0; triI < F.rows(); triI++) {
+            const Eigen::RowVector3i& triVInd = F.row(triI);
+            edge.insert(std::pair<int, int>(triVInd[0], triVInd[1]));
+            edge.insert(std::pair<int, int>(triVInd[1], triVInd[2]));
+            edge.insert(std::pair<int, int>(triVInd[2], triVInd[0]));
+        }
+        std::map<std::pair<int, int>, int> cohEIndex;
+        for(int cohI = 0; cohI < cohE.rows(); cohI++) {
+            const Eigen::RowVector4i& cohEI = cohE.row(cohI);
+            if(cohEI.minCoeff() >= 0) {
+                cohEIndex[std::pair<int, int>(cohEI[0], cohEI[1])] = cohI;
+                cohEIndex[std::pair<int, int>(cohEI[3], cohEI[2])] = -cohI - 1;
+            }
+        }
+        
+        // separate each triangle in order
+        for(int triI = 0; triI < F.rows(); triI++) {
+            const Eigen::RowVector3i triVInd = F.row(triI);
+            Eigen::Vector3i needSeparate = Eigen::Vector3i::Zero();
+            std::set<std::pair<int, int>>::iterator edgeFinder[3];
+            for(int eI = 0; eI < 3; eI++) {
+                if(edge.find(std::pair<int, int>(triVInd[(eI + 1) % 3], triVInd[eI])) != edge.end()) {
+                    needSeparate[eI] = 1;
+                    edgeFinder[eI] = edge.find(std::pair<int, int>(triVInd[eI], triVInd[(eI + 1) % 3]));
+                }
+            }
+            
+            if(needSeparate.sum() == 1) {
+                // duplicate the edge
+                for(int eI = 0; eI < 3; eI++) {
+                    if(needSeparate[eI]) {
+                        const int vI = triVInd[eI], vI_post = triVInd[(eI + 1) % 3];
+                        const int nV = static_cast<int>(V_rest.rows());
+                        V_rest.conservativeResize(nV + 2, 3);
+                        V_rest.row(nV) = V_rest.row(vI);
+                        V_rest.row(nV + 1) = V_rest.row(vI_post);
+                        V.conservativeResize(nV + 2, 2);
+                        V.row(nV) = V.row(vI);
+                        V.row(nV + 1) = V.row(vI_post);
+                        
+                        F(triI, eI) = nV;
+                        F(triI, (eI + 1) % 3) = nV + 1;
+                        
+                        const int nCE = static_cast<int>(cohE.rows());
+                        cohE.conservativeResize(nCE + 1, 4);
+                        cohE.row(nCE) << nV, nV + 1, vI, vI_post;
+                        cohEIndex[std::pair<int, int>(nV, nV + 1)] = nCE;
+                        cohEIndex[std::pair<int, int>(vI_post, vI)] = -nCE - 1;
+                        
+                        edge.erase(edgeFinder[eI]);
+                        edge.insert(std::pair<int, int>(nV, nV + 1));
+                        
+                        const int vI_pre = triVInd[(eI + 2) % 3];
+                        auto finder0 = cohEIndex.find(std::pair<int, int>(vI_post, vI_pre));
+                        if(finder0 != cohEIndex.end()) {
+                            if(finder0->second >= 0) {
+                                cohE(finder0->second, 0) = nV + 1;
+                            }
+                            else {
+                                cohE(-finder0->second - 1, 3) = nV + 1;
+                            }
+                            cohEIndex[std::pair<int, int>(nV + 1, vI_pre)] = finder0->second;
+                            cohEIndex.erase(finder0);
+                        }
+                        auto finder1 = cohEIndex.find(std::pair<int, int>(vI_pre, vI));
+                        if(finder1 != cohEIndex.end()) {
+                            if(finder1->second >= 0) {
+                                cohE(finder1->second, 1) = nV;
+                            }
+                            else {
+                                cohE(-finder1->second - 1, 2) = nV;
+                            }
+                            cohEIndex[std::pair<int, int>(vI_pre, nV)] = finder1->second;
+                            cohEIndex.erase(finder1);
+                        }
+                        
+                        break;
+                    }
+                }
+            }
+            else if(needSeparate.sum() > 1) {
+                // duplicate all vertices
+                const int vI0 = triVInd[0], vI1 = triVInd[1], vI2 = triVInd[2];
+                const int nV = static_cast<int>(V_rest.rows());
+                V_rest.conservativeResize(nV + 3, 3);
+                V_rest.row(nV) = V_rest.row(vI0);
+                V_rest.row(nV + 1) = V_rest.row(vI1);
+                V_rest.row(nV + 2) = V_rest.row(vI2);
+                V.conservativeResize(nV + 3, 2);
+                V.row(nV) = V.row(vI0);
+                V.row(nV + 1) = V.row(vI1);
+                V.row(nV + 2) = V.row(vI2);
+                
+                F.row(triI) << nV, nV + 1, nV + 2;
+                
+                // construct cohesive edges:
+                for(int eI = 0; eI < 3; eI++) {
+                    if(needSeparate[eI]) {
+                        const int nCE = static_cast<int>(cohE.rows());
+                        cohE.conservativeResize(nCE + 1, 4);
+                        const int vI = eI, vI_post = (eI + 1) % 3;
+                        cohE.row(nCE) << nV + vI, nV + vI_post, triVInd[vI], triVInd[vI_post];
+                        cohEIndex[std::pair<int, int>(nV + vI, nV + vI_post)] = nCE;
+                        cohEIndex[std::pair<int, int>(triVInd[vI_post], triVInd[vI])] = -nCE - 1;
+                        
+                        edge.erase(edgeFinder[eI]);
+                        edge.insert(std::pair<int, int>(nV + vI, nV + vI_post));
+                    }
+                    else {
+                        int vI = eI, vI_post = (eI + 1) % 3;
+                        auto finder = cohEIndex.find(std::pair<int, int>(triVInd[vI], triVInd[vI_post]));
+                        if(finder != cohEIndex.end()) {
+                            if(finder->second >= 0) {
+                                cohE(finder->second, 0) = nV + vI;
+                                cohE(finder->second, 1) = nV + vI_post;
+                            }
+                            else {
+                                cohE(-finder->second - 1, 3) = nV + vI;
+                                cohE(-finder->second - 1, 2) = nV + vI_post;
+                            }
+                            cohEIndex[std::pair<int, int>(nV + vI, nV + vI_post)] = finder->second;
+                            cohEIndex.erase(finder);
+                        }
+                    }
+                }
+            }
+        }
+        
+        updateFeatures();
     }
     
     void TriangleSoup::computeSeamScore(Eigen::VectorXd& seamScore) const

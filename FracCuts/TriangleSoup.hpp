@@ -57,6 +57,9 @@ namespace FracCuts{
         
     public: // API
         void computeFeatures(bool multiComp = false);
+        void updateFeatures(void);
+        
+        void separateTriangle(double thres);
         
         void computeSeamScore(Eigen::VectorXd& seamScore) const;
         void computeSeamSparsity(double& sparsity) const;
