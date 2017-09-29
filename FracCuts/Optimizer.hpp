@@ -59,7 +59,8 @@ namespace FracCuts {
         
         void updatePrecondMtrAndFactorize(void);
         
-        void createFracture(void);
+        void separateTriangles(double energyThres);
+        void createFracture(double stressThres);
         
         void computeLastEnergyVal(void);
         

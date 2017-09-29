@@ -554,6 +554,7 @@ namespace FracCuts {
                         continue;
                     }
                     
+                    assert(!tri_toSep.empty());
                     const int nV = static_cast<int>(V_rest.rows());
                     V_rest.conservativeResize(nV + 1, 3);
                     V_rest.row(nV) = V_rest.row(vI_toSplit[sI]);
@@ -606,6 +607,61 @@ namespace FracCuts {
         }
         
         return changed;
+    }
+    
+    bool TriangleSoup::splitVertex(const Eigen::VectorXd& measure, double thres)
+    {
+        assert(measure.rows() == V.rows());
+        
+        // construct edge set and indices for cohesive edges
+        //TODO: precompute this part
+        std::map<std::pair<int, int>, int> edge2Tri;
+        std::vector<std::set<int>> vNeighbor(V.rows());
+        for(int triI = 0; triI < F.rows(); triI++) {
+            const Eigen::RowVector3i& triVInd = F.row(triI);
+            for(int vI = 0; vI < 3; vI++) {
+                int vI_post = (vI + 1) % 3;
+                edge2Tri[std::pair<int, int>(triVInd[vI], triVInd[vI_post])] = triI;
+                vNeighbor[triVInd[vI]].insert(triVInd[vI_post]);
+                vNeighbor[triVInd[vI_post]].insert(triVInd[vI]);
+            }
+        }
+        std::map<std::pair<int, int>, int> cohEIndex;
+        for(int cohI = 0; cohI < cohE.rows(); cohI++) {
+            const Eigen::RowVector4i& cohEI = cohE.row(cohI);
+            if(cohEI.minCoeff() >= 0) {
+                cohEIndex[std::pair<int, int>(cohEI[0], cohEI[1])] = cohI;
+                cohEIndex[std::pair<int, int>(cohEI[3], cohEI[2])] = -cohI - 1;
+            }
+        }
+        
+        bool modified = false;
+        for(int vI = 0; vI < measure.size(); vI++) {
+            if(measure[vI] > thres) {
+                if(isBoundaryVert(edge2Tri, vNeighbor, vI)) {
+                    // right now only on boundary vertices
+                    int vI_interior = -1;
+                    for(const auto& vI_neighbor : vNeighbor[vI]) {
+                        if((edge2Tri.find(std::pair<int, int>(vI, vI_neighbor)) != edge2Tri.end()) &&
+                           (edge2Tri.find(std::pair<int, int>(vI_neighbor, vI)) != edge2Tri.end()))
+                        {
+                            vI_interior = vI_neighbor;
+                            break;
+                        }
+                    }
+                    if(vI_interior >= 0) {
+                        splitEdgeOnBoundary(std::pair<int, int>(vI, vI_interior), edge2Tri, vNeighbor, cohEIndex);
+                        modified = true;
+                    }
+                }
+            }
+        }
+        
+        if(modified) {
+            updateFeatures();
+        }
+        
+        return modified;
     }
     
     void TriangleSoup::computeSeamScore(Eigen::VectorXd& seamScore) const
@@ -870,6 +926,107 @@ namespace FracCuts {
                 return true;
             }
         } while(1);
+    }
+    
+    bool TriangleSoup::isBoundaryVert(const std::map<std::pair<int, int>, int>& edge2Tri,
+                                      const std::vector<std::set<int>>& vNeighbor, int vI) const
+    {
+        assert(vNeighbor.size() == V.rows());
+        assert(vI < vNeighbor.size());
+        
+        for(const auto vI_neighbor : vNeighbor[vI]) {
+            if((edge2Tri.find(std::pair<int, int>(vI, vI_neighbor)) == edge2Tri.end()) ||
+                (edge2Tri.find(std::pair<int, int>(vI_neighbor, vI)) == edge2Tri.end()))
+            {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    void TriangleSoup::splitEdgeOnBoundary(const std::pair<int, int>& edge, std::map<std::pair<int, int>, int>& edge2Tri,
+                             std::vector<std::set<int>>& vNeighbor, std::map<std::pair<int, int>, int>& cohEIndex)
+    {
+        assert(vNeighbor.size() == V.rows());
+        auto edgeTriIndFinder = edge2Tri.find(edge);
+        auto edgeTriIndFinder_dual = edge2Tri.find(std::pair<int, int>(edge.second, edge.first));
+        assert(edgeTriIndFinder != edge2Tri.end());
+        assert(edgeTriIndFinder_dual != edge2Tri.end());
+        
+        int vI_boundary = edge.first, vI_interior = edge.second;
+        if(isBoundaryVert(edge2Tri, vNeighbor, edge.first)) {
+            if(isBoundaryVert(edge2Tri, vNeighbor, edge.second)) {
+                // duplicate both vertices
+                //TODO
+                return;
+            }
+        }
+        else {
+            assert(isBoundaryVert(edge2Tri, vNeighbor, edge.second) && "Input edge must attach mesh boundary!");
+            
+            vI_boundary = edge.second;
+            vI_interior = edge.first;
+        }
+        
+        // duplicate vI_boundary
+        std::vector<int> tri_toSep;
+        std::pair<int, int> boundaryEdge;
+        isBoundaryVert(edge2Tri, vI_boundary, vI_interior, tri_toSep, boundaryEdge);
+        assert(!tri_toSep.empty());
+        
+        int nV = static_cast<int>(V_rest.rows());
+        V_rest.conservativeResize(nV + 1, 3);
+        V_rest.row(nV) = V_rest.row(vI_boundary);
+        V.conservativeResize(nV + 1, 2);
+        V.row(nV) = V.row(vI_boundary);
+        
+        for(const auto triI : tri_toSep) {
+            for(int vI = 0; vI < 3; vI++) {
+                if(F(triI, vI) == vI_boundary) {
+                    // update triangle vertInd, edge2Tri and vNeighbor
+                    int vI_post = F(triI, (vI + 1) % 3);
+                    int vI_pre = F(triI, (vI + 2) % 3);
+                    
+                    F(triI, vI) = nV;
+                    
+                    edge2Tri.erase(std::pair<int, int>(vI_boundary, vI_post));
+                    edge2Tri[std::pair<int, int>(nV, vI_post)] = triI;
+                    edge2Tri.erase(std::pair<int, int>(vI_pre, vI_boundary));
+                    edge2Tri[std::pair<int, int>(vI_pre, nV)] = triI;
+                    
+                    vNeighbor[vI_pre].erase(vI_boundary);
+                    vNeighbor[vI_pre].insert(nV);
+                    vNeighbor[vI_post].erase(vI_boundary);
+                    vNeighbor[vI_post].insert(nV);
+                    vNeighbor[vI_boundary].erase(vI_pre);
+                    vNeighbor[vI_boundary].erase(vI_post);
+                    vNeighbor.resize(nV + 1);
+                    vNeighbor[nV].insert(vI_pre);
+                    vNeighbor[nV].insert(vI_post);
+                    
+                    break;
+                }
+            }
+        }
+        
+        // add cohesive edge pair and update cohEIndex
+        int nCE = static_cast<int>(cohE.rows());
+        cohE.conservativeResize(nCE + 1, 4);
+        cohE.row(nCE) << vI_interior, nV, vI_interior, vI_boundary; //!! is it a problem?
+        cohEIndex[std::pair<int, int>(vI_interior, nV)] = nCE;
+        cohEIndex[std::pair<int, int>(vI_boundary, vI_interior)] = nCE;
+        auto CEIfinder = cohEIndex.find(boundaryEdge);
+        if(CEIfinder != cohEIndex.end()) {
+            if(CEIfinder->second >= 0) {
+                cohE(CEIfinder->second, 0) = nV;
+            }
+            else {
+                cohE(-CEIfinder->second - 1, 3) = nV;
+            }
+            cohEIndex[std::pair<int, int>(nV, boundaryEdge.second)] = CEIfinder->second;
+            cohEIndex.erase(CEIfinder);
+        }
     }
     
 }

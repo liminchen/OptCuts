@@ -31,6 +31,7 @@ bool converged = false;
 bool autoHomotopy = true;
 std::ofstream homoTransFile;
 bool fractureMode = false;
+double fracThres = 6.0; //TODO: make as prog args
 
 std::ofstream logFile;
 std::string outputFolderPath = "/Users/mincli/Desktop/output_FracCuts/";
@@ -269,11 +270,9 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                         homoTransFile << iterNum << std::endl;
                         optimizer->computeLastEnergyVal();
                         converged = false;
+                        optimizer->updatePrecondMtrAndFactorize();
                         if(fractureMode) {
-                            optimizer->createFracture();
-                        }
-                        else {
-                            optimizer->updatePrecondMtrAndFactorize();
+                            optimizer->createFracture(fracThres);
                         }
                     }
                     else {
@@ -349,11 +348,9 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                 homoTransFile << iterNum << std::endl;
                 optimizer->computeLastEnergyVal();
                 converged = false;
+                optimizer->updatePrecondMtrAndFactorize();
                 if(fractureMode) {
-                    optimizer->createFracture();
-                }
-                else {
-                    optimizer->updatePrecondMtrAndFactorize();
+                    optimizer->createFracture(fracThres);
                 }
             }
             else {
@@ -657,8 +654,8 @@ int main(int argc, char *argv[])
     if(lambda != 0.0) {
         energyParams.emplace_back(lambda);
         energyTerms.emplace_back(new FracCuts::SeparationEnergy(triSoup[0]->avgEdgeLen * triSoup[0]->avgEdgeLen, delta));
+//        energyTerms.emplace_back(new FracCuts::CohesiveEnergy(triSoup[0]->avgEdgeLen, delta));
     }
-//    energyTerms.emplace_back(new FracCuts::CohesiveEnergy(triSoup[0]->avgEdgeLen, delta));
 //    energyTerms.back()->checkEnergyVal(*triSoup[0]);
 //    energyTerms.back()->checkGradient(*triSoup[0]);
 //    energyTerms.back()->checkHessian(*triSoup[0]);
@@ -668,7 +665,8 @@ int main(int argc, char *argv[])
     if((lambda > 0.0) && (!startWithTriSoup)) {
         // fracture mode
         fractureMode = true;
-        optimizer->createFracture();
+//        optimizer->separateTriangles(fracThres);
+        optimizer->createFracture(-1.0); //DEBUG
     }
     
     // Setup viewer and launch
