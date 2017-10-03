@@ -110,7 +110,7 @@ namespace FracCuts {
     {
         for(int iterI = 0; iterI < maxIter; iterI++)
         {
-//            createFracture(); //DEBUG
+            createFracture(-1.0); //DEBUG
             computeGradient(result, gradient);
             const double sqn_g = gradient.squaredNorm();
             std::cout << "||gradient||^2 = " << sqn_g << ", targetGRes = " << targetGRes << std::endl;
@@ -224,29 +224,17 @@ namespace FracCuts {
     
     void Optimizer::createFracture(double stressThres)
     {
-        bool changed = result.splitVertex(Eigen::VectorXd::Zero(result.V.rows()), stressThres); //DEBUG
+//        bool changed = result.splitVertex(Eigen::VectorXd::Zero(result.V.rows()), stressThres); //DEBUG
+        bool changed = result.splitEdge(); //DEBUG
         logFile << result.cohE << std::endl; //DEBUG
         if(changed) {
             targetGRes = result.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
             
             // compute energy and output
             computeEnergyVal(result, lastEnergyVal);
-            file_energyValPerIter << lastEnergyVal;
-            for(int eI = 0; eI < energyTerms.size(); eI++) {
-                file_energyValPerIter << " " << energyVal_ET[eI];
-            }
-            double seamSparsity;
-            result.computeSeamSparsity(seamSparsity);
-            file_energyValPerIter << " " << seamSparsity << std::endl;
-            globalIterNum++;
             
             // compute gradient and output
             computeGradient(result, gradient);
-            file_gradientPerIter << gradient.squaredNorm();
-            for(int eI = 0; eI < energyTerms.size(); eI++) {
-                file_gradientPerIter << " " << gradient_ET[eI].squaredNorm();
-            }
-            file_gradientPerIter << std::endl;
             
             // for the changing hessian
             std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;

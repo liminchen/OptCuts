@@ -61,6 +61,7 @@ namespace FracCuts{
         
         bool separateTriangle(const Eigen::VectorXd& measure, double thres);
         bool splitVertex(const Eigen::VectorXd& measure, double thres);
+        bool splitEdge(void); //DEBUG
         
         void computeSeamScore(Eigen::VectorXd& seamScore) const;
         void computeSeamSparsity(double& sparsity) const;

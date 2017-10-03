@@ -106,7 +106,7 @@ namespace FracCuts {
                 V = UV_mesh;
                 F = F_mesh;
             }
-            else if(UV_mesh.rows() != 0){
+            else if(UV_mesh.rows() != 0) {
                 assert(F_mesh.rows() == FUV_mesh.rows());
                 // UV map contains seams
                 // Split triangles along the seams on the surface (construct cohesive edges there)
@@ -664,6 +664,129 @@ namespace FracCuts {
         return modified;
     }
     
+    bool TriangleSoup::splitEdge(void)
+    {
+        // construct edge set and indices for cohesive edges
+        //TODO: precompute this part
+        std::map<std::pair<int, int>, int> edge2Tri;
+        std::vector<std::set<int>> vNeighbor(V.rows());
+        for(int triI = 0; triI < F.rows(); triI++) {
+            const Eigen::RowVector3i& triVInd = F.row(triI);
+            for(int vI = 0; vI < 3; vI++) {
+                int vI_post = (vI + 1) % 3;
+                edge2Tri[std::pair<int, int>(triVInd[vI], triVInd[vI_post])] = triI;
+                vNeighbor[triVInd[vI]].insert(triVInd[vI_post]);
+                vNeighbor[triVInd[vI_post]].insert(triVInd[vI]);
+            }
+        }
+        std::map<std::pair<int, int>, int> cohEIndex;
+        for(int cohI = 0; cohI < cohE.rows(); cohI++) {
+            const Eigen::RowVector4i& cohEI = cohE.row(cohI);
+            if(cohEI.minCoeff() >= 0) {
+                cohEIndex[std::pair<int, int>(cohEI[0], cohEI[1])] = cohI;
+                cohEIndex[std::pair<int, int>(cohEI[3], cohEI[2])] = -cohI - 1;
+            }
+        }
+        
+        // compute deformation gradient
+        std::vector<Eigen::JacobiSVD<Eigen::Matrix2d>> dg(F.rows());
+        for(int triI = 0; triI < F.rows(); triI++) {
+            const Eigen::RowVector3i& triVInd = F.row(triI);
+            
+            const Eigen::Vector3d x_3D[3] = {
+                V_rest.row(triVInd[0]),
+                V_rest.row(triVInd[1]),
+                V_rest.row(triVInd[2])
+            };
+            Eigen::Vector2d x[3];
+            IglUtils::mapTriangleTo2D(x_3D, x);
+            
+            const Eigen::Vector2d u[3] = {
+                V.row(triVInd[0]),
+                V.row(triVInd[1]),
+                V.row(triVInd[2])
+            };
+            const Eigen::Vector2d u01 = u[1] - u[0];
+            const Eigen::Vector2d u02 = u[2] - u[0];
+            const double u01Len = u01.norm();
+            Eigen::Matrix2d U; U << u01Len, u01.dot(u02) / u01Len, 0.0, (u01[0] * u02[1] - u01[1] * u02[0]) / u01Len;
+            Eigen::Matrix2d V; V << x[1], x[2];
+            Eigen::Matrix2d F = U * V.inverse();
+            Eigen::Matrix2d FmT = (F.transpose()).inverse();
+//            dg[triI].compute(U * V.inverse(), Eigen::ComputeFullU | Eigen::ComputeFullV);
+            dg[triI].compute(F - FmT * FmT.transpose() * FmT, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        }
+
+        // found all candiate edges and evaluate the measurement
+        std::pair<int, int> edgeToSplit;
+        double maxStress = 0.0;
+        std::map<std::pair<int, int>, double> candidateEdge;
+        for(const auto& eI : edge2Tri) {
+            int boundaryVertAmt = 0;
+            if(isBoundaryVert(edge2Tri, vNeighbor, eI.first.first)) {
+                boundaryVertAmt++;
+            }
+            if(isBoundaryVert(edge2Tri, vNeighbor, eI.first.second)) {
+                boundaryVertAmt++;
+            }
+            if(boundaryVertAmt == 1) { // interior edge connected to boundary
+                const std::pair<int, int> dualEdge = std::pair<int, int>(eI.first.second, eI.first.first);
+                if(candidateEdge.find(dualEdge) == candidateEdge.end()) {
+                    auto ETFinder = edge2Tri.find(dualEdge);
+                    assert(ETFinder != edge2Tri.end());
+                    
+                    const Eigen::Vector2d& stretchDir0 = dg[eI.second].matrixU().block(0, 0, 2, 1);
+                    const Eigen::Vector2d& stretchDir1 = dg[ETFinder->second].matrixU().block(0, 0, 2, 1);
+                    const Eigen::Vector2d edgeDir = (V.row(eI.first.first) - V.row(eI.first.second)).normalized();
+                    const double cosine0 = std::abs(edgeDir.dot(stretchDir0));
+                    const double cosine1 = std::abs(edgeDir.dot(stretchDir1));
+                    
+                    candidateEdge[eI.first] = dg[eI.second].singularValues()[0] * (1.0 - cosine0) +
+                        dg[ETFinder->second].singularValues()[0] * (1.0 - cosine1);
+                    if(candidateEdge[eI.first] > maxStress) {
+                        maxStress = candidateEdge[eI.first];
+                        edgeToSplit = eI.first;
+                    }
+                }
+            }
+        }
+        
+//        bool changed = false;
+//        if(!candidateEdge.empty()) {
+//            std::vector<std::pair<std::pair<int, int>, double>> candidatesInOrder;
+//            for (const auto &itr : candidateEdge) {
+//                candidatesInOrder.push_back(itr);
+//            }
+//            std::sort(candidatesInOrder.begin(), candidatesInOrder.end(),
+//                 [=](const std::pair<std::pair<int, int>, double>& a, const std::pair<std::pair<int, int>, double>& b) {
+//                    return a.second > b.second;
+//                }
+//            );
+//            
+//            for(const auto& eI : candidatesInOrder) {
+//                if((edge2Tri.find(eI.first) != edge2Tri.end()) &&
+//                   (edge2Tri.find(std::pair<int, int>(eI.first.second, eI.first.first)) != edge2Tri.end()) &&
+//                   (eI.second > 1.0))
+//               {
+//                   splitEdgeOnBoundary(eI.first, edge2Tri, vNeighbor, cohEIndex);
+//                   changed = true;
+//               }
+//            }
+//            if(changed) {
+//                updateFeatures();
+//            }
+//        }
+//        return changed;
+        if(maxStress > 1.0) {
+            splitEdgeOnBoundary(edgeToSplit, edge2Tri, vNeighbor, cohEIndex);
+            updateFeatures();
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    
     void TriangleSoup::computeSeamScore(Eigen::VectorXd& seamScore) const
     {
         seamScore.resize(cohE.rows());
@@ -1009,13 +1132,15 @@ namespace FracCuts {
                 }
             }
         }
+        vNeighbor[vI_boundary].insert(vI_interior);
+        vNeighbor[vI_interior].insert(vI_boundary);
         
         // add cohesive edge pair and update cohEIndex
         int nCE = static_cast<int>(cohE.rows());
         cohE.conservativeResize(nCE + 1, 4);
         cohE.row(nCE) << vI_interior, nV, vI_interior, vI_boundary; //!! is it a problem?
         cohEIndex[std::pair<int, int>(vI_interior, nV)] = nCE;
-        cohEIndex[std::pair<int, int>(vI_boundary, vI_interior)] = nCE;
+        cohEIndex[std::pair<int, int>(vI_boundary, vI_interior)] = -nCE - 1;
         auto CEIfinder = cohEIndex.find(boundaryEdge);
         if(CEIfinder != cohEIndex.end()) {
             if(CEIfinder->second >= 0) {

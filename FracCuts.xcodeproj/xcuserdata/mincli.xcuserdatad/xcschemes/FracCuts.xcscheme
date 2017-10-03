@@ -63,15 +63,27 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "0 camelhead_f1000.off 0.1 16 0 test"
-            isEnabled = "YES">
+            argument = "0 camelhead_f1000.off 0.1 16 0"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 cat_T_SD.obj 0.01 16 0"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 bishop_part_f1000.obj 0.1 16 0"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 cow1_f1600.obj 0.1 16 1"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 cat.obj 0.01 4 0"
+            argument = "0 cat.obj 0.01 16 0"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 cone2.0.obj 0.5 16 0"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -79,11 +91,15 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 sphere_R_0.5.obj 0.5 8 0 testtest"
+            argument = "0 sphere_R_0.5.obj 0.5 16 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 chf1000_T_0.obj 0.1 16 0 6.0 aaa"
+            argument = "0 pyramid_f256.obj 0.01 16 1 eigen"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 chf1000_T_0.obj 0.1 16 0"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument

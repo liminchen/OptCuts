@@ -31,7 +31,7 @@ bool converged = false;
 bool autoHomotopy = true;
 std::ofstream homoTransFile;
 bool fractureMode = false;
-double fracThres = 6.0; //TODO: make as prog args
+double fracThres = -1.0; //TODO: make as prog args
 
 std::ofstream logFile;
 std::string outputFolderPath = "/Users/mincli/Desktop/output_FracCuts/";
@@ -316,9 +316,9 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
         viewChannel = channel_result;
         updateViewerData();
         
-//        if((iterNum < 10) || (iterNum % 10 == 0)) {
-//            saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
-//        }
+        if((iterNum < 10) || (iterNum % 10 == 0)) {
+            saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
+        }
         
         if(converged) {
             FracCuts::SeparationEnergy *sepE = NULL;
@@ -666,7 +666,7 @@ int main(int argc, char *argv[])
         // fracture mode
         fractureMode = true;
 //        optimizer->separateTriangles(fracThres);
-        optimizer->createFracture(-1.0); //DEBUG
+        optimizer->createFracture(fracThres);
     }
     
     // Setup viewer and launch
