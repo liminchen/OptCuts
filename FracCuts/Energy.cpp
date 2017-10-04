@@ -64,6 +64,10 @@ namespace FracCuts {
                 std::cout << vI + 1 << "/" << data.V.rows() << " vertices computed" << std::endl;
             }
         }
+        for(const auto fixedVI : data.fixedVert) {
+            gradient_finiteDiff[2 * fixedVI] = 0.0;
+            gradient_finiteDiff[2 * fixedVI + 1] = 0.0;
+        }
         
         Eigen::VectorXd gradient_symbolic;
         computeGradient(data, gradient_symbolic);

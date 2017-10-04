@@ -44,6 +44,11 @@ namespace FracCuts{
         Eigen::Matrix<double, 2, 3> bbox;
 //        Eigen::MatrixXd cotVals; // cotangent values of rest triangle corners
         
+        // indices for fast access
+        std::map<std::pair<int, int>, int> edge2Tri;
+        std::vector<std::set<int>> vNeighbor;
+        std::map<std::pair<int, int>, int> cohEIndex;
+        
     public: // constructor
         // default constructor that doesn't do anything
         TriangleSoup(void);
@@ -62,6 +67,7 @@ namespace FracCuts{
         bool separateTriangle(const Eigen::VectorXd& measure, double thres);
         bool splitVertex(const Eigen::VectorXd& measure, double thres);
         bool splitEdge(void); //DEBUG
+        bool mergeEdge(void); //DEBUG
         
         void computeSeamScore(Eigen::VectorXd& seamScore) const;
         void computeSeamSparsity(double& sparsity) const;
@@ -75,11 +81,17 @@ namespace FracCuts{
         void saveAsMesh(const std::string& filePath, bool scaleUV = false) const;
         
     protected: // helper function
+        bool findBoundaryEdge(int vI, const std::pair<int, int>& startEdge,
+                              const std::map<std::pair<int, int>, int>& edge2Tri,
+                              std::pair<int, int>& boundaryEdge);
         bool isBoundaryVert(const std::map<std::pair<int, int>, int>& edge2Tri, int vI, int vI_neighbor,
                             std::vector<int>& tri_toSep, std::pair<int, int>& boundaryEdge) const;
         bool isBoundaryVert(const std::map<std::pair<int, int>, int>& edge2Tri, const std::vector<std::set<int>>& vNeighbor, int vI) const;
         void splitEdgeOnBoundary(const std::pair<int, int>& edge, std::map<std::pair<int, int>, int>& edge2Tri,
                                std::vector<std::set<int>>& vNeighbor, std::map<std::pair<int, int>, int>& cohEIndex);
+        void mergeBoundaryEdges(const std::pair<int, int>& edge0, const std::pair<int, int>& edge1,
+            std::map<std::pair<int, int>, int>& edge2Tri, std::vector<std::set<int>>& vNeighbor,
+            std::map<std::pair<int, int>, int>& cohEIndex);
     };
     
 }

@@ -226,6 +226,9 @@ namespace FracCuts {
     {
 //        bool changed = result.splitVertex(Eigen::VectorXd::Zero(result.V.rows()), stressThres); //DEBUG
         bool changed = result.splitEdge(); //DEBUG
+        logFile << result.V.rows() << std::endl;
+//        bool changed = result.mergeEdge(); //DEBUG
+        logFile << result.F << std::endl; //DEBUG
         logFile << result.cohE << std::endl; //DEBUG
         if(changed) {
             targetGRes = result.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
