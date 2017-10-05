@@ -37,8 +37,6 @@ namespace FracCuts {
         virtual void checkGradient(const TriangleSoup& data) const; // check with finite difference method, according to energyVal
         virtual void checkHessian(const TriangleSoup& data) const; // check with finite difference method, according to gradient
         
-        virtual bool checkInversion(const TriangleSoup& data) const;
-        
         virtual void initStepSize(const TriangleSoup& data, const Eigen::VectorXd& searchDir, double& stepSize) const;
     };
     

@@ -202,4 +202,12 @@ namespace FracCuts {
     {
         
     }
+    
+    void SymStretchEnergy::computeStressTensor(const Eigen::Vector3d v[3], const Eigen::Vector2d u[3], Eigen::Matrix2d& stressTensor)
+    {
+        Eigen::Matrix2d F;
+        IglUtils::computeDeformationGradient(v, u, F);
+        Eigen::Matrix2d FmT = (F.transpose()).inverse();
+        stressTensor = F - FmT * FmT.transpose() * FmT;
+    }
 }

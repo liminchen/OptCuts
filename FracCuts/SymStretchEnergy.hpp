@@ -28,6 +28,9 @@ namespace FracCuts {
         
     public:
         SymStretchEnergy(void);
+        
+    public:
+        static void computeStressTensor(const Eigen::Vector3d v[3], const Eigen::Vector2d u[3], Eigen::Matrix2d& stressTensor);
     };
     
 }

@@ -8,6 +8,7 @@
 
 #include "TriangleSoup.hpp"
 #include "IglUtils.hpp"
+#include "SymStretchEnergy.hpp"
 
 #include <igl/cotmatrix.h>
 #include <igl/avg_edge_length.h>
@@ -649,7 +650,7 @@ namespace FracCuts {
     
     bool TriangleSoup::splitEdge(void)
     {
-        // compute deformation gradient
+        // compute stress tensor and do SVD
         std::vector<Eigen::JacobiSVD<Eigen::Matrix2d>> dg(F.rows());
         for(int triI = 0; triI < F.rows(); triI++) {
             const Eigen::RowVector3i& triVInd = F.row(triI);
@@ -659,23 +660,16 @@ namespace FracCuts {
                 V_rest.row(triVInd[1]),
                 V_rest.row(triVInd[2])
             };
-            Eigen::Vector2d x[3];
-            IglUtils::mapTriangleTo2D(x_3D, x);
             
             const Eigen::Vector2d u[3] = {
                 V.row(triVInd[0]),
                 V.row(triVInd[1]),
                 V.row(triVInd[2])
             };
-            const Eigen::Vector2d u01 = u[1] - u[0];
-            const Eigen::Vector2d u02 = u[2] - u[0];
-            const double u01Len = u01.norm();
-            Eigen::Matrix2d U; U << u01Len, u01.dot(u02) / u01Len, 0.0, (u01[0] * u02[1] - u01[1] * u02[0]) / u01Len;
-            Eigen::Matrix2d V; V << x[1], x[2];
-            Eigen::Matrix2d F = U * V.inverse();
-            Eigen::Matrix2d FmT = (F.transpose()).inverse();
-//            dg[triI].compute(U * V.inverse(), Eigen::ComputeFullU | Eigen::ComputeFullV);
-            dg[triI].compute(F - FmT * FmT.transpose() * FmT, Eigen::ComputeFullU | Eigen::ComputeFullV);
+            
+            Eigen::Matrix2d stressTensor;
+            SymStretchEnergy::computeStressTensor(x_3D, u, stressTensor);
+            dg[triI].compute(stressTensor, Eigen::ComputeFullU | Eigen::ComputeFullV);
         }
 
         // found all candiate edges and evaluate the measurement
@@ -741,6 +735,7 @@ namespace FracCuts {
         if(maxStress > 1.0) {
             splitEdgeOnBoundary(edgeToSplit, edge2Tri, vNeighbor, cohEIndex);
             updateFeatures();
+            std::cout << "edge splitted" << std::endl;
             return true;
         }
         else {
@@ -752,25 +747,123 @@ namespace FracCuts {
     {
         //TODO: choose the best one satisfying a criterion
         //TODO: check for element inversion
+        //TODO: share the precomputation with split
+        
+        // compute stress tensor and do SVD
+        std::vector<Eigen::JacobiSVD<Eigen::Matrix2d>> dg(F.rows());
+        for(int triI = 0; triI < F.rows(); triI++) {
+            const Eigen::RowVector3i& triVInd = F.row(triI);
+            
+            const Eigen::Vector3d x_3D[3] = {
+                V_rest.row(triVInd[0]),
+                V_rest.row(triVInd[1]),
+                V_rest.row(triVInd[2])
+            };
+            
+            const Eigen::Vector2d u[3] = {
+                V.row(triVInd[0]),
+                V.row(triVInd[1]),
+                V.row(triVInd[2])
+            };
+
+            Eigen::Matrix2d stressTensor;
+            SymStretchEnergy::computeStressTensor(x_3D, u, stressTensor);
+            dg[triI].compute(stressTensor, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        }
+        
+        int minI = -1, minForkVI = 0;
+        double minStretch = 0.25; // the initial value is the stretch strength threshold
         for(int cohI = 0; cohI < cohE.rows(); cohI++) {
+            int forkVI = 0;
             if(cohE(cohI, 0) == cohE(cohI, 2))
             {
-                mergeBoundaryEdges(std::pair<int, int>(cohE(cohI, 3), cohE(cohI, 2)),
-                                   std::pair<int, int>(cohE(cohI, 0), cohE(cohI, 1)),
-                                   edge2Tri, vNeighbor, cohEIndex);
-                computeFeatures(); //TODO: only update locally
-                return true;
+                forkVI = 0;
             }
             else if(cohE(cohI, 1) == cohE(cohI, 3))
             {
-                mergeBoundaryEdges(std::pair<int, int>(cohE(cohI, 0), cohE(cohI, 1)),
-                                   std::pair<int, int>(cohE(cohI, 3), cohE(cohI, 2)),
-                                   edge2Tri, vNeighbor, cohEIndex);
-                computeFeatures(); //TODO: only update locally
-                return true;
+                forkVI = 1;
+            }
+            else {
+                // only consider "zipper bottom" edge pairs
+                continue;
+            }
+            
+            const double dist = (V.row(cohE(cohI, 1 - forkVI)) - V.row(cohE(cohI, 3 - forkVI))).norm() / avgEdgeLen;
+            if(dist < 0.25) { // when they are close enough
+                const Eigen::Vector2d mergedPos = (V.row(cohE(cohI, 1 - forkVI)) + V.row(cohE(cohI, 3 - forkVI))) / 2.0;
+                
+                const Eigen::RowVector2d backup0 = V.row(cohE(cohI, 1 - forkVI));
+                const Eigen::RowVector2d backup1 = V.row(cohE(cohI, 3 - forkVI));
+                V.row(cohE(cohI, 1 - forkVI)) = mergedPos;
+                V.row(cohE(cohI, 3 - forkVI)) = mergedPos;
+                bool noInversion = checkInversion();
+                V.row(cohE(cohI, 1 - forkVI)) = backup0;
+                V.row(cohE(cohI, 3 - forkVI)) = backup1;
+                if(!noInversion) {
+                    continue;
+                }
+                
+                const Eigen::Vector2d mergedEdgeDir = (V.row(cohE(cohI, 0 + forkVI)).transpose() - mergedPos).normalized();
+                Eigen::JacobiSVD<Eigen::Matrix2d> svd_stressTensor[2];
+                for(int eI = 0; eI < 2; eI++) {
+                    auto eIFinder = edge2Tri.find(std::pair<int, int>(cohE(cohI, eI * 3), cohE(cohI, 1 + eI)));
+                    assert(eIFinder != edge2Tri.end());
+                    Eigen::Vector3d x3D[3];
+                    Eigen::Vector2d uv[3];
+                    for(int vI = 0; vI < 3; vI++) {
+                        if(F(eIFinder->second, vI) == cohE(cohI, eI * 2 + 1 - forkVI)) {
+                            uv[vI] = mergedPos;
+                        }
+                        else {
+                            uv[vI] = V.row(F(eIFinder->second, vI));
+                        }
+                        x3D[vI] = V_rest.row(F(eIFinder->second, vI));
+                    }
+                    Eigen::Matrix2d stressTensor;
+                    SymStretchEnergy::computeStressTensor(x3D, uv, stressTensor);
+                    svd_stressTensor[eI].compute(stressTensor, Eigen::ComputeFullU | Eigen::ComputeFullV);
+                }
+                const Eigen::Vector2d& stretchDir0 = svd_stressTensor[0].matrixU().block(0, 0, 2, 1);
+                const Eigen::Vector2d& stretchDir1 = svd_stressTensor[1].matrixU().block(0, 0, 2, 1);
+                const double cosine0 = std::abs(mergedEdgeDir.dot(stretchDir0));
+                const double cosine1 = std::abs(mergedEdgeDir.dot(stretchDir1));
+                const double stretchStrength = svd_stressTensor[0].singularValues()[0] * (1.0 - cosine0) +
+                    svd_stressTensor[1].singularValues()[0] * (1.0 - cosine1);
+                
+                if(stretchStrength < minStretch) {
+                    minStretch = stretchStrength;
+                    minI = cohI;
+                    minForkVI = forkVI;
+                }
             }
         }
-        return false;
+        
+        if(minI >= 0) {
+            if(minForkVI == 0) {
+                mergeBoundaryEdges(std::pair<int, int>(cohE(minI, 3), cohE(minI, 2)),
+                               std::pair<int, int>(cohE(minI, 0), cohE(minI, 1)),
+                               edge2Tri, vNeighbor, cohEIndex);
+            }
+            else if(minForkVI == 1) {
+                mergeBoundaryEdges(std::pair<int, int>(cohE(minI, 0), cohE(minI, 1)),
+                                   std::pair<int, int>(cohE(minI, 3), cohE(minI, 2)),
+                                   edge2Tri, vNeighbor, cohEIndex);
+            }
+            else {
+                assert(0 && "Invalid fork vertex index!");
+            }
+            std::cout << "edge merged" << std::endl;
+            
+            if(!checkInversion()) {
+                
+            }
+
+            computeFeatures(); //TODO: only update locally
+            return true;
+        }
+        else {
+            return false;
+        }
     }
     
     void TriangleSoup::computeSeamScore(Eigen::VectorXd& seamScore) const
@@ -824,6 +917,28 @@ namespace FracCuts {
             V.row(triVInd[1]) = x[1];
             V.row(triVInd[2]) = x[2];
         }
+    }
+    
+    bool TriangleSoup::checkInversion(void) const
+    {
+        const double eps = 1.0e-6 * avgEdgeLen;
+        for(int triI = 0; triI < F.rows(); triI++)
+        {
+            const Eigen::Vector3i& triVInd = F.row(triI);
+            
+            const Eigen::Vector2d e_u[2] = {
+                V.row(triVInd[1]) - V.row(triVInd[0]),
+                V.row(triVInd[2]) - V.row(triVInd[0])
+            };
+            
+            if(e_u[0][0] * e_u[1][1] - e_u[0][1] * e_u[1][0] < eps)
+            {
+                std::cout << "***Element inversion detected!" << std::endl;
+                return false;
+            }
+        }
+        
+        return true;
     }
     
     void TriangleSoup::save(const std::string& filePath, const Eigen::MatrixXd& V, const Eigen::MatrixXi& F,
@@ -1175,6 +1290,8 @@ namespace FracCuts {
         std::map<std::pair<int, int>, int>& edge2Tri, std::vector<std::set<int>>& vNeighbor,
         std::map<std::pair<int, int>, int>& cohEIndex)
     {
+        std::cout << edge0.first << " " << edge0.second << std::endl;
+        std::cout << edge1.first << " " << edge1.second << std::endl;
         assert(edge0.second == edge1.first);
         assert(edge2Tri.find(std::pair<int, int>(edge0.second, edge0.first)) == edge2Tri.end());
         assert(edge2Tri.find(std::pair<int, int>(edge1.second, edge1.first)) == edge2Tri.end());
@@ -1209,24 +1326,33 @@ namespace FracCuts {
                 }
             }
         }
+
         if(edge1.second < vBackI) {
-            for(const auto& nbI : vNeighbor[vBackI]) {
-                std::pair<int, int> edgeToFind[2] = {
-                    std::pair<int, int>(vBackI, nbI),
-                    std::pair<int, int>(nbI, vBackI)
-                };
-                for(int eI = 0; eI < 2; eI++) {
-                    auto edgeTri = edge2Tri.find(edgeToFind[eI]);
-                    if(edgeTri != edge2Tri.end()) {
-                        for(int vI = 0; vI < 3; vI++) {
-                            if(F(edgeTri->second, vI) == vBackI) {
-                                F(edgeTri->second, vI) = edge1.second;
-                                break;
-                            }
-                        }
+            for(int triI = 0; triI < F.rows(); triI++) {
+                for(int vI = 0; vI < 3; vI++) {
+                    if(F(triI, vI) == vBackI) {
+                        F(triI, vI) = edge1.second;
                     }
                 }
             }
+//            // not valid because vNeighbor is not updated
+//            for(const auto& nbI : vNeighbor[vBackI]) {
+//                std::pair<int, int> edgeToFind[2] = {
+//                    std::pair<int, int>(vBackI, nbI),
+//                    std::pair<int, int>(nbI, vBackI)
+//                };
+//                for(int eI = 0; eI < 2; eI++) {
+//                    auto edgeTri = edge2Tri.find(edgeToFind[eI]);
+//                    if(edgeTri != edge2Tri.end()) {
+//                        for(int vI = 0; vI < 3; vI++) {
+//                            if(F(edgeTri->second, vI) == vBackI) {
+//                                F(edgeTri->second, vI) = edge1.second;
+//                                break;
+//                            }
+//                        }
+//                    }
+//                }
+//            }
         }
         
         auto cohEFinder = cohEIndex.find(edge0);

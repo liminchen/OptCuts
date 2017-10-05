@@ -34,10 +34,7 @@ namespace FracCuts {
         file_energyValPerIter.open(outputFolderPath + "energyValPerIter.txt");
         file_gradientPerIter.open(outputFolderPath + "gradientPerIter.txt");
         
-        if(!energyTerms[0]->checkInversion(data0))
-        {
-            std::cout << "***Warning: element inversion detected in initial configuration!" << std::endl;
-        }
+        assert(data0.checkInversion());
         
         globalIterNum = 0;
         
@@ -93,7 +90,7 @@ namespace FracCuts {
         }
         
         result = data0;
-        targetGRes = data0.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
+        targetGRes = data0.V_rest.rows() * 1.0e-12 * data0.avgEdgeLen * data0.avgEdgeLen;
 //        targetGRes = data0.V_rest.rows() * 1.0e-10 * data0.avgEdgeLen * data0.avgEdgeLen;
         computeEnergyVal(result, lastEnergyVal);
         file_energyValPerIter << lastEnergyVal;
@@ -225,13 +222,14 @@ namespace FracCuts {
     void Optimizer::createFracture(double stressThres)
     {
 //        bool changed = result.splitVertex(Eigen::VectorXd::Zero(result.V.rows()), stressThres); //DEBUG
-        bool changed = result.splitEdge(); //DEBUG
+//        bool changed = result.splitEdge(); //DEBUG
         logFile << result.V.rows() << std::endl;
-//        bool changed = result.mergeEdge(); //DEBUG
-        logFile << result.F << std::endl; //DEBUG
-        logFile << result.cohE << std::endl; //DEBUG
+        bool changed = (result.mergeEdge() | result.splitEdge()); //DEBUG
         if(changed) {
-            targetGRes = result.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
+//            logFile << result.F << std::endl; //DEBUG
+//            logFile << result.cohE << std::endl; //DEBUG
+            
+            targetGRes = result.V_rest.rows() * 1.0e-12 * data0.avgEdgeLen * data0.avgEdgeLen;
             
             // compute energy and output
             computeEnergyVal(result, lastEnergyVal);
@@ -340,7 +338,7 @@ namespace FracCuts {
             stepForward(testingData, stepSize);
             computeEnergyVal(testingData, testingE);
         }
-        while(!energyTerms[0]->checkInversion(testingData)) {
+        while(!testingData.checkInversion()) {
             stepSize /= 2.0;
             if(stepSize < 1e-12) {
                 stopped = true;

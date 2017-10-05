@@ -64,6 +64,20 @@ namespace FracCuts {
         u[2] << e[0].dot(e[1]) / u[1][0], e[0].cross(e[1]).norm() / u[1][0];
     }
     
+    void IglUtils::computeDeformationGradient(const Eigen::Vector3d v[3], const Eigen::Vector2d u[3], Eigen::Matrix2d& F)
+    {
+        Eigen::Vector2d x[3];
+        IglUtils::mapTriangleTo2D(v, x);
+
+        const Eigen::Vector2d u01 = u[1] - u[0];
+        const Eigen::Vector2d u02 = u[2] - u[0];
+        const double u01Len = u01.norm();
+    
+        Eigen::Matrix2d U; U << u01Len, u01.dot(u02) / u01Len, 0.0, (u01[0] * u02[1] - u01[1] * u02[0]) / u01Len;
+        Eigen::Matrix2d V; V << x[1], x[2];
+        F = U * V.inverse();
+    }
+    
     void splitRGB(char32_t color, double rgb[3]) {
         rgb[0] = static_cast<int>((0xff0000 & color) >> 16) / 255.0;
         rgb[1] = static_cast<int>((0x00ff00 & color) >> 8) / 255.0;

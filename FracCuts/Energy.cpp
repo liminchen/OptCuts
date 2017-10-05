@@ -126,26 +126,6 @@ namespace FracCuts {
         logFile << "h_finiteDiff = \n" << hessian_finiteDiff << std::endl;
     }
     
-    bool Energy::checkInversion(const TriangleSoup& data) const
-    {
-        const double eps = 1.0e-6 * igl::avg_edge_length(data.V, data.F);
-        for(int triI = 0; triI < data.F.rows(); triI++)
-        {
-            const Eigen::Vector3i& triVInd = data.F.row(triI);
-            
-            const Eigen::Vector2d e_u[2] = {
-                data.V.row(triVInd[1]) - data.V.row(triVInd[0]),
-                data.V.row(triVInd[2]) - data.V.row(triVInd[0])
-            };
-            
-            if(e_u[0][0] * e_u[1][1] - e_u[0][1] * e_u[1][0] < eps)
-            {
-                return false;
-            }
-        }
-        
-        return true;
-    }
     
     void Energy::initStepSize(const TriangleSoup& data, const Eigen::VectorXd& searchDir, double& stepSize) const
     {
