@@ -9,6 +9,7 @@
 #include "TriangleSoup.hpp"
 #include "IglUtils.hpp"
 #include "SymStretchEnergy.hpp"
+#include "Optimizer.hpp"
 
 #include <igl/cotmatrix.h>
 #include <igl/avg_edge_length.h>
@@ -263,25 +264,8 @@ namespace FracCuts {
         }
     }
     
-    void TriangleSoup::computeFeatures(bool multiComp)
+    void TriangleSoup::computeLaplacianMtr(void)
     {
-        //TODO: if the mesh is multi-component, then fix more vertices
-        fixedVert.clear();
-        fixedVert.insert(0);
-        
-        boundaryEdge.resize(cohE.rows());
-        edgeLen.resize(cohE.rows());
-        for(int cohI = 0; cohI < cohE.rows(); cohI++)
-        {
-            if(cohE.row(cohI).minCoeff() >= 0) {
-                boundaryEdge[cohI] = 0;
-            }
-            else {
-                boundaryEdge[cohI] = 1;
-            }
-            edgeLen[cohI] = (V_rest.row(cohE(cohI, 0)) - V_rest.row(cohE(cohI, 1))).norm();
-        }
-        
         //        Eigen::SparseMatrix<double> M;
         //        massmatrix(data.V_rest, data.F, igl::MASSMATRIX_TYPE_DEFAULT, M);
         Eigen::SparseMatrix<double> L;
@@ -306,6 +290,30 @@ namespace FracCuts {
             LaplacianMtr.insert(2 * fixedVI + 1, 2 * fixedVI + 1) = 1.0;
         }
         LaplacianMtr.makeCompressed();
+    }
+    
+    void TriangleSoup::computeFeatures(bool multiComp, bool resetFixedV)
+    {
+        //TODO: if the mesh is multi-component, then fix more vertices
+        if(resetFixedV) {
+            fixedVert.clear();
+            fixedVert.insert(0);
+        }
+        
+        boundaryEdge.resize(cohE.rows());
+        edgeLen.resize(cohE.rows());
+        for(int cohI = 0; cohI < cohE.rows(); cohI++)
+        {
+            if(cohE.row(cohI).minCoeff() >= 0) {
+                boundaryEdge[cohI] = 0;
+            }
+            else {
+                boundaryEdge[cohI] = 1;
+            }
+            edgeLen[cohI] = (V_rest.row(cohE(cohI, 0)) - V_rest.row(cohE(cohI, 1))).norm();
+        }
+        
+        computeLaplacianMtr();
         
 //        igl::cotmatrix_entries(V_rest, F, cotVals);
         
@@ -390,30 +398,17 @@ namespace FracCuts {
             edgeLen[cohI] = (V_rest.row(cohE(cohI, 0)) - V_rest.row(cohE(cohI, 1))).norm();
         }
         
-        //        Eigen::SparseMatrix<double> M;
-        //        massmatrix(data.V_rest, data.F, igl::MASSMATRIX_TYPE_DEFAULT, M);
-        Eigen::SparseMatrix<double> L;
-        igl::cotmatrix(V_rest, F, L);
-        LaplacianMtr.resize(V.rows() * 2, V.rows() * 2);
-        LaplacianMtr.reserve(L.nonZeros());
-        LaplacianMtr.setZero();
-        for (int k = 0; k < L.outerSize(); ++k)
-        {
-            for (Eigen::SparseMatrix<double>::InnerIterator it(L, k); it; ++it)
-            {
-                if((fixedVert.find(static_cast<int>(it.row())) == fixedVert.end()) &&
-                   (fixedVert.find(static_cast<int>(it.col())) == fixedVert.end()))
-                {
-                    LaplacianMtr.insert(it.row() * 2, it.col() * 2) = -it.value();// * M.coeffRef(it.row(), it.row());
-                    LaplacianMtr.insert(it.row() * 2 + 1, it.col() * 2 + 1) = -it.value();// * M.coeffRef(it.row(), it.row());
-                }
-            }
+        computeLaplacianMtr();
+    }
+    
+    void TriangleSoup::resetFixedVert(const std::set<int>& p_fixedVert)
+    {
+        for(const auto& vI : p_fixedVert) {
+            assert(vI < V.rows());
         }
-        for(const auto fixedVI : fixedVert) {
-            LaplacianMtr.insert(2 * fixedVI, 2 * fixedVI) = 1.0;
-            LaplacianMtr.insert(2 * fixedVI + 1, 2 * fixedVI + 1) = 1.0;
-        }
-        LaplacianMtr.makeCompressed();
+        
+        fixedVert = p_fixedVert;
+        computeLaplacianMtr();
     }
     
     bool TriangleSoup::separateTriangle(const Eigen::VectorXd& measure, double thres)
@@ -634,7 +629,7 @@ namespace FracCuts {
                         }
                     }
                     if(vI_interior >= 0) {
-                        splitEdgeOnBoundary(std::pair<int, int>(vI, vI_interior), edge2Tri, vNeighbor, cohEIndex);
+//                        splitEdgeOnBoundary(std::pair<int, int>(vI, vI_interior), edge2Tri, vNeighbor, cohEIndex);
                         modified = true;
                     }
                 }
@@ -675,7 +670,9 @@ namespace FracCuts {
         // found all candiate edges and evaluate the measurement
         std::pair<int, int> edgeToSplit;
         double maxStress = 0.0;
+        Eigen::Matrix2d newVertPos;
         std::map<std::pair<int, int>, double> candidateEdge;
+        double lambda_t = 0.0005;
         for(const auto& eI : edge2Tri) {
             int boundaryVertAmt = 0;
             if(isBoundaryVert(edge2Tri, vNeighbor, eI.first.first)) {
@@ -690,17 +687,22 @@ namespace FracCuts {
                     auto ETFinder = edge2Tri.find(dualEdge);
                     assert(ETFinder != edge2Tri.end());
                     
-                    const Eigen::Vector2d& stretchDir0 = dg[eI.second].matrixU().block(0, 0, 2, 1);
-                    const Eigen::Vector2d& stretchDir1 = dg[ETFinder->second].matrixU().block(0, 0, 2, 1);
-                    const Eigen::Vector2d edgeDir = (V.row(eI.first.first) - V.row(eI.first.second)).normalized();
-                    const double cosine0 = std::abs(edgeDir.dot(stretchDir0));
-                    const double cosine1 = std::abs(edgeDir.dot(stretchDir1));
-                    
-                    candidateEdge[eI.first] = dg[eI.second].singularValues()[0] * (1.0 - cosine0) +
-                        dg[ETFinder->second].singularValues()[0] * (1.0 - cosine1);
+//                    const Eigen::Vector2d& stretchDir0 = dg[eI.second].matrixU().block(0, 0, 2, 1);
+//                    const Eigen::Vector2d& stretchDir1 = dg[ETFinder->second].matrixU().block(0, 0, 2, 1);
+//                    const Eigen::Vector2d edgeDir = (V.row(eI.first.first) - V.row(eI.first.second)).normalized();
+//                    const double cosine0 = std::abs(edgeDir.dot(stretchDir0));
+//                    const double cosine1 = std::abs(edgeDir.dot(stretchDir1));
+//                    
+//                    candidateEdge[eI.first] = dg[eI.second].singularValues()[0] * (1.0 - cosine0) +
+//                        dg[ETFinder->second].singularValues()[0] * (1.0 - cosine1);
+                    Eigen::Matrix2d newVertPosI;
+                    double eLen = (V_rest.row(eI.first.first) - V_rest.row(eI.first.second)).norm();
+                    candidateEdge[eI.first] = -lambda_t * eLen * 2.0 + (1.0 - lambda_t) *
+                        computeEnergyDecrease(eI.first, edge2Tri, vNeighbor, cohEIndex, newVertPosI);
                     if(candidateEdge[eI.first] > maxStress) {
                         maxStress = candidateEdge[eI.first];
                         edgeToSplit = eI.first;
+                        newVertPos = newVertPosI;
                     }
                 }
             }
@@ -732,8 +734,13 @@ namespace FracCuts {
 //            }
 //        }
 //        return changed;
-        if(maxStress > 1.0) {
-            splitEdgeOnBoundary(edgeToSplit, edge2Tri, vNeighbor, cohEIndex);
+        
+//        if(maxStress > 1.0) {
+        //DEBUG alternating framework
+        if(maxStress > 0.0) {
+            std::cout << "E_dec = " << maxStress << std::endl;
+            logFile << maxStress << std::endl;
+            splitEdgeOnBoundary(edgeToSplit, newVertPos, edge2Tri, vNeighbor, cohEIndex);
             updateFeatures();
             std::cout << "edge splitted" << std::endl;
             return true;
@@ -745,8 +752,7 @@ namespace FracCuts {
     
     bool TriangleSoup::mergeEdge(void)
     {
-        //TODO: choose the best one satisfying a criterion
-        //TODO: check for element inversion
+        //TODO: check for element inversion only locally right now
         //TODO: share the precomputation with split
         
         // compute stress tensor and do SVD
@@ -1146,16 +1152,18 @@ namespace FracCuts {
     }
     
     bool TriangleSoup::isBoundaryVert(const std::map<std::pair<int, int>, int>& edge2Tri, int vI, int vI_neighbor,
-                                      std::vector<int>& tri_toSep, std::pair<int, int>& boundaryEdge) const
+                                      std::vector<int>& tri_toSep, std::pair<int, int>& boundaryEdge, bool toBound) const
     {
-        const auto inputEdgeTri = edge2Tri.find(std::pair<int, int>(vI, vI_neighbor));
+        const auto inputEdgeTri = edge2Tri.find(toBound ? std::pair<int, int>(vI, vI_neighbor) :
+                                                std::pair<int, int>(vI_neighbor, vI));
         assert(inputEdgeTri != edge2Tri.end());
         
         tri_toSep.resize(0);
-        auto finder = edge2Tri.find(std::pair<int, int>(vI_neighbor, vI));
+        auto finder = edge2Tri.find(toBound ? std::pair<int, int>(vI_neighbor, vI):
+                                    std::pair<int, int>(vI, vI_neighbor));
         if(finder == edge2Tri.end()) {
-            boundaryEdge.first = vI;
-            boundaryEdge.second = vI_neighbor;
+            boundaryEdge.first = (toBound ? vI : vI_neighbor);
+            boundaryEdge.second = (toBound ? vI_neighbor : vI);
             return true;
         }
         
@@ -1174,10 +1182,11 @@ namespace FracCuts {
                 return false;
             }
             
-            finder = edge2Tri.find(std::pair<int, int>(vI_new, vI));
+            finder = edge2Tri.find(toBound ? std::pair<int, int>(vI_new, vI) :
+                                   std::pair<int, int>(vI, vI_new));
             if(finder == edge2Tri.end()) {
-                boundaryEdge.first = vI;
-                boundaryEdge.second = vI_new;
+                boundaryEdge.first = (toBound ? vI : vI_new);
+                boundaryEdge.second = (toBound ? vI_new : vI);
                 return true;
             }
         } while(1);
@@ -1200,8 +1209,90 @@ namespace FracCuts {
         return false;
     }
     
-    void TriangleSoup::splitEdgeOnBoundary(const std::pair<int, int>& edge, std::map<std::pair<int, int>, int>& edge2Tri,
-                             std::vector<std::set<int>>& vNeighbor, std::map<std::pair<int, int>, int>& cohEIndex)
+    double TriangleSoup::computeEnergyDecrease(const std::pair<int, int>& edge,
+        const std::map<std::pair<int, int>, int>& edge2Tri, const std::vector<std::set<int>>& vNeighbor,
+        const std::map<std::pair<int, int>, int>& cohEIndex, Eigen::Matrix2d& newVertPos) const
+    {
+        assert(vNeighbor.size() == V.rows());
+        auto edgeTriIndFinder = edge2Tri.find(edge);
+        auto edgeTriIndFinder_dual = edge2Tri.find(std::pair<int, int>(edge.second, edge.first));
+        assert(edgeTriIndFinder != edge2Tri.end());
+        assert(edgeTriIndFinder_dual != edge2Tri.end());
+        
+        int vI_boundary = edge.first, vI_interior = edge.second;
+        if(isBoundaryVert(edge2Tri, vNeighbor, edge.first)) {
+            if(isBoundaryVert(edge2Tri, vNeighbor, edge.second)) {
+                //!! right now don't change the shape topology
+                return 0;
+            }
+        }
+        else {
+            assert(isBoundaryVert(edge2Tri, vNeighbor, edge.second) && "Input edge must attach mesh boundary!");
+            
+            vI_boundary = edge.second;
+            vI_interior = edge.first;
+        }
+        
+        std::vector<FracCuts::Energy*> energyTerms(1, new SymStretchEnergy());
+        std::vector<double> energyParams(1, 1.0);
+        double eDec = 0.0;
+        for(int toBound = 0; toBound < 2; toBound++) {
+            std::vector<int> tri_toSep;
+            std::pair<int, int> boundaryEdge;
+            isBoundaryVert(edge2Tri, vI_boundary, vI_interior, tri_toSep, boundaryEdge, toBound);
+            assert(!tri_toSep.empty());
+            
+            Eigen::MatrixXi localF;
+            localF.resize(tri_toSep.size(), 3);
+            Eigen::MatrixXd localV_rest, localV;
+            std::set<int> fixedVert;
+            std::map<int, int> globalVI2local;
+            int vI_boundary_local = -1;
+            int localTriI = 0;
+            for(const auto triI : tri_toSep) {
+                for(int vI = 0; vI < 3; vI++) {
+                    int globalVI = F(triI, vI);
+                    auto localVIFinder = globalVI2local.find(globalVI);
+                    if(localVIFinder == globalVI2local.end()) {
+                        int localVI = static_cast<int>(localV_rest.rows());
+                        if(globalVI != vI_boundary) {
+                            fixedVert.insert(localVI);
+                        }
+                        else {
+                            vI_boundary_local = localVI;
+                        }
+                        localV_rest.conservativeResize(localVI + 1, 3);
+                        localV_rest.row(localVI) = V_rest.row(globalVI);
+                        localV.conservativeResize(localVI + 1, 2);
+                        localV.row(localVI) = V.row(globalVI);
+                        localF(localTriI, vI) = localVI;
+                        globalVI2local[globalVI] = localVI;
+                    }
+                    else {
+                        localF(localTriI, vI) = localVIFinder->second;
+                    }
+                }
+                localTriI++;
+            }
+            assert(vI_boundary_local >= 0);
+            TriangleSoup localMesh(localV_rest, localF, localV, Eigen::MatrixXi(), false);
+            localMesh.resetFixedVert(fixedVert);
+            
+            Optimizer optimizer(localMesh, energyTerms, energyParams, false, true);
+            optimizer.precompute();
+            double initE = optimizer.getLastEnergyVal();
+            optimizer.solve(); //do not output, the other part
+            eDec += initE - optimizer.getLastEnergyVal();
+            newVertPos.block(toBound, 0, 1, 2) = optimizer.getResult().V.row(vI_boundary_local);
+        }
+        delete energyTerms[0];
+        
+        return eDec;
+    }
+    
+    void TriangleSoup::splitEdgeOnBoundary(const std::pair<int, int>& edge, const Eigen::Matrix2d& newVertPos,
+        std::map<std::pair<int, int>, int>& edge2Tri, std::vector<std::set<int>>& vNeighbor,
+        std::map<std::pair<int, int>, int>& cohEIndex)
     {
         assert(vNeighbor.size() == V.rows());
         auto edgeTriIndFinder = edge2Tri.find(edge);
@@ -1234,7 +1325,8 @@ namespace FracCuts {
         V_rest.conservativeResize(nV + 1, 3);
         V_rest.row(nV) = V_rest.row(vI_boundary);
         V.conservativeResize(nV + 1, 2);
-        V.row(nV) = V.row(vI_boundary);
+        V.row(nV) = newVertPos.block(1, 0, 1, 2);
+        V.row(vI_boundary) = newVertPos.block(0, 0, 1, 2);
         
         for(const auto triI : tri_toSep) {
             for(int vI = 0; vI < 3; vI++) {

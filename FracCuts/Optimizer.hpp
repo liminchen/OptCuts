@@ -26,6 +26,8 @@ namespace FracCuts {
         // E = \Sigma_i a_i E_i
         
     protected: // owned data
+        bool withTopologyStep;
+        bool mute;
         bool pardisoThreadAmt;
         bool needRefactorize;
         int globalIterNum;
@@ -46,7 +48,8 @@ namespace FracCuts {
         std::ofstream file_gradientPerIter;
         
     public: // constructor and destructor
-        Optimizer(const TriangleSoup& p_data0, const std::vector<Energy*>& p_energyTerms, const std::vector<double>& p_energyParams);
+        Optimizer(const TriangleSoup& p_data0, const std::vector<Energy*>& p_energyTerms, const std::vector<double>& p_energyParams,
+                  bool p_withTopologyStep = true, bool p_mute = false);
         ~Optimizer(void);
         
     public: // API
@@ -60,7 +63,7 @@ namespace FracCuts {
         void updatePrecondMtrAndFactorize(void);
         
         void separateTriangles(double energyThres);
-        void createFracture(double stressThres);
+        bool createFracture(double stressThres);
         
         void computeLastEnergyVal(void);
         
@@ -83,6 +86,9 @@ namespace FracCuts {
         void computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const;
         
         void initStepSize(const TriangleSoup& data, double& stepSize) const;
+        
+    public: // data access
+        double getLastEnergyVal(void) const;
     };
     
 }

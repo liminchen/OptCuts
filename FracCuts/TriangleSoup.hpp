@@ -61,8 +61,9 @@ namespace FracCuts{
         TriangleSoup(Primitive primitive, double size = 1.0, double spacing = 0.1, bool separateTri = true);
         
     public: // API
-        void computeFeatures(bool multiComp = false);
+        void computeFeatures(bool multiComp = false, bool resetFixedV = true);
         void updateFeatures(void);
+        void resetFixedVert(const std::set<int>& p_fixedVert);
         
         bool separateTriangle(const Eigen::VectorXd& measure, double thres);
         bool splitVertex(const Eigen::VectorXd& measure, double thres);
@@ -83,17 +84,25 @@ namespace FracCuts{
         void saveAsMesh(const std::string& filePath, bool scaleUV = false) const;
         
     protected: // helper function
+        void computeLaplacianMtr(void);
+        
         bool findBoundaryEdge(int vI, const std::pair<int, int>& startEdge,
                               const std::map<std::pair<int, int>, int>& edge2Tri,
                               std::pair<int, int>& boundaryEdge);
         bool isBoundaryVert(const std::map<std::pair<int, int>, int>& edge2Tri, int vI, int vI_neighbor,
-                            std::vector<int>& tri_toSep, std::pair<int, int>& boundaryEdge) const;
+                            std::vector<int>& tri_toSep, std::pair<int, int>& boundaryEdge, bool toBound = true) const;
         bool isBoundaryVert(const std::map<std::pair<int, int>, int>& edge2Tri, const std::vector<std::set<int>>& vNeighbor, int vI) const;
-        void splitEdgeOnBoundary(const std::pair<int, int>& edge, std::map<std::pair<int, int>, int>& edge2Tri,
-                               std::vector<std::set<int>>& vNeighbor, std::map<std::pair<int, int>, int>& cohEIndex);
+        
+        void splitEdgeOnBoundary(const std::pair<int, int>& edge, const Eigen::Matrix2d& newVertPos,
+            std::map<std::pair<int, int>, int>& edge2Tri, std::vector<std::set<int>>& vNeighbor,
+            std::map<std::pair<int, int>, int>& cohEIndex);
         void mergeBoundaryEdges(const std::pair<int, int>& edge0, const std::pair<int, int>& edge1,
             std::map<std::pair<int, int>, int>& edge2Tri, std::vector<std::set<int>>& vNeighbor,
             std::map<std::pair<int, int>, int>& cohEIndex);
+        
+        double computeEnergyDecrease(const std::pair<int, int>& edge,
+            const std::map<std::pair<int, int>, int>& edge2Tri, const std::vector<std::set<int>>& vNeighbor,
+            const std::map<std::pair<int, int>, int>& cohEIndex, Eigen::Matrix2d& newVertPos) const; //TODO: write this in a new class
     };
     
 }

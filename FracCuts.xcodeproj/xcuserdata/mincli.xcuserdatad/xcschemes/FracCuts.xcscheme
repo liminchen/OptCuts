@@ -63,7 +63,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "0 camelhead_f1000.off 0.1 1 0 cohEwithMerge"
+            argument = "0 camelhead_f1000.off 0.1 16 0 alt0.005"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -79,7 +79,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 bishop_part_f1000.obj 0.1 1 0 cohEwithMerge"
+            argument = "0 bishop_part_f1000.obj 0.1 16 0 alt0.01"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -87,12 +87,12 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 cat.obj 0.01 1 0 cohEwithMerge"
-            isEnabled = "NO">
+            argument = "0 cat.obj 0.01 16 0 alt0.0005"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 cone2.0.obj 0.05 1 0 cohEwithMerge"
-            isEnabled = "YES">
+            argument = "0 cone2.0.obj 0.05 16 0 alt0.2"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 bunny_f2000.obj 0.1 16 1"

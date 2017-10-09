@@ -24,15 +24,21 @@ extern std::ofstream logFile;
 
 namespace FracCuts {
     
-    Optimizer::Optimizer(const TriangleSoup& p_data0, const std::vector<Energy*>& p_energyTerms, const std::vector<double>& p_energyParams) : data0(p_data0), energyTerms(p_energyTerms), energyParams(p_energyParams)
+    Optimizer::Optimizer(const TriangleSoup& p_data0, const std::vector<Energy*>& p_energyTerms, const std::vector<double>& p_energyParams,
+        bool p_withTopologyStep, bool p_mute) : data0(p_data0), energyTerms(p_energyTerms), energyParams(p_energyParams)
     {
         assert(energyTerms.size() == energyParams.size());
         
         gradient_ET.resize(energyTerms.size());
         energyVal_ET.resize(energyTerms.size());
         
-        file_energyValPerIter.open(outputFolderPath + "energyValPerIter.txt");
-        file_gradientPerIter.open(outputFolderPath + "gradientPerIter.txt");
+        withTopologyStep = p_withTopologyStep;
+        mute = p_mute;
+        
+        if(!mute) {
+            file_energyValPerIter.open(outputFolderPath + "energyValPerIter.txt");
+            file_gradientPerIter.open(outputFolderPath + "gradientPerIter.txt");
+        }
         
         assert(data0.checkInversion());
         
@@ -51,8 +57,12 @@ namespace FracCuts {
     
     Optimizer::~Optimizer(void)
     {
-        file_energyValPerIter.close();
-        file_gradientPerIter.close();
+        if(file_energyValPerIter.is_open()) {
+            file_energyValPerIter.close();
+        }
+        if(file_gradientPerIter.is_open()) {
+            file_gradientPerIter.close();
+        }
     }
     
     void Optimizer::computeLastEnergyVal(void)
@@ -90,41 +100,49 @@ namespace FracCuts {
         }
         
         result = data0;
-        targetGRes = data0.V_rest.rows() * 1.0e-12 * data0.avgEdgeLen * data0.avgEdgeLen;
+        targetGRes = data0.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
 //        targetGRes = data0.V_rest.rows() * 1.0e-10 * data0.avgEdgeLen * data0.avgEdgeLen;
         computeEnergyVal(result, lastEnergyVal);
-        file_energyValPerIter << lastEnergyVal;
-        for(int eI = 0; eI < energyTerms.size(); eI++) {
-            file_energyValPerIter << " " << energyVal_ET[eI];
+        if(!mute) {
+            file_energyValPerIter << lastEnergyVal;
+            for(int eI = 0; eI < energyTerms.size(); eI++) {
+                file_energyValPerIter << " " << energyVal_ET[eI];
+            }
+            double seamSparsity;
+            result.computeSeamSparsity(seamSparsity);
+            file_energyValPerIter << " " << seamSparsity << std::endl;
+            std::cout << "E_initial = " << lastEnergyVal << std::endl;
         }
-        double seamSparsity;
-        result.computeSeamSparsity(seamSparsity);
-        file_energyValPerIter << " " << seamSparsity << std::endl;
-        std::cout << "E_initial = " << lastEnergyVal << std::endl;
     }
     
     bool Optimizer::solve(int maxIter)
     {
         for(int iterI = 0; iterI < maxIter; iterI++)
         {
-            createFracture(-1.0); //DEBUG
+            if(withTopologyStep) {
+                createFracture(-1.0); //DEBUG
+            }
             computeGradient(result, gradient);
             const double sqn_g = gradient.squaredNorm();
-            std::cout << "||gradient||^2 = " << sqn_g << ", targetGRes = " << targetGRes << std::endl;
-            file_gradientPerIter << sqn_g;
-            for(int eI = 0; eI < energyTerms.size(); eI++) {
-                file_gradientPerIter << " " << gradient_ET[eI].squaredNorm();
+            if(!mute) {
+                std::cout << "||gradient||^2 = " << sqn_g << ", targetGRes = " << targetGRes << std::endl;
+                file_gradientPerIter << sqn_g;
+                for(int eI = 0; eI < energyTerms.size(); eI++) {
+                    file_gradientPerIter << " " << gradient_ET[eI].squaredNorm();
+                }
+                file_gradientPerIter << std::endl;
             }
-            file_gradientPerIter << std::endl;
             if(sqn_g < targetGRes) {
                 // converged
-                file_energyValPerIter << lastEnergyVal;
-                for(int eI = 0; eI < energyTerms.size(); eI++) {
-                    file_energyValPerIter << " " << energyVal_ET[eI];
+                if(!mute) {
+                    file_energyValPerIter << lastEnergyVal;
+                    for(int eI = 0; eI < energyTerms.size(); eI++) {
+                        file_energyValPerIter << " " << energyVal_ET[eI];
+                    }
+                    double seamSparsity;
+                    result.computeSeamSparsity(seamSparsity);
+                    file_energyValPerIter << " " << seamSparsity << std::endl;
                 }
-                double seamSparsity;
-                result.computeSeamSparsity(seamSparsity);
-                file_energyValPerIter << " " << seamSparsity << std::endl;
                 globalIterNum++;
                 return true;
             }
@@ -146,7 +164,9 @@ namespace FracCuts {
             return;
         }
         
-        std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
+        if(!mute) {
+            std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
+        }
         computePrecondMtr(result, precondMtr);
         if(!pardisoThreadAmt) {
             cholSolver.factorize(precondMtr);
@@ -168,31 +188,20 @@ namespace FracCuts {
         Eigen::VectorXd distortionPerElem;
         energyTerms[0]->getEnergyValPerElem(result, distortionPerElem, true);
         bool changed = result.separateTriangle(distortionPerElem, energyThres);
-        logFile << result.cohE; //DEBUG
+//        logFile << result.cohE; //DEBUG
         if(changed) {
             targetGRes = result.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
             
             // compute energy and output
             computeEnergyVal(result, lastEnergyVal);
-            file_energyValPerIter << lastEnergyVal;
-            for(int eI = 0; eI < energyTerms.size(); eI++) {
-                file_energyValPerIter << " " << energyVal_ET[eI];
-            }
-            double seamSparsity;
-            result.computeSeamSparsity(seamSparsity);
-            file_energyValPerIter << " " << seamSparsity << std::endl;
-            globalIterNum++;
             
             // compute gradient and output
             computeGradient(result, gradient);
-            file_gradientPerIter << gradient.squaredNorm();
-            for(int eI = 0; eI < energyTerms.size(); eI++) {
-                file_gradientPerIter << " " << gradient_ET[eI].squaredNorm();
-            }
-            file_gradientPerIter << std::endl;
             
             // for the changing hessian
-            std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
+            if(!mute) {
+                std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
+            }
             computePrecondMtr(result, precondMtr);
             if(!pardisoThreadAmt) {
                 cholSolver.analyzePattern(precondMtr);
@@ -219,17 +228,17 @@ namespace FracCuts {
         }
     }
     
-    void Optimizer::createFracture(double stressThres)
+    bool Optimizer::createFracture(double stressThres)
     {
 //        bool changed = result.splitVertex(Eigen::VectorXd::Zero(result.V.rows()), stressThres); //DEBUG
-//        bool changed = result.splitEdge(); //DEBUG
-        logFile << result.V.rows() << std::endl;
-        bool changed = (result.mergeEdge() | result.splitEdge()); //DEBUG
+        bool changed = result.splitEdge(); //DEBUG
+//        logFile << result.V.rows() << std::endl;
+//        bool changed = (result.mergeEdge() | result.splitEdge()); //DEBUG
         if(changed) {
 //            logFile << result.F << std::endl; //DEBUG
 //            logFile << result.cohE << std::endl; //DEBUG
             
-            targetGRes = result.V_rest.rows() * 1.0e-12 * data0.avgEdgeLen * data0.avgEdgeLen;
+            targetGRes = result.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
             
             // compute energy and output
             computeEnergyVal(result, lastEnergyVal);
@@ -238,7 +247,9 @@ namespace FracCuts {
             computeGradient(result, gradient);
             
             // for the changing hessian
-            std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
+            if(!mute) {
+                std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
+            }
             computePrecondMtr(result, precondMtr);
             if(!pardisoThreadAmt) {
                 cholSolver.analyzePattern(precondMtr);
@@ -263,13 +274,16 @@ namespace FracCuts {
                 }
             }
         }
+        return changed;
     }
     
     bool Optimizer::solve_oneStep(void)
     {
         if(needRefactorize) {
             // for the changing hessian
-            std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
+            if(!mute) {
+                std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
+            }
             computePrecondMtr(result, precondMtr);
             
             if(!pardisoThreadAmt) {
@@ -311,7 +325,9 @@ namespace FracCuts {
         double stepSize = 1.0;
         initStepSize(result, stepSize);
         stepSize *= 0.99; // producing degenerated element is not allowed
-        std::cout << "stepSize: " << stepSize << " -> ";
+        if(!mute) {
+            std::cout << "stepSize: " << stepSize << " -> ";
+        }
         
         const double m = searchDir.dot(gradient);
         const double c1m = 1.0e-4 * m, c2m = 0.9 * m;
@@ -351,17 +367,19 @@ namespace FracCuts {
         result.V = testingData.V;
         lastEnergyVal = testingE;
         
-        std::cout << stepSize << std::endl;
-        std::cout << "stepLen = " << (stepSize * searchDir).squaredNorm() << std::endl;
-        std::cout << "E_cur = " << testingE << std::endl;
-        
-        file_energyValPerIter << lastEnergyVal;
-        for(int eI = 0; eI < energyTerms.size(); eI++) {
-            file_energyValPerIter << " " << energyVal_ET[eI];
+        if(!mute) {
+            std::cout << stepSize << std::endl;
+            std::cout << "stepLen = " << (stepSize * searchDir).squaredNorm() << std::endl;
+            std::cout << "E_cur = " << testingE << std::endl;
+            
+            file_energyValPerIter << lastEnergyVal;
+            for(int eI = 0; eI < energyTerms.size(); eI++) {
+                file_energyValPerIter << " " << energyVal_ET[eI];
+            }
+            double seamSparsity;
+            result.computeSeamSparsity(seamSparsity);
+            file_energyValPerIter << " " << seamSparsity << std::endl;
         }
-        double seamSparsity;
-        result.computeSeamSparsity(seamSparsity);
-        file_energyValPerIter << " " << seamSparsity << std::endl;
         
         return stopped;
     }
@@ -451,5 +469,10 @@ namespace FracCuts {
             energyTerms[eI]->computeHessian(data, hessianI);
             hessian += energyParams[eI] * hessianI;
         }
+    }
+    
+    double Optimizer::getLastEnergyVal(void) const
+    {
+        return lastEnergyVal;
     }
 }

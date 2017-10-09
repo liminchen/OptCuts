@@ -316,9 +316,9 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
         viewChannel = channel_result;
         updateViewerData();
         
-        if((iterNum < 10) || (iterNum % 10 == 0)) {
-            saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
-        }
+//        if((iterNum < 10) || (iterNum % 10 == 0)) {
+//            saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
+//        }
         
         if(converged) {
             FracCuts::SeparationEnergy *sepE = NULL;
@@ -338,9 +338,9 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     sepE->getSigmaParam()) + "_mesh.obj");
             }
             else {
-                saveScreenshot(outputFolderPath + "result.png", 1.0);
-                triSoup[channel_result]->save(outputFolderPath + "result_triSoup.obj");
-                triSoup[channel_result]->saveAsMesh(outputFolderPath + "result_mesh.obj");
+                saveScreenshot(outputFolderPath + "iter" + std::to_string(iterNum) + ".png", 1.0);
+                triSoup[channel_result]->save(outputFolderPath + "iter" + std::to_string(iterNum) + "_triSoup.obj");
+                triSoup[channel_result]->saveAsMesh(outputFolderPath + "iter" + std::to_string(iterNum) + "_mesh.obj");
             }
             
             if(autoHomotopy && sepE && sepE->decreaseSigma())
@@ -354,12 +354,23 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                 }
             }
             else {
-                triSoup[channel_result]->saveAsMesh(outputFolderPath + "result_mesh_01UV.obj", true);
+                triSoup[channel_result]->saveAsMesh(outputFolderPath + "iter" + std::to_string(iterNum) + "_mesh_01UV.obj", true);
                 
-                optimization_on = false;
-                viewer.core.is_animating = false;
-                std::cout << "optimization converged." << std::endl;
-                homoTransFile.close();
+//                optimization_on = false;
+//                viewer.core.is_animating = false;
+//                std::cout << "optimization converged." << std::endl;
+//                homoTransFile.close();
+                //DEBUG alternating framework
+                homoTransFile << iterNum << std::endl;
+                if(optimizer->createFracture(fracThres)) {
+                    converged = false;
+                }
+                else {
+                    optimization_on = false;
+                    viewer.core.is_animating = false;
+                    std::cout << "optimization converged." << std::endl;
+                    homoTransFile.close();
+                }
             }
         }
     }
@@ -652,21 +663,22 @@ int main(int argc, char *argv[])
         energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
     }
     if(lambda != 0.0) {
-        energyParams.emplace_back(lambda);
+        //DEBUG alternating framework
+//        energyParams.emplace_back(lambda);
 //        energyTerms.emplace_back(new FracCuts::SeparationEnergy(triSoup[0]->avgEdgeLen * triSoup[0]->avgEdgeLen, delta));
-        energyTerms.emplace_back(new FracCuts::CohesiveEnergy(triSoup[0]->avgEdgeLen, delta));
+//        energyTerms.emplace_back(new FracCuts::CohesiveEnergy(triSoup[0]->avgEdgeLen, delta));
         //    energyTerms.back()->checkEnergyVal(*triSoup[0]);
 //        energyTerms.back()->checkGradient(*triSoup[0]);
         //    energyTerms.back()->checkHessian(*triSoup[0]);
     }
-    optimizer = new FracCuts::Optimizer(*triSoup[0], energyTerms, energyParams);
+    optimizer = new FracCuts::Optimizer(*triSoup[0], energyTerms, energyParams, false); //DEBUG alternating framework
     optimizer->precompute();
     triSoup.emplace_back(&optimizer->getResult());
     if((lambda > 0.0) && (!startWithTriSoup)) {
         // fracture mode
         fractureMode = true;
 //        optimizer->separateTriangles(fracThres);
-        optimizer->createFracture(fracThres);
+//        optimizer->createFracture(fracThres); //DEBUG alternating framework
     }
     
     // Setup viewer and launch
