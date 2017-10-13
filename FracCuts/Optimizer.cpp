@@ -43,6 +43,7 @@ namespace FracCuts {
         assert(data0.checkInversion());
         
         globalIterNum = 0;
+        relGL2Tol = 1.0e-6;
         
         needRefactorize = false;
         for(const auto& energyTermI : energyTerms) {
@@ -78,6 +79,13 @@ namespace FracCuts {
         return globalIterNum;
     }
     
+    void Optimizer::setRelGL2Tol(double p_relTol)
+    {
+        assert(p_relTol > 0.0);
+        relGL2Tol = p_relTol;
+        targetGRes = (data0.V_rest.rows() - data0.fixedVert.size()) * relGL2Tol * data0.avgEdgeLen * data0.avgEdgeLen;
+    }
+    
     void Optimizer::precompute(void)
     {
         computePrecondMtr(data0, precondMtr);
@@ -99,8 +107,9 @@ namespace FracCuts {
             pardisoSolver.factorize();
         }
         
+        lastEDec = 0.0;
         result = data0;
-        targetGRes = data0.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
+        targetGRes = (data0.V_rest.rows() - data0.fixedVert.size()) * relGL2Tol * data0.avgEdgeLen * data0.avgEdgeLen;
 //        targetGRes = data0.V_rest.rows() * 1.0e-10 * data0.avgEdgeLen * data0.avgEdgeLen;
         computeEnergyVal(result, lastEnergyVal);
         if(!mute) {
@@ -120,7 +129,9 @@ namespace FracCuts {
         for(int iterI = 0; iterI < maxIter; iterI++)
         {
             if(withTopologyStep) {
-                createFracture(-1.0); //DEBUG
+                if(!createFracture(lastEDec)) {
+                    withTopologyStep = false;
+                }//DEBUG
             }
             computeGradient(result, gradient);
             const double sqn_g = gradient.squaredNorm();
@@ -134,6 +145,7 @@ namespace FracCuts {
             }
             if(sqn_g < targetGRes) {
                 // converged
+                lastEDec = 0.0;
                 if(!mute) {
                     file_energyValPerIter << lastEnergyVal;
                     for(int eI = 0; eI < energyTerms.size(); eI++) {
@@ -190,7 +202,7 @@ namespace FracCuts {
         bool changed = result.separateTriangle(distortionPerElem, energyThres);
 //        logFile << result.cohE; //DEBUG
         if(changed) {
-            targetGRes = result.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
+            targetGRes = (data0.V_rest.rows() - data0.fixedVert.size()) * relGL2Tol * data0.avgEdgeLen * data0.avgEdgeLen;
             
             // compute energy and output
             computeEnergyVal(result, lastEnergyVal);
@@ -231,14 +243,15 @@ namespace FracCuts {
     bool Optimizer::createFracture(double stressThres)
     {
 //        bool changed = result.splitVertex(Eigen::VectorXd::Zero(result.V.rows()), stressThres); //DEBUG
-        bool changed = result.splitEdge(); //DEBUG
+        bool changed = result.splitEdge(stressThres, stressThres > 0.0); //DEBUG
 //        logFile << result.V.rows() << std::endl;
 //        bool changed = (result.mergeEdge() | result.splitEdge()); //DEBUG
         if(changed) {
 //            logFile << result.F << std::endl; //DEBUG
 //            logFile << result.cohE << std::endl; //DEBUG
+//            while(result.splitEdge(0.0, true)) {} // propagate
             
-            targetGRes = result.V_rest.rows() * 1.0e-6 * data0.avgEdgeLen * data0.avgEdgeLen;
+            targetGRes = (data0.V_rest.rows() - data0.fixedVert.size()) * relGL2Tol * data0.avgEdgeLen * data0.avgEdgeLen;
             
             // compute energy and output
             computeEnergyVal(result, lastEnergyVal);
@@ -272,6 +285,11 @@ namespace FracCuts {
                 if(!needRefactorize) {
                     pardisoSolver.factorize();
                 }
+            }
+            
+            if(stressThres == 0.0) {
+                solve(1);
+                withTopologyStep = true;
             }
         }
         return changed;
@@ -365,6 +383,7 @@ namespace FracCuts {
             computeEnergyVal(testingData, testingE);
         }
         result.V = testingData.V;
+        lastEDec = lastEnergyVal - testingE;
         lastEnergyVal = testingE;
         
         if(!mute) {

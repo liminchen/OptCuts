@@ -31,6 +31,7 @@ namespace FracCuts {
         bool pardisoThreadAmt;
         bool needRefactorize;
         int globalIterNum;
+        double relGL2Tol;
         TriangleSoup result; // intermediate results of each iteration
         // constant precondition matrix for solving the linear system for search directions
         Eigen::SparseMatrix<double> precondMtr;
@@ -40,6 +41,7 @@ namespace FracCuts {
         Eigen::VectorXd gradient; // energy gradient computed in each iteration
         Eigen::VectorXd searchDir; // search direction comptued in each iteration
         double lastEnergyVal; // for output and line search
+        double lastEDec;
         double targetGRes;
         std::vector<Eigen::VectorXd> gradient_ET;
         std::vector<double> energyVal_ET;
@@ -70,6 +72,7 @@ namespace FracCuts {
         void getGradientVisual(Eigen::MatrixXd& arrowVec) const;
         const TriangleSoup& getResult(void) const;
         int getIterNum(void) const;
+        void setRelGL2Tol(double p_relTol);
         
     protected: // helper functions
         // solve for new configuration in the next iteration

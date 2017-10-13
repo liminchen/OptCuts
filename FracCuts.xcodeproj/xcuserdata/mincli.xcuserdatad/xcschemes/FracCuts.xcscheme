@@ -63,8 +63,8 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "0 camelhead_f1000.off 0.1 16 0 alt0.005"
-            isEnabled = "NO">
+            argument = "0 camelhead_f1000.off 0.1 16 0 alt0.005mdeepIne"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 mergeTest.obj 0.1 16 0 merge"
@@ -79,7 +79,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 bishop_part_f1000.obj 0.1 16 0 alt0.01"
+            argument = "0 bishop_part_f1000.obj 0.1 16 0 alt0.01mdeepIne"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -87,11 +87,19 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 cat.obj 0.01 16 0 alt0.0005"
-            isEnabled = "YES">
+            argument = "0 cat.obj 0.01 16 0 alt0.0005mdeepIne"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 cone2.0.obj 0.05 16 0 alt0.2"
+            argument = "0 cone2.0.obj 0.05 16 0 alt0.1mdeepIne"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 cat_f1500.obj 0.01 16 0 alt0.0001"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 cone2.0_f1500.obj 0.05 16 0 alt0.1"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument

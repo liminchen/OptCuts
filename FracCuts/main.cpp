@@ -31,7 +31,7 @@ bool converged = false;
 bool autoHomotopy = true;
 std::ofstream homoTransFile;
 bool fractureMode = false;
-double fracThres = -1.0; //TODO: make as prog args
+double fracThres = 0.0; //TODO: make as prog args
 
 std::ofstream logFile;
 std::string outputFolderPath = "/Users/mincli/Desktop/output_FracCuts/";
@@ -51,11 +51,13 @@ bool showTexture = true; // show checkerboard
 bool isLighting = false;
 
 
-void proceedOptimization(void)
+void proceedOptimization(int proceedNum = 1)
 {
-    std::cout << "Iteration" << iterNum << ":" << std::endl;
-    converged = optimizer->solve(1);
-    iterNum = optimizer->getIterNum();
+    for(int proceedI = 0; (proceedI < proceedNum) && (!converged); proceedI++) {
+        std::cout << "Iteration" << iterNum << ":" << std::endl;
+        converged = optimizer->solve(1);
+        iterNum = optimizer->getIterNum();
+    }
 }
 
 void updateViewerData_seam(const Eigen::MatrixXd& V)
@@ -366,6 +368,18 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     converged = false;
                 }
                 else {
+                    // perform exact solve
+                    optimizer->setRelGL2Tol(1.0e-6);
+                    //!! can recompute precondmtr
+                    converged = false;
+                    proceedOptimization(1000);
+                    viewChannel = channel_result;
+                    updateViewerData();
+                    saveScreenshot(outputFolderPath + "iter" + std::to_string(iterNum) + ".png", 1.0);
+                    triSoup[channel_result]->save(outputFolderPath + "iter" + std::to_string(iterNum) + "_triSoup.obj");
+                    triSoup[channel_result]->saveAsMesh(outputFolderPath + "iter" + std::to_string(iterNum) + "_mesh.obj");
+                    triSoup[channel_result]->saveAsMesh(outputFolderPath + "iter" + std::to_string(iterNum) + "_mesh_01UV.obj", true);
+                    
                     optimization_on = false;
                     viewer.core.is_animating = false;
                     std::cout << "optimization converged." << std::endl;
@@ -677,6 +691,7 @@ int main(int argc, char *argv[])
     if((lambda > 0.0) && (!startWithTriSoup)) {
         // fracture mode
         fractureMode = true;
+        optimizer->setRelGL2Tol(1.0e-4);
 //        optimizer->separateTriangles(fracThres);
 //        optimizer->createFracture(fracThres); //DEBUG alternating framework
     }

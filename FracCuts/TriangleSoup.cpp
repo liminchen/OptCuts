@@ -643,37 +643,58 @@ namespace FracCuts {
         return modified;
     }
     
-    bool TriangleSoup::splitEdge(void)
+    void TriangleSoup::resetSubOptInfo(void)
     {
-        // compute stress tensor and do SVD
-        std::vector<Eigen::JacobiSVD<Eigen::Matrix2d>> dg(F.rows());
-        for(int triI = 0; triI < F.rows(); triI++) {
-            const Eigen::RowVector3i& triVInd = F.row(triI);
-            
-            const Eigen::Vector3d x_3D[3] = {
-                V_rest.row(triVInd[0]),
-                V_rest.row(triVInd[1]),
-                V_rest.row(triVInd[2])
-            };
-            
-            const Eigen::Vector2d u[3] = {
-                V.row(triVInd[0]),
-                V.row(triVInd[1]),
-                V.row(triVInd[2])
-            };
-            
-            Eigen::Matrix2d stressTensor;
-            SymStretchEnergy::computeStressTensor(x_3D, u, stressTensor);
-            dg[triI].compute(stressTensor, Eigen::ComputeFullU | Eigen::ComputeFullV);
+//        fracTail.clear();
+        for(auto& infoI : subOptimizerInfo) {
+            infoI.first.clear();
+            infoI.second.clear();
         }
+        preFracEInc = 0.0;
+    }
+    
+    bool TriangleSoup::splitEdge(double thres, bool propagate)
+    {
+//        // compute stress tensor and do SVD
+//        std::vector<Eigen::JacobiSVD<Eigen::Matrix2d>> dg(F.rows());
+//        for(int triI = 0; triI < F.rows(); triI++) {
+//            const Eigen::RowVector3i& triVInd = F.row(triI);
+//            
+//            const Eigen::Vector3d x_3D[3] = {
+//                V_rest.row(triVInd[0]),
+//                V_rest.row(triVInd[1]),
+//                V_rest.row(triVInd[2])
+//            };
+//            
+//            const Eigen::Vector2d u[3] = {
+//                V.row(triVInd[0]),
+//                V.row(triVInd[1]),
+//                V.row(triVInd[2])
+//            };
+//            
+//            Eigen::Matrix2d stressTensor;
+//            SymStretchEnergy::computeStressTensor(x_3D, u, stressTensor);
+//            dg[triI].compute(stressTensor, Eigen::ComputeFullU | Eigen::ComputeFullV);
+//        }
 
+        if(!propagate) {
+            resetSubOptInfo();
+        }
+        
         // found all candiate edges and evaluate the measurement
         std::pair<int, int> edgeToSplit;
-        double maxStress = 0.0;
+        double maxStress = thres;
+        double fracEInc = 0.0;
         Eigen::Matrix2d newVertPos;
         std::map<std::pair<int, int>, double> candidateEdge;
-        double lambda_t = 0.0005;
+        double lambda_t = 0.005;
         for(const auto& eI : edge2Tri) {
+            if(propagate && (fracTail.find(eI.first.first) == fracTail.end())
+               && (fracTail.find(eI.first.second) == fracTail.end()))
+            {
+                continue;
+            }
+            
             int boundaryVertAmt = 0;
             if(isBoundaryVert(edge2Tri, vNeighbor, eI.first.first)) {
                 boundaryVertAmt++;
@@ -696,13 +717,15 @@ namespace FracCuts {
 //                    candidateEdge[eI.first] = dg[eI.second].singularValues()[0] * (1.0 - cosine0) +
 //                        dg[ETFinder->second].singularValues()[0] * (1.0 - cosine1);
                     Eigen::Matrix2d newVertPosI;
-                    double eLen = (V_rest.row(eI.first.first) - V_rest.row(eI.first.second)).norm();
-                    candidateEdge[eI.first] = -lambda_t * eLen * 2.0 + (1.0 - lambda_t) *
-                        computeEnergyDecrease(eI.first, edge2Tri, vNeighbor, cohEIndex, newVertPosI);
+                    const double eLen = (V_rest.row(eI.first.first) - V_rest.row(eI.first.second)).norm();
+                    const double fracEIncI = lambda_t * eLen * 2.0;
+                    candidateEdge[eI.first] = -(fracEIncI + preFracEInc) + (1.0 - lambda_t) *
+                    computeEnergyDecrease(eI.first, edge2Tri, vNeighbor, cohEIndex, newVertPosI);//, propagate);
                     if(candidateEdge[eI.first] > maxStress) {
                         maxStress = candidateEdge[eI.first];
                         edgeToSplit = eI.first;
                         newVertPos = newVertPosI;
+                        fracEInc = fracEIncI;
                     }
                 }
             }
@@ -737,7 +760,8 @@ namespace FracCuts {
         
 //        if(maxStress > 1.0) {
         //DEBUG alternating framework
-        if(maxStress > 0.0) {
+        if(maxStress > thres) {
+//            preFracEInc += fracEInc;
             std::cout << "E_dec = " << maxStress << std::endl;
             logFile << maxStress << std::endl;
             splitEdgeOnBoundary(edgeToSplit, newVertPos, edge2Tri, vNeighbor, cohEIndex);
@@ -1211,7 +1235,7 @@ namespace FracCuts {
     
     double TriangleSoup::computeEnergyDecrease(const std::pair<int, int>& edge,
         const std::map<std::pair<int, int>, int>& edge2Tri, const std::vector<std::set<int>>& vNeighbor,
-        const std::map<std::pair<int, int>, int>& cohEIndex, Eigen::Matrix2d& newVertPos) const
+        const std::map<std::pair<int, int>, int>& cohEIndex, Eigen::Matrix2d& newVertPos, bool propagate) const
     {
         assert(vNeighbor.size() == V.rows());
         auto edgeTriIndFinder = edge2Tri.find(edge);
@@ -1237,10 +1261,18 @@ namespace FracCuts {
         std::vector<double> energyParams(1, 1.0);
         double eDec = 0.0;
         for(int toBound = 0; toBound < 2; toBound++) {
+            std::set<int> freeVertGID;
+            freeVertGID.insert(vI_boundary);
+            
             std::vector<int> tri_toSep;
             std::pair<int, int> boundaryEdge;
             isBoundaryVert(edge2Tri, vI_boundary, vI_interior, tri_toSep, boundaryEdge, toBound);
             assert(!tri_toSep.empty());
+            if(propagate) {
+                tri_toSep.insert(tri_toSep.end(), subOptimizerInfo[toBound].second.begin(),
+                                 subOptimizerInfo[toBound].second.end());
+                freeVertGID.insert(subOptimizerInfo[toBound].first.begin(), subOptimizerInfo[toBound].first.end());
+            }
             
             Eigen::MatrixXi localF;
             localF.resize(tri_toSep.size(), 3);
@@ -1255,7 +1287,7 @@ namespace FracCuts {
                     auto localVIFinder = globalVI2local.find(globalVI);
                     if(localVIFinder == globalVI2local.end()) {
                         int localVI = static_cast<int>(localV_rest.rows());
-                        if(globalVI != vI_boundary) {
+                        if(freeVertGID.find(globalVI) == freeVertGID.end()) {
                             fixedVert.insert(localVI);
                         }
                         else {
@@ -1280,6 +1312,7 @@ namespace FracCuts {
             
             Optimizer optimizer(localMesh, energyTerms, energyParams, false, true);
             optimizer.precompute();
+            optimizer.setRelGL2Tol(1.0e-4);
             double initE = optimizer.getLastEnergyVal();
             optimizer.solve(); //do not output, the other part
             eDec += initE - optimizer.getLastEnergyVal();
@@ -1315,18 +1348,27 @@ namespace FracCuts {
             vI_interior = edge.first;
         }
         
+        fracTail.erase(vI_boundary);
+        fracTail.insert(vI_interior);
+        subOptimizerInfo[0].first.insert(vI_boundary);
+        
         // duplicate vI_boundary
         std::vector<int> tri_toSep;
         std::pair<int, int> boundaryEdge;
-        isBoundaryVert(edge2Tri, vI_boundary, vI_interior, tri_toSep, boundaryEdge);
-        assert(!tri_toSep.empty());
+        for(int toBound = 0; toBound < 2; toBound++) {
+            isBoundaryVert(edge2Tri, vI_boundary, vI_interior, tri_toSep, boundaryEdge, toBound);
+            assert(!tri_toSep.empty());
+            subOptimizerInfo[toBound].second.insert(tri_toSep.begin(), tri_toSep.end());
+        }
         
         int nV = static_cast<int>(V_rest.rows());
+        subOptimizerInfo[1].first.insert(nV);
         V_rest.conservativeResize(nV + 1, 3);
         V_rest.row(nV) = V_rest.row(vI_boundary);
         V.conservativeResize(nV + 1, 2);
         V.row(nV) = newVertPos.block(1, 0, 1, 2);
         V.row(vI_boundary) = newVertPos.block(0, 0, 1, 2);
+//        V.row(nV) = V.row(vI_boundary);
         
         for(const auto triI : tri_toSep) {
             for(int vI = 0; vI < 3; vI++) {

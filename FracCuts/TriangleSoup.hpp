@@ -12,6 +12,7 @@
 #include <Eigen/Eigen>
 
 #include <set>
+#include <array>
 
 namespace FracCuts{
     
@@ -49,6 +50,10 @@ namespace FracCuts{
         std::vector<std::set<int>> vNeighbor;
         std::map<std::pair<int, int>, int> cohEIndex;
         
+        double preFracEInc;
+        std::set<int> fracTail;
+        std::array<std::pair<std::set<int>, std::set<int>>, 2> subOptimizerInfo;
+        
     public: // constructor
         // default constructor that doesn't do anything
         TriangleSoup(void);
@@ -67,7 +72,8 @@ namespace FracCuts{
         
         bool separateTriangle(const Eigen::VectorXd& measure, double thres);
         bool splitVertex(const Eigen::VectorXd& measure, double thres);
-        bool splitEdge(void); //DEBUG
+        void resetSubOptInfo(void);
+        bool splitEdge(double thres = 0.0, bool propagate = false); //DEBUG
         bool mergeEdge(void); //DEBUG
         
         void computeSeamScore(Eigen::VectorXd& seamScore) const;
@@ -102,7 +108,7 @@ namespace FracCuts{
         
         double computeEnergyDecrease(const std::pair<int, int>& edge,
             const std::map<std::pair<int, int>, int>& edge2Tri, const std::vector<std::set<int>>& vNeighbor,
-            const std::map<std::pair<int, int>, int>& cohEIndex, Eigen::Matrix2d& newVertPos) const; //TODO: write this in a new class
+            const std::map<std::pair<int, int>, int>& cohEIndex, Eigen::Matrix2d& newVertPos, bool propagate = false) const; //TODO: write this in a new class
     };
     
 }
