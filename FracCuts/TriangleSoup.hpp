@@ -37,10 +37,12 @@ namespace FracCuts{
         Eigen::VectorXd edgeLen; // cohesive edge rest length, used as weights
         Eigen::SparseMatrix<double> LaplacianMtr; // 2 * V.rows() wide
         Eigen::VectorXd triArea; // triangle rest area
+        double surfaceArea;
         Eigen::VectorXd triAreaSq; // triangle rest squared area
         Eigen::VectorXd e0dote1; // triangle rest edge dot product
         Eigen::VectorXd e0SqLen, e1SqLen; // triangle edge rest squared length
         double avgEdgeLen;
+        double virtualPerimeter;
         std::set<int> fixedVert; // for linear solve
         Eigen::Matrix<double, 2, 3> bbox;
 //        Eigen::MatrixXd cotVals; // cotangent values of rest triangle corners
@@ -73,7 +75,7 @@ namespace FracCuts{
         bool separateTriangle(const Eigen::VectorXd& measure, double thres);
         bool splitVertex(const Eigen::VectorXd& measure, double thres);
         void resetSubOptInfo(void);
-        bool splitEdge(double thres = 0.0, bool propagate = false); //DEBUG
+        bool splitEdge(double lambda_t, double thres = 0.0, bool propagate = false); //DEBUG
         bool mergeEdge(void); //DEBUG
         
         void computeSeamScore(Eigen::VectorXd& seamScore) const;

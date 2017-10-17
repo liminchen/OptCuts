@@ -18,9 +18,11 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <numeric>
 
 extern std::string outputFolderPath;
 extern std::ofstream logFile;
+extern clock_t ticksPast_frac;
 
 namespace FracCuts {
     
@@ -28,6 +30,11 @@ namespace FracCuts {
         bool p_withTopologyStep, bool p_mute) : data0(p_data0), energyTerms(p_energyTerms), energyParams(p_energyParams)
     {
         assert(energyTerms.size() == energyParams.size());
+        
+        energyParamSum = 0.0;
+        for(const auto& ePI : energyParams) {
+            energyParamSum += ePI;
+        }
         
         gradient_ET.resize(energyTerms.size());
         energyVal_ET.resize(energyTerms.size());
@@ -40,7 +47,9 @@ namespace FracCuts {
             file_gradientPerIter.open(outputFolderPath + "gradientPerIter.txt");
         }
         
-        assert(data0.checkInversion());
+        if(!data0.checkInversion()) {
+            exit(-1);
+        }
         
         globalIterNum = 0;
         relGL2Tol = 1.0e-6;
@@ -83,7 +92,7 @@ namespace FracCuts {
     {
         assert(p_relTol > 0.0);
         relGL2Tol = p_relTol;
-        targetGRes = (data0.V_rest.rows() - data0.fixedVert.size()) * relGL2Tol * data0.avgEdgeLen * data0.avgEdgeLen;
+        updateTargetGRes();
     }
     
     void Optimizer::precompute(void)
@@ -109,8 +118,7 @@ namespace FracCuts {
         
         lastEDec = 0.0;
         result = data0;
-        targetGRes = (data0.V_rest.rows() - data0.fixedVert.size()) * relGL2Tol * data0.avgEdgeLen * data0.avgEdgeLen;
-//        targetGRes = data0.V_rest.rows() * 1.0e-10 * data0.avgEdgeLen * data0.avgEdgeLen;
+        updateTargetGRes();
         computeEnergyVal(result, lastEnergyVal);
         if(!mute) {
             file_energyValPerIter << lastEnergyVal;
@@ -202,7 +210,7 @@ namespace FracCuts {
         bool changed = result.separateTriangle(distortionPerElem, energyThres);
 //        logFile << result.cohE; //DEBUG
         if(changed) {
-            targetGRes = (data0.V_rest.rows() - data0.fixedVert.size()) * relGL2Tol * data0.avgEdgeLen * data0.avgEdgeLen;
+            updateTargetGRes();
             
             // compute energy and output
             computeEnergyVal(result, lastEnergyVal);
@@ -240,10 +248,11 @@ namespace FracCuts {
         }
     }
     
-    bool Optimizer::createFracture(double stressThres)
+    bool Optimizer::createFracture(double stressThres, bool allowPropagate)
     {
+        clock_t tickStart = clock();
 //        bool changed = result.splitVertex(Eigen::VectorXd::Zero(result.V.rows()), stressThres); //DEBUG
-        bool changed = result.splitEdge(stressThres, stressThres > 0.0); //DEBUG
+        bool changed = result.splitEdge(1.0 - energyParams[0], stressThres, stressThres > 0.0); //DEBUG
 //        logFile << result.V.rows() << std::endl;
 //        bool changed = (result.mergeEdge() | result.splitEdge()); //DEBUG
         if(changed) {
@@ -251,7 +260,7 @@ namespace FracCuts {
 //            logFile << result.cohE << std::endl; //DEBUG
 //            while(result.splitEdge(0.0, true)) {} // propagate
             
-            targetGRes = (data0.V_rest.rows() - data0.fixedVert.size()) * relGL2Tol * data0.avgEdgeLen * data0.avgEdgeLen;
+            updateTargetGRes();
             
             // compute energy and output
             computeEnergyVal(result, lastEnergyVal);
@@ -287,11 +296,12 @@ namespace FracCuts {
                 }
             }
             
-            if(stressThres == 0.0) {
+            if(allowPropagate && (stressThres == 0.0)) {
                 solve(1);
                 withTopologyStep = true;
             }
         }
+        ticksPast_frac += clock() - tickStart;
         return changed;
     }
     
@@ -412,6 +422,12 @@ namespace FracCuts {
             data.V(vI, 0) = result.V(vI, 0) + stepSize * searchDir[vI * 2];
             data.V(vI, 1) = result.V(vI, 1) + stepSize * searchDir[vI * 2 + 1];
         }
+    }
+    
+    void Optimizer::updateTargetGRes(void)
+    {
+//        targetGRes = energyParamSum * (data0.V_rest.rows() - data0.fixedVert.size()) * relGL2Tol * data0.avgEdgeLen * data0.avgEdgeLen;
+        targetGRes = energyParamSum * static_cast<double>(data0.V_rest.rows() - data0.fixedVert.size()) / static_cast<double>(data0.V_rest.rows()) * relGL2Tol;
     }
     
     void Optimizer::getGradientVisual(Eigen::MatrixXd& arrowVec) const

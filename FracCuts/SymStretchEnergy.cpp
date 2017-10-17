@@ -21,6 +21,8 @@ namespace FracCuts {
     
     void SymStretchEnergy::getEnergyValPerElem(const TriangleSoup& data, Eigen::VectorXd& energyValPerElem, bool uniformWeight) const
     {
+        const double normalizer_div = data.surfaceArea;
+        
         energyValPerElem.resize(data.F.rows());
         for(int triI = 0; triI < data.F.rows(); triI++) {
             const Eigen::Vector3i& triVInd = data.F.row(triI);
@@ -34,7 +36,7 @@ namespace FracCuts {
             
             const double area_U = 0.5 * (U2m1[0] * U3m1[1] - U2m1[1] * U3m1[0]);
             
-            const double w = (uniformWeight ? 1.0 : data.triArea[triI]);
+            const double w = (uniformWeight ? 1.0 : (data.triArea[triI] / normalizer_div));
             energyValPerElem[triI] = w * (1.0 + data.triAreaSq[triI] / area_U / area_U) *
                 ((U3m1.squaredNorm() * data.e0SqLen[triI] + U2m1.squaredNorm() * data.e1SqLen[triI]) / 4 / data.triAreaSq[triI] -
                 U3m1.dot(U2m1) * data.e0dote1[triI] / 2 / data.triAreaSq[triI]);
@@ -43,6 +45,8 @@ namespace FracCuts {
     
     void SymStretchEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const
     {
+        const double normalizer_div = data.surfaceArea;
+        
         gradient.resize(data.V.rows() * 2);
         gradient.setZero();
         for(int triI = 0; triI < data.F.rows(); triI++) {
@@ -62,7 +66,7 @@ namespace FracCuts {
                 4 / data.triAreaSq[triI] - U3m1.dot(U2m1) * data.e0dote1[triI] / 2 / data.triAreaSq[triI];
             
             const double areaRatio = data.triAreaSq[triI] / area_U / area_U / area_U;
-            const double w = data.triArea[triI];
+            const double w = data.triArea[triI] / normalizer_div;
             
             const Eigen::Vector2d edge_oppo1 = U3 - U2;
             const Eigen::Vector2d dLeft1 = areaRatio * Eigen::Vector2d(edge_oppo1[1], -edge_oppo1[0]);
@@ -168,6 +172,8 @@ namespace FracCuts {
     {
         logFile << "check energyVal computation..." << std::endl;
         
+        const double normalizer_div = data.surfaceArea;
+        
         Eigen::VectorXd energyValPerTri;
         energyValPerTri.resize(data.F.rows());
         double err = 0.0;
@@ -187,7 +193,7 @@ namespace FracCuts {
             const double area_U = 0.5 * (U2m1[0] * U3m1[1] - U2m1[1] * U3m1[0]);
             logFile << "areas: " << data.triArea[triI] << ", " << area_U << std::endl;
             
-            const double w = data.triArea[triI];
+            const double w = data.triArea[triI] / normalizer_div;
             energyValPerTri[triI] = w * (1.0 + data.triAreaSq[triI] / area_U / area_U) *
                 ((U3m1.squaredNorm() * data.e0SqLen[triI] + U2m1.squaredNorm() * data.e1SqLen[triI]) / 4 / data.triAreaSq[triI] -
                 U3m1.dot(U2m1) * data.e0dote1[triI] / 2 / data.triAreaSq[triI]);

@@ -32,10 +32,13 @@ bool autoHomotopy = true;
 std::ofstream homoTransFile;
 bool fractureMode = false;
 double fracThres = 0.0; //TODO: make as prog args
+bool altBase = false;
+bool outerLoopFinished = false;
 
 std::ofstream logFile;
 std::string outputFolderPath = "/Users/mincli/Desktop/output_FracCuts/";
-const std::string meshFolder = "/Users/mincli/Desktop/meshes/";
+//const std::string meshFolder = "/Users/mincli/Desktop/meshes/";
+const std::string meshFolder = "/Users/mincli/Downloads/meshes/";
 
 // visualization
 igl::viewer::Viewer viewer;
@@ -49,13 +52,21 @@ bool showBoundary = false;
 bool showDistortion = true;
 bool showTexture = true; // show checkerboard
 bool isLighting = false;
+clock_t ticksPast = 0, ticksPast_frac = 0, lastStart;
+bool offlineMode = false;
+bool saveInfo_postDraw = false;
+std::string infoName = "";
+bool isCapture3D = false;
+int capture3DI = 0;
 
 
 void proceedOptimization(int proceedNum = 1)
 {
     for(int proceedI = 0; (proceedI < proceedNum) && (!converged); proceedI++) {
         std::cout << "Iteration" << iterNum << ":" << std::endl;
+        lastStart = clock();
         converged = optimizer->solve(1);
+        ticksPast += clock() - lastStart;
         iterNum = optimizer->getIterNum();
     }
 }
@@ -175,6 +186,39 @@ void saveScreenshot(const std::string& filePath, double scale = 1.0)
     igl::png::writePNG(R, G, B, A, filePath);
 }
 
+void saveInfo(void)
+{
+    saveScreenshot(outputFolderPath + infoName + ".png", 1.0);
+    triSoup[channel_result]->save(outputFolderPath + infoName + "_triSoup.obj");
+    triSoup[channel_result]->saveAsMesh(outputFolderPath + infoName + "_mesh.obj");
+}
+
+void toggleOptimization(void)
+{
+    optimization_on = !optimization_on;
+    if(optimization_on) {
+        if(converged) {
+            optimization_on = false;
+            std::cout << "optimization converged." << std::endl;
+        }
+        else {
+            if(iterNum == 0) {
+                homoTransFile.open(outputFolderPath + "homotopyTransition.txt");
+                assert(homoTransFile.is_open());
+                saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
+            }
+            std::cout << "start/resume optimization, press again to pause." << std::endl;
+            viewer.core.is_animating = true;
+        }
+    }
+    else {
+        std::cout << "pause optimization, press again to resume." << std::endl;
+        viewer.core.is_animating = false;
+        std::cout << "Time past: " << static_cast<double>(ticksPast) / CLOCKS_PER_SEC << "s." << std::endl;
+        std::cout << "Time for fracture: " << static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC << "s." << std::endl;
+    }
+}
+
 bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
 {
     if((key >= '0') && (key <= '9')) {
@@ -193,26 +237,7 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
             }
                 
             case '/': {
-                optimization_on = !optimization_on;
-                if(optimization_on) {
-                    if(converged) {
-                        optimization_on = false;
-                        std::cout << "optimization converged." << std::endl;
-                    }
-                    else {
-                        if(iterNum == 0) {
-                            homoTransFile.open(outputFolderPath + "homotopyTransition.txt");
-                            assert(homoTransFile.is_open());
-                            saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
-                        }
-                        std::cout << "start/resume optimization, press again to pause." << std::endl;
-                        viewer.core.is_animating = true;
-                    }
-                }
-                else {
-                    std::cout << "pause optimization, press again to resume." << std::endl;
-                    viewer.core.is_animating = false;
-                }
+                toggleOptimization();
                 break;
             }
                 
@@ -253,7 +278,7 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
             }
                 
             case 'h':
-            case 'H': { // mannual homotopy optimization
+            case 'H': { //!!!needsUpdate mannual homotopy optimization
                 FracCuts::SeparationEnergy *sepE = NULL;
                 for(const auto eTermI : energyTerms) {
                     sepE = dynamic_cast<FracCuts::SeparationEnergy*>(eTermI);
@@ -274,7 +299,7 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                         converged = false;
                         optimizer->updatePrecondMtrAndFactorize();
                         if(fractureMode) {
-                            optimizer->createFracture(fracThres);
+                            optimizer->createFracture(fracThres, !altBase);
                         }
                     }
                     else {
@@ -294,9 +319,8 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                 
             case 'o':
             case 'O': {
-                saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
-                triSoup[channel_result]->save(outputFolderPath + std::to_string(iterNum) + ".obj");
-                triSoup[channel_result]->saveAsMesh(outputFolderPath + std::to_string(iterNum) + "_mesh.obj");
+                infoName = std::to_string(iterNum);
+                saveInfo();
                 break;
             }
                 
@@ -310,11 +334,63 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
     return false;
 }
 
+bool postDrawFunc(igl::viewer::Viewer& viewer)
+{
+    if(offlineMode && (iterNum == 0)) {
+        toggleOptimization();
+    }
+    
+    if(saveInfo_postDraw) {
+        saveInfo_postDraw = false;
+        saveInfo();
+        if(outerLoopFinished) {
+            triSoup[channel_result]->saveAsMesh(outputFolderPath + infoName + "_mesh_01UV.obj", true);
+        }
+    }
+    
+    if(outerLoopFinished) { //var name change!!!
+        if(!isCapture3D) {
+            viewer.core.is_animating = true;
+            isCapture3D = true;
+        }
+        else {
+            if(capture3DI < 12) {
+                // take screenshot
+                std::cout << "Taking screenshot for 3D View " << capture3DI / 2 << std::endl;
+                std::string filePath = outputFolderPath + "3DView" + std::to_string(capture3DI / 2) +
+                    ((capture3DI % 2 == 0) ? "_seam.png" : "_distortion.png");
+                saveScreenshot(filePath, 1.0);
+                capture3DI++;
+            }
+            else {
+                if(offlineMode) {
+                    exit(0);
+                }
+                else {
+                    viewer.core.is_animating = false;
+                    isCapture3D = false;
+                    outerLoopFinished = false;
+                }
+            }
+        }
+    }
+    
+    return false;
+}
+
 bool preDrawFunc(igl::viewer::Viewer& viewer)
 {
     if(optimization_on)
     {
-        proceedOptimization();
+        if(offlineMode) {
+            while(!converged) {
+                proceedOptimization();
+            }
+        }
+        else {
+            proceedOptimization();
+        }
+        
         viewChannel = channel_result;
         updateViewerData();
         
@@ -332,60 +408,105 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
             }
             
             if(sepE != NULL) {
-                saveScreenshot(outputFolderPath + "homotopy_" + std::to_string(
-                    sepE->getSigmaParam()) + ".png", 1.0);
-                triSoup[channel_result]->save(outputFolderPath + "homotopy_" + std::to_string(
-                    sepE->getSigmaParam()) + ".obj");
-                triSoup[channel_result]->saveAsMesh(outputFolderPath + "homotopy_" + std::to_string(
-                    sepE->getSigmaParam()) + "_mesh.obj");
+                saveInfo_postDraw = true;
+                infoName = "homotopy_" + std::to_string(sepE->getSigmaParam());
             }
             else {
-                saveScreenshot(outputFolderPath + "iter" + std::to_string(iterNum) + ".png", 1.0);
-                triSoup[channel_result]->save(outputFolderPath + "iter" + std::to_string(iterNum) + "_triSoup.obj");
-                triSoup[channel_result]->saveAsMesh(outputFolderPath + "iter" + std::to_string(iterNum) + "_mesh.obj");
+                saveInfo_postDraw = true;
+                infoName = std::to_string(iterNum);
             }
             
             if(autoHomotopy && sepE && sepE->decreaseSigma())
             {
                 homoTransFile << iterNum << std::endl;
+                lastStart = clock();
                 optimizer->computeLastEnergyVal();
                 converged = false;
                 optimizer->updatePrecondMtrAndFactorize();
                 if(fractureMode) {
-                    optimizer->createFracture(fracThres);
+                    optimizer->createFracture(fracThres, !altBase);
                 }
+                ticksPast += clock() - lastStart;
             }
             else {
-                triSoup[channel_result]->saveAsMesh(outputFolderPath + "iter" + std::to_string(iterNum) + "_mesh_01UV.obj", true);
-                
-//                optimization_on = false;
-//                viewer.core.is_animating = false;
-//                std::cout << "optimization converged." << std::endl;
-//                homoTransFile.close();
-                //DEBUG alternating framework
-                homoTransFile << iterNum << std::endl;
-                if(optimizer->createFracture(fracThres)) {
-                    converged = false;
+                if(fractureMode) {
+                    homoTransFile << iterNum << std::endl;
+                    lastStart = clock();
+                    if(optimizer->createFracture(fracThres, !altBase)) {
+                        clock_t ticks = clock() - lastStart;
+                        ticksPast += ticks;
+                        converged = false;
+                    }
+                    else {
+                        ticksPast += clock() - lastStart;
+                        
+                        if(!altBase) {
+                            // perform exact solve
+                            optimizer->setRelGL2Tol(1.0e-6);
+                            //!! can recompute precondmtr
+                            converged = false;
+                            while(!converged) {
+                                proceedOptimization(1000);
+                            }
+                            viewChannel = channel_result;
+                            updateViewerData();
+                            saveInfo_postDraw = true;
+                            infoName = std::to_string(iterNum) + "(exact)";
+                        }
+                        optimization_on = false;
+                        viewer.core.is_animating = false;
+                        const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
+                        const double timeUsed_frac = static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC;
+                        std::cout << "optimization converged, with " << timeUsed << "s, where " <<
+                            timeUsed_frac << "s is for fracture computation." << std::endl;
+                        logFile << "optimization converged, with " << timeUsed << "s, where " <<
+                            timeUsed_frac << "s is for fracture computation." << std::endl;
+                        homoTransFile.close();
+                        outerLoopFinished = true;
+                    }
                 }
                 else {
                     // perform exact solve
                     optimizer->setRelGL2Tol(1.0e-6);
-                    //!! can recompute precondmtr
+                    optimizer->updatePrecondMtrAndFactorize();
                     converged = false;
-                    proceedOptimization(1000);
+                    while(!converged) {
+                        proceedOptimization(1000);
+                    }
                     viewChannel = channel_result;
                     updateViewerData();
-                    saveScreenshot(outputFolderPath + "iter" + std::to_string(iterNum) + ".png", 1.0);
-                    triSoup[channel_result]->save(outputFolderPath + "iter" + std::to_string(iterNum) + "_triSoup.obj");
-                    triSoup[channel_result]->saveAsMesh(outputFolderPath + "iter" + std::to_string(iterNum) + "_mesh.obj");
-                    triSoup[channel_result]->saveAsMesh(outputFolderPath + "iter" + std::to_string(iterNum) + "_mesh_01UV.obj", true);
+                    infoName += "(exact)";
                     
                     optimization_on = false;
                     viewer.core.is_animating = false;
-                    std::cout << "optimization converged." << std::endl;
+                    const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
+                    std::cout << "optimization converged, with " << timeUsed << "s." << std::endl;
+                    logFile << "optimization converged, with " << timeUsed << "s." << std::endl;
                     homoTransFile.close();
+                    outerLoopFinished = true;
                 }
             }
+        }
+    }
+    else {
+        if(isCapture3D && (capture3DI < 12)) {
+            // change view accordingly
+            double rotDeg = ((capture3DI < 8) ? (M_PI_2 * (capture3DI / 2)) : M_PI_2);
+            Eigen::Vector3f rotAxis = Eigen::Vector3f::UnitY();
+            if((capture3DI / 2) == 4) {
+                rotAxis = Eigen::Vector3f::UnitX();
+            }
+            else if((capture3DI / 2) == 5) {
+                rotAxis = -Eigen::Vector3f::UnitX();
+            }
+            viewer.core.trackball_angle = Eigen::Quaternionf(Eigen::AngleAxisf(rotDeg, rotAxis));
+            viewChannel = channel_result;
+            viewUV = false;
+            showSeam = true;
+            showBoundary = false;
+            isLighting = false;
+            showTexture = showDistortion = (capture3DI % 2);
+            updateViewerData();
         }
     }
     return false;
@@ -402,6 +523,13 @@ int main(int argc, char *argv[])
             // optimization mode
             std::cout << "Optimization mode" << std::endl;
             break;
+            
+        case 100: {
+            // offline optimization mode
+            offlineMode = true;
+            std::cout << "Offline optimization mode" << std::endl;
+            break;
+        }
             
         case 1: {
             // diagnostic mode
@@ -573,12 +701,12 @@ int main(int argc, char *argv[])
     }
     
     // Set delta
-    double delta = 16;
+    double delta = 4.0;
     if(argc > 4) {
         delta = std::stod(argv[4]);
         if((delta != delta) || (delta < 0.0)) {
             std::cout << "Overwrite invalid delta " << delta << " to 16" << std::endl;
-            delta = 16;
+            delta = 4.0;
         }
     }
     else {
@@ -676,32 +804,45 @@ int main(int argc, char *argv[])
     //    energyTerms.emplace_back(new FracCuts::ARAPEnergy());
         energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
     }
-    if(lambda != 0.0) {
+    if((lambda != 0.0) && startWithTriSoup) {
         //DEBUG alternating framework
-//        energyParams.emplace_back(lambda);
-//        energyTerms.emplace_back(new FracCuts::SeparationEnergy(triSoup[0]->avgEdgeLen * triSoup[0]->avgEdgeLen, delta));
+        energyParams.emplace_back(lambda);
+        energyTerms.emplace_back(new FracCuts::SeparationEnergy(triSoup[0]->avgEdgeLen * triSoup[0]->avgEdgeLen, delta));
 //        energyTerms.emplace_back(new FracCuts::CohesiveEnergy(triSoup[0]->avgEdgeLen, delta));
         //    energyTerms.back()->checkEnergyVal(*triSoup[0]);
 //        energyTerms.back()->checkGradient(*triSoup[0]);
         //    energyTerms.back()->checkHessian(*triSoup[0]);
     }
     optimizer = new FracCuts::Optimizer(*triSoup[0], energyTerms, energyParams, false); //DEBUG alternating framework
+    lastStart = clock();
     optimizer->precompute();
+    ticksPast += clock() - lastStart;
     triSoup.emplace_back(&optimizer->getResult());
     if((lambda > 0.0) && (!startWithTriSoup)) {
         // fracture mode
         fractureMode = true;
-        optimizer->setRelGL2Tol(1.0e-4);
+        
 //        optimizer->separateTriangles(fracThres);
-//        optimizer->createFracture(fracThres); //DEBUG alternating framework
+//        optimizer->createFracture(fracThres, !altBase); //DEBUG alternating framework
+        if(delta == 0.0) {
+            altBase = true;
+        }
+        else {
+            optimizer->setRelGL2Tol(1.0e-4);
+        }
+    }
+    else if((lambda > 0.0) && startWithTriSoup) {
+        optimizer->setRelGL2Tol(1.0e-4);
     }
     
     // Setup viewer and launch
     viewer.core.background_color << 1.0f, 1.0f, 1.0f, 0.0f;
     viewer.callback_key_down = &key_down;
     viewer.callback_pre_draw = &preDrawFunc;
+    viewer.callback_post_draw = &postDrawFunc;
     viewer.core.show_lines = true;
     viewer.core.orthographic = true;
+    viewer.core.camera_zoom *= 1.9;
     viewer.core.animation_max_fps = 60.0;
     updateViewerData();
     viewer.launch();

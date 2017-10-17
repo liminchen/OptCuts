@@ -18,6 +18,8 @@ namespace FracCuts {
     
     void SeparationEnergy::getEnergyValPerElem(const TriangleSoup& data, Eigen::VectorXd& energyValPerElem, bool uniformWeight) const
     {
+        const double normalizer_div = data.virtualPerimeter;
+        
         energyValPerElem.resize(data.cohE.rows());
         for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
         {
@@ -25,7 +27,7 @@ namespace FracCuts {
                 energyValPerElem[cohI] = 0.0;
             }
             else {
-                const double w = (uniformWeight ? 1.0 : data.edgeLen[cohI]);
+                const double w = (uniformWeight ? 1.0 : (data.edgeLen[cohI] / normalizer_div));
                 energyValPerElem[cohI] = w * kernel((data.V.row(data.cohE(cohI, 0)) - data.V.row(data.cohE(cohI, 2))).squaredNorm());
                 energyValPerElem[cohI] += w * kernel((data.V.row(data.cohE(cohI, 1)) - data.V.row(data.cohE(cohI, 3))).squaredNorm());
             }
@@ -34,12 +36,14 @@ namespace FracCuts {
     
     void SeparationEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const
     {
+        const double normalizer_div = data.virtualPerimeter;
+        
         gradient.resize(data.V.rows() * 2);
         gradient.setZero();
         for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
         {
             if(!data.boundaryEdge[cohI]) {
-                const double w = data.edgeLen[cohI];
+                const double w = data.edgeLen[cohI] / normalizer_div;
                 const Eigen::Vector2d xamc = data.V.row(data.cohE(cohI, 0)) - data.V.row(data.cohE(cohI, 2));
                 const Eigen::Vector2d xbmd = data.V.row(data.cohE(cohI, 1)) - data.V.row(data.cohE(cohI, 3));
                 const double kG_ac = w * kernelGradient(xamc.squaredNorm());
@@ -65,6 +69,8 @@ namespace FracCuts {
     {
         //TODO: use the sparsity structure from last compute
         
+        const double normalizer_div = data.virtualPerimeter;
+        
         hessian.resize(data.V.rows() * 2, data.V.rows() * 2);
         hessian.reserve(data.V.rows() * 3 * 4);
         hessian.setZero();
@@ -89,7 +95,7 @@ namespace FracCuts {
 //                dtddx_bd.resize(4);
 //                dtddx_bd << 2 * xbmd, -2 * xbmd;
                 
-                const double w = data.edgeLen[cohI];
+                const double w = data.edgeLen[cohI] / normalizer_div;
                 
                 const double sqn_xamc = xamc.squaredNorm();
                 const Eigen::Matrix4d hessian_ac = (w * //(kernelHessian(sqn_xamc) * dtddx_ac * dtddx_ac.transpose() +

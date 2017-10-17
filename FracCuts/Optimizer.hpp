@@ -31,7 +31,7 @@ namespace FracCuts {
         bool pardisoThreadAmt;
         bool needRefactorize;
         int globalIterNum;
-        double relGL2Tol;
+        double relGL2Tol, energyParamSum;
         TriangleSoup result; // intermediate results of each iteration
         // constant precondition matrix for solving the linear system for search directions
         Eigen::SparseMatrix<double> precondMtr;
@@ -65,7 +65,7 @@ namespace FracCuts {
         void updatePrecondMtrAndFactorize(void);
         
         void separateTriangles(double energyThres);
-        bool createFracture(double stressThres);
+        bool createFracture(double stressThres, bool allowPropagate = true);
         
         void computeLastEnergyVal(void);
         
@@ -82,6 +82,8 @@ namespace FracCuts {
         bool lineSearch(void);
 
         void stepForward(TriangleSoup& data, double stepSize) const;
+        
+        void updateTargetGRes(void);
         
         void computeEnergyVal(const TriangleSoup& data, double& energyVal);
         void computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient);

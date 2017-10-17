@@ -318,6 +318,7 @@ namespace FracCuts {
 //        igl::cotmatrix_entries(V_rest, F, cotVals);
         
         triArea.resize(F.rows());
+        surfaceArea = 0.0;
         triAreaSq.resize(F.rows());
         e0SqLen.resize(F.rows());
         e1SqLen.resize(F.rows());
@@ -333,12 +334,14 @@ namespace FracCuts {
             const Eigen::Vector3d P3m1 = P3 - P1;
             
             triArea[triI] = 0.5 * P2m1.cross(P3m1).norm();
+            surfaceArea += triArea[triI];
             triAreaSq[triI] = triArea[triI] * triArea[triI];
             e0SqLen[triI] = P2m1.squaredNorm();
             e1SqLen[triI] = P3m1.squaredNorm();
             e0dote1[triI] = P2m1.dot(P3m1);
         }
         avgEdgeLen = igl::avg_edge_length(V_rest, F);
+        virtualPerimeter = avgEdgeLen * std::sqrt(F.rows());
         
 //        //!! for edge count minimization of separation energy
 //        for(int cohI = 0; cohI < cohE.rows(); cohI++)
@@ -653,7 +656,7 @@ namespace FracCuts {
         preFracEInc = 0.0;
     }
     
-    bool TriangleSoup::splitEdge(double thres, bool propagate)
+    bool TriangleSoup::splitEdge(double lambda_t, double thres, bool propagate)
     {
 //        // compute stress tensor and do SVD
 //        std::vector<Eigen::JacobiSVD<Eigen::Matrix2d>> dg(F.rows());
@@ -687,7 +690,6 @@ namespace FracCuts {
         double fracEInc = 0.0;
         Eigen::Matrix2d newVertPos;
         std::map<std::pair<int, int>, double> candidateEdge;
-        double lambda_t = 0.005;
         for(const auto& eI : edge2Tri) {
             if(propagate && (fracTail.find(eI.first.first) == fracTail.end())
                && (fracTail.find(eI.first.second) == fracTail.end()))
@@ -718,9 +720,9 @@ namespace FracCuts {
 //                        dg[ETFinder->second].singularValues()[0] * (1.0 - cosine1);
                     Eigen::Matrix2d newVertPosI;
                     const double eLen = (V_rest.row(eI.first.first) - V_rest.row(eI.first.second)).norm();
-                    const double fracEIncI = lambda_t * eLen * 2.0;
+                    const double fracEIncI = lambda_t * eLen * 2.0 / virtualPerimeter;
                     candidateEdge[eI.first] = -(fracEIncI + preFracEInc) + (1.0 - lambda_t) *
-                    computeEnergyDecrease(eI.first, edge2Tri, vNeighbor, cohEIndex, newVertPosI);//, propagate);
+                        computeEnergyDecrease(eI.first, edge2Tri, vNeighbor, cohEIndex, newVertPosI);//, propagate);
                     if(candidateEdge[eI.first] > maxStress) {
                         maxStress = candidateEdge[eI.first];
                         edgeToSplit = eI.first;
@@ -951,7 +953,7 @@ namespace FracCuts {
     
     bool TriangleSoup::checkInversion(void) const
     {
-        const double eps = 1.0e-6 * avgEdgeLen;
+        const double eps = 1.0e-6 * avgEdgeLen * avgEdgeLen;
         for(int triI = 0; triI < F.rows(); triI++)
         {
             const Eigen::Vector3i& triVInd = F.row(triI);
@@ -1315,11 +1317,11 @@ namespace FracCuts {
             optimizer.setRelGL2Tol(1.0e-4);
             double initE = optimizer.getLastEnergyVal();
             optimizer.solve(); //do not output, the other part
-            eDec += initE - optimizer.getLastEnergyVal();
+            eDec += (initE - optimizer.getLastEnergyVal()) * localMesh.surfaceArea / surfaceArea; //!!! this should be written in a more general way, cause this way it only works for E_SD
             newVertPos.block(toBound, 0, 1, 2) = optimizer.getResult().V.row(vI_boundary_local);
         }
         delete energyTerms[0];
-        
+
         return eDec;
     }
     
