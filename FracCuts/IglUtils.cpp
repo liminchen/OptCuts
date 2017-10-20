@@ -78,6 +78,51 @@ namespace FracCuts {
         F = U * V.inverse();
     }
     
+    void IglUtils::map_vertices_to_circle(
+        const Eigen::MatrixXd& V,
+        const Eigen::VectorXi& bnd,
+        Eigen::MatrixXd& UV)
+    {
+        // Get sorted list of boundary vertices
+        std::vector<int> interior,map_ij;
+        map_ij.resize(V.rows());
+        
+        std::vector<bool> isOnBnd(V.rows(),false);
+        for (int i = 0; i < bnd.size(); i++)
+        {
+            isOnBnd[bnd[i]] = true;
+            map_ij[bnd[i]] = i;
+        }
+        
+        for (int i = 0; i < (int)isOnBnd.size(); i++)
+        {
+            if (!isOnBnd[i])
+            {
+                map_ij[i] = static_cast<int>(interior.size());
+                interior.push_back(i);
+            }
+        }
+        
+        // Map boundary to circle
+        std::vector<double> len(bnd.size());
+        len[0] = 0.;
+        
+        for (int i = 1; i < bnd.size(); i++)
+        {
+            len[i] = len[i-1] + (V.row(bnd[i-1]) - V.row(bnd[i])).norm();
+        }
+        double total_len = len[len.size()-1] + (V.row(bnd[0]) - V.row(bnd[bnd.size()-1])).norm();
+        
+        UV.resize(bnd.size(),2);
+        const double radius = total_len / 2.0 / M_PI;
+        for (int i = 0; i < bnd.size(); i++)
+        {
+            double frac = len[i] * 2. * M_PI / total_len;
+            UV.row(map_ij[bnd[i]]) << radius * cos(frac), radius * sin(frac);
+        }
+        
+    }
+    
     void splitRGB(char32_t color, double rgb[3]) {
         rgb[0] = static_cast<int>((0xff0000 & color) >> 16) / 255.0;
         rgb[1] = static_cast<int>((0x00ff00 & color) >> 8) / 255.0;

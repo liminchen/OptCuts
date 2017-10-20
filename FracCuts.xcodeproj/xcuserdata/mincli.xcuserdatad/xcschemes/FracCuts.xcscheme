@@ -63,12 +63,20 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "0 camelhead_f1000.off 0.1 16 1 test"
+            argument = "0 camelhead_f1000.off 0.1 4 0 test"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 bone_lowres_noInputUV.obj 0.025 0 0 test"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 bull.obj 0.025 4 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 bimba.obj 0.2 4 1 test"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 chinese_lion_i_f10000.obj 0.1 16 0 test"
@@ -91,8 +99,8 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 cone_test.obj 0.0 16 0"
-            isEnabled = "NO">
+            argument = "0 cow.obj 0.025 1 0 test"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 cat_T_SD.obj 0.01 16 0"

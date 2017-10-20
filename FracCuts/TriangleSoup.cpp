@@ -313,8 +313,6 @@ namespace FracCuts {
             edgeLen[cohI] = (V_rest.row(cohE(cohI, 0)) - V_rest.row(cohE(cohI, 1))).norm();
         }
         
-        computeLaplacianMtr();
-        
 //        igl::cotmatrix_entries(V_rest, F, cotVals);
         
         triArea.resize(F.rows());
@@ -342,6 +340,8 @@ namespace FracCuts {
         }
         avgEdgeLen = igl::avg_edge_length(V_rest, F);
         virtualPerimeter = avgEdgeLen * std::sqrt(F.rows());
+        
+        computeLaplacianMtr();
         
 //        //!! for edge count minimization of separation energy
 //        for(int cohI = 0; cohI < cohE.rows(); cohI++)
@@ -929,7 +929,54 @@ namespace FracCuts {
             }
         }
     }
-    
+    void TriangleSoup::computeStandardStretch(double& stretch_l2, double& stretch_inf, double& stretch_shear) const
+    {
+        stretch_l2 = 0.0;
+        stretch_inf = 0.0;
+        stretch_shear = 0.0;
+        for(int triI = 0; triI < F.rows(); triI++)
+        {
+            const Eigen::Vector3i& triVInd = F.row(triI);
+            const Eigen::Vector3d x_3D[3] = {
+                V_rest.row(triVInd[0]),
+                V_rest.row(triVInd[1]),
+                V_rest.row(triVInd[2])
+            };
+            const Eigen::Vector2d uv[3] = {
+                V.row(triVInd[0]),
+                V.row(triVInd[1]),
+                V.row(triVInd[2])
+            };
+            Eigen::Matrix2d dg;
+            IglUtils::computeDeformationGradient(x_3D, uv, dg);
+            
+            const double a = Eigen::RowVector2d(dg.block(0, 0, 1, 2)).squaredNorm();
+            const double b = Eigen::RowVector2d(dg.block(0, 0, 1, 2)).dot(Eigen::RowVector2d(dg.block(1, 0, 1, 2)));
+            const double c = Eigen::RowVector2d(dg.block(1, 0, 1, 2)).squaredNorm();
+            const double t0 = a + c;
+            const double t1 = std::sqrt((a - c) * (a - c) + 4. * b * b);
+            const double tau = std::sqrt((t0 + t1) / 2.);
+            
+            stretch_l2 += t0 / 2.0 * triArea[triI];
+            
+            if(tau > stretch_inf) {
+                stretch_inf = tau;
+            }
+            
+            stretch_shear += b * b / a / c * triArea[triI];
+        }
+        stretch_l2 /= surfaceArea;
+        stretch_l2 = std::sqrt(stretch_l2);
+        stretch_shear /= surfaceArea;
+        stretch_shear = std::sqrt(stretch_shear);
+    }
+    void TriangleSoup::outputStandardStretch(std::ofstream& file) const
+    {
+        double stretch_l2, stretch_inf, stretch_shear;
+        computeStandardStretch(stretch_l2, stretch_inf, stretch_shear);
+        file << stretch_l2 << " " << stretch_inf << " " << stretch_shear << std::endl;
+    }
+
     void TriangleSoup::initRigidUV(void)
     {
         V.resize(V_rest.rows(), 2);
@@ -953,7 +1000,7 @@ namespace FracCuts {
     
     bool TriangleSoup::checkInversion(void) const
     {
-        const double eps = 1.0e-6 * avgEdgeLen * avgEdgeLen;
+        const double eps = 1.0e-20 * avgEdgeLen * avgEdgeLen;
         for(int triI = 0; triI < F.rows(); triI++)
         {
             const Eigen::Vector3i& triVInd = F.row(triI);
@@ -963,9 +1010,11 @@ namespace FracCuts {
                 V.row(triVInd[2]) - V.row(triVInd[0])
             };
             
-            if(e_u[0][0] * e_u[1][1] - e_u[0][1] * e_u[1][0] < eps)
+            const double dbArea = e_u[0][0] * e_u[1][1] - e_u[0][1] * e_u[1][0];
+            if(dbArea < eps)
             {
-                std::cout << "***Element inversion detected!" << std::endl;
+                std::cout << "***Element inversion detected: " << dbArea << " < " << eps << std::endl;
+                logFile << "***Element inversion detected: " << dbArea << " < " << eps << std::endl;
                 return false;
             }
         }

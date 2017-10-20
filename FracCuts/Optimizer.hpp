@@ -31,6 +31,7 @@ namespace FracCuts {
         bool pardisoThreadAmt;
         bool needRefactorize;
         int globalIterNum;
+        int topoIter;
         double relGL2Tol, energyParamSum;
         TriangleSoup result; // intermediate results of each iteration
         // constant precondition matrix for solving the linear system for search directions
@@ -72,6 +73,7 @@ namespace FracCuts {
         void getGradientVisual(Eigen::MatrixXd& arrowVec) const;
         const TriangleSoup& getResult(void) const;
         int getIterNum(void) const;
+        int getTopoIter(void) const;
         void setRelGL2Tol(double p_relTol);
         
     protected: // helper functions

@@ -53,6 +53,7 @@ namespace FracCuts {
         
         globalIterNum = 0;
         relGL2Tol = 1.0e-6;
+        topoIter = 0;
         
         needRefactorize = false;
         for(const auto& energyTermI : energyTerms) {
@@ -86,6 +87,10 @@ namespace FracCuts {
     
     int Optimizer::getIterNum(void) const {
         return globalIterNum;
+    }
+    
+    int Optimizer::getTopoIter(void) const {
+        return topoIter;
     }
     
     void Optimizer::setRelGL2Tol(double p_relTol)
@@ -250,6 +255,10 @@ namespace FracCuts {
     
     bool Optimizer::createFracture(double stressThres, bool allowPropagate)
     {
+        if(stressThres == 0.0) {
+            topoIter++;
+        }
+        
         clock_t tickStart = clock();
 //        bool changed = result.splitVertex(Eigen::VectorXd::Zero(result.V.rows()), stressThres); //DEBUG
         bool changed = result.splitEdge(1.0 - energyParams[0], stressThres, stressThres > 0.0); //DEBUG
@@ -358,33 +367,44 @@ namespace FracCuts {
         }
         
         const double m = searchDir.dot(gradient);
-        const double c1m = 1.0e-4 * m, c2m = 0.9 * m;
+        const double c1m = 1.0e-4 * m;
+//        const double c2m = 0.9 * m;
         TriangleSoup testingData = result;
         stepForward(testingData, stepSize);
 //        double stepLen = (stepSize * searchDir).squaredNorm();
         double testingE;
         Eigen::VectorXd testingG;
         computeEnergyVal(testingData, testingE);
-        computeGradient(testingData, testingG);
-        while((testingE > lastEnergyVal + stepSize * c1m) ||
-              (searchDir.dot(testingG) < c2m)) // Wolfe condition
-//        while(testingE > lastEnergyVal + stepSize * c1m) // Armijo condition
+//        computeGradient(testingData, testingG);
+//        if(!mute) {
+//            logFile << "searchDir " << searchDir.norm() << std::endl;
+//            logFile << "testingE" << globalIterNum << " " << testingE << " > " << lastEnergyVal << " " << stepSize * c1m << std::endl;
+//            logFile << "testingG" << globalIterNum << " " << searchDir.dot(testingG) << " < " << c2m << std::endl;
+//        }
+//        while((testingE > lastEnergyVal + stepSize * c1m) ||
+//              (searchDir.dot(testingG) < c2m)) // Wolfe condition
+        while(testingE > lastEnergyVal + stepSize * c1m) // Armijo condition
 //        while(0)
         {
             stepSize /= 2.0;
 //            stepLen = (stepSize * searchDir).squaredNorm();
 //            if(stepLen < targetGRes) {
-            if(stepSize < 1e-12) {
+            if(stepSize == 0.0) {
                 stopped = true;
                 break;
             }
             
             stepForward(testingData, stepSize);
             computeEnergyVal(testingData, testingE);
+//            computeGradient(testingData, testingG);
         }
+//        if(!mute) {
+//            logFile << "testingE" << globalIterNum << " " << testingE << " > " << lastEnergyVal << " " << stepSize * c1m << std::endl;
+//            logFile << "testingG" << globalIterNum << " " << searchDir.dot(testingG) << " < " << c2m << std::endl;
+//        }
         while(!testingData.checkInversion()) {
             stepSize /= 2.0;
-            if(stepSize < 1e-12) {
+            if(stepSize == 0.0) {
                 stopped = true;
                 break;
             }

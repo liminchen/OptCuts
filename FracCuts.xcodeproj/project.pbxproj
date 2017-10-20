@@ -62,6 +62,7 @@
 		98D3E7D31F75AEC6000DA61D /* CohesiveEnergy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CohesiveEnergy.cpp; sourceTree = "<group>"; };
 		98D3E7D41F75AEC6000DA61D /* CohesiveEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CohesiveEnergy.hpp; sourceTree = "<group>"; };
 		98D5B20F1F67274100DCE9F4 /* libstb_image.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libstb_image.a; path = ../../../../usr/local/lib/libstb_image.a; sourceTree = "<group>"; };
+		98FD37F51F98806B00C83AAC /* GIF.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = GIF.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -118,6 +119,7 @@
 				98A5A32A1F5F5BB900584EFD /* ARAPEnergy.hpp */,
 				98C2D8F21F6348820048B18A /* SeparationEnergy.cpp */,
 				98C2D8F31F6348820048B18A /* SeparationEnergy.hpp */,
+				98FD37F51F98806B00C83AAC /* GIF.hpp */,
 			);
 			path = FracCuts;
 			sourceTree = "<group>";

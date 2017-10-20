@@ -4,6 +4,7 @@
 #include "ARAPEnergy.hpp"
 #include "SeparationEnergy.hpp"
 #include "CohesiveEnergy.hpp"
+#include "GIF.hpp"
 
 #include <igl/readOFF.h>
 #include <igl/boundary_loop.h>
@@ -18,6 +19,7 @@
 
 #include <fstream>
 #include <string>
+#include <ctime>
 
 
 // optimization
@@ -53,11 +55,15 @@ bool showDistortion = true;
 bool showTexture = true; // show checkerboard
 bool isLighting = false;
 clock_t ticksPast = 0, ticksPast_frac = 0, lastStart;
+double secPast = 0.0;
+time_t lastStart_world;
 bool offlineMode = false;
 bool saveInfo_postDraw = false;
 std::string infoName = "";
 bool isCapture3D = false;
 int capture3DI = 0;
+GifWriter GIFWriter;
+const uint32_t GIFDelay = 16; //*10ms
 
 
 void proceedOptimization(int proceedNum = 1)
@@ -168,8 +174,12 @@ void updateViewerData(void)
     viewer.data.compute_normals();
 }
 
-void saveScreenshot(const std::string& filePath, double scale = 1.0)
+void saveScreenshot(const std::string& filePath, double scale = 1.0, bool writeGIF = false, bool writePNG = true)
 {
+    if(writeGIF) {
+        scale = 1.0;
+    }
+    
     int width = static_cast<int>(scale * (viewer.core.viewport[2] - viewer.core.viewport[0]));
     int height = static_cast<int>(scale * (viewer.core.viewport[3] - viewer.core.viewport[1]));
     
@@ -182,15 +192,58 @@ void saveScreenshot(const std::string& filePath, double scale = 1.0)
     // Draw the scene in the buffers
     viewer.core.draw_buffer(viewer.data, viewer.opengl, false, R, G, B, A);
     
-    // Save it to a PNG
-    igl::png::writePNG(R, G, B, A, filePath);
+    if(writePNG) {
+        // Save it to a PNG
+        igl::png::writePNG(R, G, B, A, filePath);
+    }
+    
+    if(writeGIF) {
+        std::vector<uint8_t> img(width * height * 4);
+        for(int rowI = 0; rowI < width; rowI++) {
+            for(int colI = 0; colI < height; colI++) {
+                int indStart = (rowI + (height - 1 - colI) * width) * 4;
+                img[indStart] = R(rowI, colI);
+                img[indStart + 1] = G(rowI, colI);
+                img[indStart + 2] = B(rowI, colI);
+                img[indStart + 3] = A(rowI, colI);
+            }
+        }
+        GifWriteFrame(&GIFWriter, img.data(), width, height, GIFDelay);
+    }
 }
 
-void saveInfo(void)
+void saveInfo(bool writePNG = true, bool writeGIF = true, bool writeMesh = true)
 {
-    saveScreenshot(outputFolderPath + infoName + ".png", 1.0);
-    triSoup[channel_result]->save(outputFolderPath + infoName + "_triSoup.obj");
-    triSoup[channel_result]->saveAsMesh(outputFolderPath + infoName + "_mesh.obj");
+    saveScreenshot(outputFolderPath + infoName + ".png", 1.0, writeGIF, writePNG);
+    if(writeMesh) {
+//        triSoup[channel_result]->save(outputFolderPath + infoName + "_triSoup.obj");
+        triSoup[channel_result]->saveAsMesh(outputFolderPath + infoName + "_mesh.obj");
+    }
+}
+
+void saveInfoForPresent(void)
+{
+    std::ofstream file;
+    file.open(outputFolderPath + "info.txt");
+    assert(file.is_open());
+    
+    file << triSoup[channel_initial]->V_rest.rows() << " " <<
+        triSoup[channel_initial]->F.rows() << std::endl;
+    
+    file << iterNum << " " << optimizer->getTopoIter() << std::endl;
+    
+    file << static_cast<double>(ticksPast) / CLOCKS_PER_SEC << " " <<
+        static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC << " " <<
+        secPast << std::endl;
+    
+    double seamLen;
+    triSoup[channel_result]->computeSeamSparsity(seamLen);
+    file << optimizer->getLastEnergyVal() / energyParams[0] << " " <<
+        seamLen / triSoup[channel_result]->virtualPerimeter << std::endl;
+    
+    triSoup[channel_result]->outputStandardStretch(file);
+    
+    file.close();
 }
 
 void toggleOptimization(void)
@@ -203,12 +256,18 @@ void toggleOptimization(void)
         }
         else {
             if(iterNum == 0) {
+                GifBegin(&GIFWriter, (outputFolderPath + "anim.gif").c_str(),
+                         viewer.core.viewport[2] - viewer.core.viewport[0],
+                         viewer.core.viewport[3] - viewer.core.viewport[1], GIFDelay);
+                
                 homoTransFile.open(outputFolderPath + "homotopyTransition.txt");
                 assert(homoTransFile.is_open());
-                saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
+                saveScreenshot(outputFolderPath + "0.png", 1.0, true);
             }
             std::cout << "start/resume optimization, press again to pause." << std::endl;
             viewer.core.is_animating = true;
+            
+            time(&lastStart_world);
         }
     }
     else {
@@ -216,6 +275,8 @@ void toggleOptimization(void)
         viewer.core.is_animating = false;
         std::cout << "Time past: " << static_cast<double>(ticksPast) / CLOCKS_PER_SEC << "s." << std::endl;
         std::cout << "Time for fracture: " << static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC << "s." << std::endl;
+        std::cout << "World Time:\nTime past: " << secPast << "s." << std::endl;
+        secPast += difftime(time(NULL), lastStart_world);
     }
 }
 
@@ -342,9 +403,9 @@ bool postDrawFunc(igl::viewer::Viewer& viewer)
     
     if(saveInfo_postDraw) {
         saveInfo_postDraw = false;
-        saveInfo();
+        saveInfo(outerLoopFinished, true, outerLoopFinished);
         if(outerLoopFinished) {
-            triSoup[channel_result]->saveAsMesh(outputFolderPath + infoName + "_mesh_01UV.obj", true);
+//            triSoup[channel_result]->saveAsMesh(outputFolderPath + infoName + "_mesh_01UV.obj", true);
         }
     }
     
@@ -354,7 +415,7 @@ bool postDrawFunc(igl::viewer::Viewer& viewer)
             isCapture3D = true;
         }
         else {
-            if(capture3DI < 12) {
+            if(capture3DI < 2) {
                 // take screenshot
                 std::cout << "Taking screenshot for 3D View " << capture3DI / 2 << std::endl;
                 std::string filePath = outputFolderPath + "3DView" + std::to_string(capture3DI / 2) +
@@ -363,6 +424,8 @@ bool postDrawFunc(igl::viewer::Viewer& viewer)
                 capture3DI++;
             }
             else {
+                GifEnd(&GIFWriter);
+                saveInfoForPresent();
                 if(offlineMode) {
                     exit(0);
                 }
@@ -433,26 +496,23 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     homoTransFile << iterNum << std::endl;
                     lastStart = clock();
                     if(optimizer->createFracture(fracThres, !altBase)) {
-                        clock_t ticks = clock() - lastStart;
-                        ticksPast += ticks;
+                        ticksPast += clock() - lastStart;
                         converged = false;
                     }
                     else {
                         ticksPast += clock() - lastStart;
                         
-                        if(!altBase) {
-                            // perform exact solve
-                            optimizer->setRelGL2Tol(1.0e-6);
-                            //!! can recompute precondmtr
-                            converged = false;
-                            while(!converged) {
-                                proceedOptimization(1000);
-                            }
-                            viewChannel = channel_result;
-                            updateViewerData();
-                            saveInfo_postDraw = true;
-                            infoName = std::to_string(iterNum) + "(exact)";
+                        infoName = "finalResult";
+                        // perform exact solve
+                        optimizer->setRelGL2Tol(1.0e-8);
+                        //!! can recompute precondmtr if needed
+                        converged = false;
+                        while(!converged) {
+                            proceedOptimization(1000);
                         }
+                        secPast += difftime(time(NULL), lastStart_world);
+                        updateViewerData();
+
                         optimization_on = false;
                         viewer.core.is_animating = false;
                         const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
@@ -466,16 +526,17 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     }
                 }
                 else {
+                    infoName = "finalResult";
+                    
                     // perform exact solve
-                    optimizer->setRelGL2Tol(1.0e-6);
+                    optimizer->setRelGL2Tol(1.0e-8);
                     optimizer->updatePrecondMtrAndFactorize();
                     converged = false;
                     while(!converged) {
                         proceedOptimization(1000);
                     }
-                    viewChannel = channel_result;
+                    secPast += difftime(time(NULL), lastStart_world);
                     updateViewerData();
-                    infoName += "(exact)";
                     
                     optimization_on = false;
                     viewer.core.is_animating = false;
@@ -489,7 +550,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
         }
     }
     else {
-        if(isCapture3D && (capture3DI < 12)) {
+        if(isCapture3D && (capture3DI < 2)) {
             // change view accordingly
             double rotDeg = ((capture3DI < 8) ? (M_PI_2 * (capture3DI / 2)) : M_PI_2);
             Eigen::Vector3f rotAxis = Eigen::Vector3f::UnitY();
@@ -749,7 +810,8 @@ int main(int argc, char *argv[])
         if(bnd.size()) {
             // Map the boundary to a circle, preserving edge proportions
             Eigen::MatrixXd bnd_uv;
-            igl::map_vertices_to_circle(V, bnd, bnd_uv);
+//            igl::map_vertices_to_circle(V, bnd, bnd_uv);
+            FracCuts::IglUtils::map_vertices_to_circle(V, bnd, bnd_uv);
             
         //    // Harmonic parametrization
         //    UV.resize(UV.size() + 1);

@@ -27,6 +27,9 @@ namespace FracCuts {
         static void mapTriangleTo2D(const Eigen::Vector3d v[3], Eigen::Vector2d u[3]);
         static void computeDeformationGradient(const Eigen::Vector3d v[3], const Eigen::Vector2d u[3], Eigen::Matrix2d& F);
         
+        // to a circle with the perimeter equal to the length of the boundary on the mesh
+        static void map_vertices_to_circle(const Eigen::MatrixXd& V, const Eigen::VectorXi& bnd, Eigen::MatrixXd& UV);
+        
         static void mapScalarToColor_bin(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color, double thres);
         static void mapScalarToColor(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color, double lowerBound, double upperBound);
         
