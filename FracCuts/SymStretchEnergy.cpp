@@ -95,7 +95,7 @@ namespace FracCuts {
     {
 //        precondMtr = data.LaplacianMtr;
         computeHessian(data, precondMtr);
-//        IglUtils::writeSparseMatrixToFile("/Users/mincli/Desktop/output_FracCuts/mtr", precondMtr, true);
+//        IglUtils::writeSparseMatrixToFile("/Users/mincli/Desktop/FracCuts/mtr", precondMtr, true);
         
 //        Eigen::BDCSVD<Eigen::MatrixXd> svd((Eigen::MatrixXd(precondMtr)));
 //        logFile << "singular values of precondMtr_ESD:" << std::endl << svd.singularValues() << std::endl;

@@ -764,7 +764,8 @@ namespace FracCuts {
         //DEBUG alternating framework
         if(maxStress > thres) {
 //            preFracEInc += fracEInc;
-            std::cout << "E_dec = " << maxStress << std::endl;
+            std::cout << "last inner descent step E_dec = " << thres << std::endl;
+            std::cout << "split edge E_dec = " << maxStress << std::endl;
             logFile << maxStress << std::endl;
             splitEdgeOnBoundary(edgeToSplit, newVertPos, edge2Tri, vNeighbor, cohEIndex);
             updateFeatures();

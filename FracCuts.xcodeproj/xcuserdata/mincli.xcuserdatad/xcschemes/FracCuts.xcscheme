@@ -99,7 +99,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/passed/bone_noInputUV.obj 0.025 4 0 test"
+            argument = "0 /Users/mincli/Downloads/meshes/debug/simp/max_planck_i_f8000.obj 0.025 4 0"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

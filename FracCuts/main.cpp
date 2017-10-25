@@ -901,7 +901,7 @@ int main(int argc, char *argv[])
             altBase = true;
         }
 //        else {
-//            optimizer->setRelGL2Tol(1.0e-5);
+//            optimizer->setRelGL2Tol(1.0e-4);
 //        }
     }
 //    else if((lambda > 0.0) && startWithTriSoup) {

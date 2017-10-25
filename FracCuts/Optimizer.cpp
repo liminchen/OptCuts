@@ -63,7 +63,7 @@ namespace FracCuts {
             }
         }
         
-        pardisoThreadAmt = 0;
+        pardisoThreadAmt = 1;
     }
     
     Optimizer::~Optimizer(void)
@@ -142,7 +142,7 @@ namespace FracCuts {
         for(int iterI = 0; iterI < maxIter; iterI++)
         {
             if(withTopologyStep) {
-                if(!createFracture(lastEDec)) {
+                if(!createFracture(lastEDec + 1.0e-6 * lastEnergyVal)) {
                     withTopologyStep = false;
                 }//DEBUG
             }
@@ -319,10 +319,13 @@ namespace FracCuts {
         if(needRefactorize) {
             // for the changing hessian
             if(!mute) {
-                std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
+                std::cout << "recompute proxy/Hessian matrix..." << std::endl;
             }
             computePrecondMtr(result, precondMtr);
             
+            if(!mute) {
+                std::cout << "factorizing proxy/Hessian matrix..." << std::endl;
+            }
             if(!pardisoThreadAmt) {
                 cholSolver.factorize(precondMtr);
                 if(cholSolver.info() != Eigen::Success) {
@@ -407,22 +410,22 @@ namespace FracCuts {
         
         const double m = searchDir.dot(gradient);
         const double c1m = 1.0e-4 * m;
-        const double c2m = (1.0 - 1.0e-6) * m;
+//        const double c2m = (1.0 - 1.0e-6) * m;
         TriangleSoup testingData = result;
         stepForward(testingData, stepSize);
 //        double stepLen = (stepSize * searchDir).squaredNorm();
         double testingE;
-        Eigen::VectorXd testingG;
+//        Eigen::VectorXd testingG;
         computeEnergyVal(testingData, testingE);
-        computeGradient(testingData, testingG);
+//        computeGradient(testingData, testingG);
 //        if(!mute) {
 //            logFile << "searchDir " << searchDir.norm() << std::endl;
 //            logFile << "testingE" << globalIterNum << " " << testingE << " > " << lastEnergyVal << " " << stepSize * c1m << std::endl;
 //            logFile << "testingG" << globalIterNum << " " << searchDir.dot(testingG) << " < " << c2m << std::endl;
 //        }
-        while((testingE > lastEnergyVal + stepSize * c1m) ||
-              (searchDir.dot(testingG) < c2m)) // Wolfe condition
-//        while(testingE > lastEnergyVal + stepSize * c1m) // Armijo condition
+//        while((testingE > lastEnergyVal + stepSize * c1m) ||
+//              (searchDir.dot(testingG) < c2m)) // Wolfe condition
+        while(testingE > lastEnergyVal + stepSize * c1m) // Armijo condition
 //        while(0)
         {
             stepSize /= 2.0;
@@ -432,14 +435,14 @@ namespace FracCuts {
                 stopped = true;
                 if(!mute) {
                     logFile << "testingE" << globalIterNum << " " << testingE << " > " << lastEnergyVal << " " << stepSize * c1m << std::endl;
-                    logFile << "testingG" << globalIterNum << " " << searchDir.dot(testingG) << " < " << c2m << std::endl;
+//                    logFile << "testingG" << globalIterNum << " " << searchDir.dot(testingG) << " < " << c2m << std::endl;
                 }
                 break;
             }
             
             stepForward(testingData, stepSize);
             computeEnergyVal(testingData, testingE);
-            computeGradient(testingData, testingG);
+//            computeGradient(testingData, testingG);
         }
 //        if(!mute) {
 //            logFile << "testingE" << globalIterNum << " " << testingE << " > " << lastEnergyVal << " " << stepSize * c1m << std::endl;
