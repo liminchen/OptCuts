@@ -153,8 +153,7 @@ namespace FracCuts {
             const Eigen::Vector2d dLeft3 = areaRatio * edge_oppo3_Ortho;
             const Eigen::Vector2d dRight3 = (data.e0SqLen[triI] * U3m1 - data.e0dote1[triI] * U2m1) / 2.0 / data.triAreaSq[triI];
             
-            Eigen::MatrixXd curHessian;
-            curHessian.resize(6, 6);
+            Eigen::Matrix<double, 6, 6> curHessian;
             
             // compute second order derivatives for g_U1
             const Eigen::Matrix2d d2Left11 = dAreaRatio_div_dArea_mult * edge_oppo1_Ortho * edge_oppo1_Ortho.transpose();
@@ -211,13 +210,18 @@ namespace FracCuts {
             curHessian.block(4, 4, 2, 2) = w * (d2Left33 * rightTerm + dLeft3 * dRight3.transpose() +
                 d2Right33 * leftTerm * Eigen::Matrix2d::Identity() + dRight3 * dLeft3.transpose());
             
+            const Eigen::Matrix<double, 6, 6> curHessian_sym = (curHessian + curHessian.transpose()) / 2.0;
+            Eigen::JacobiSVD<Eigen::Matrix<double, 6, 6>> svd(curHessian_sym, Eigen::ComputeFullV);
+            const Eigen::Matrix<double, 6, 6> curHessian_SPD = 0.5 * (curHessian_sym +
+                svd.matrixV() * Eigen::DiagonalMatrix<double, 6>(svd.singularValues()) * svd.matrixV().transpose());
+            
             Eigen::VectorXi vInd = triVInd;
             for(int vI = 0; vI < 3; vI++) {
                 if(data.fixedVert.find(vInd[vI]) != data.fixedVert.end()) {
                     vInd[vI] = -1;
                 }
             }
-            IglUtils::addBlockToMatrix(hessian, curHessian, vInd, 2);
+            IglUtils::addBlockToMatrix(hessian, curHessian_SPD, vInd, 2);
         }
         for(const auto fixedVI : data.fixedVert) {
             hessian.insert(2 * fixedVI, 2 * fixedVI) = 1.0;
