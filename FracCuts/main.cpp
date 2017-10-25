@@ -722,7 +722,15 @@ int main(int argc, char *argv[])
     if(argc > 2) {
         meshFileName = std::string(argv[2]);
     }
-    std::string meshFilePath = meshFolder + meshFileName;
+    std::string meshFilePath;
+    if(meshFileName.at(0) == '/') {
+        std::cout << "The input mesh file name is gloabl mesh file path." << std::endl;
+        meshFilePath = meshFileName;
+        meshFileName = meshFileName.substr(meshFileName.find_last_of('/') + 1);
+    }
+    else {
+        meshFilePath = meshFolder + meshFileName;
+    }
     std::string meshName = meshFileName.substr(0, meshFileName.find_last_of('.'));
     // Load mesh
     Eigen::MatrixXd V, UV, N;
@@ -865,15 +873,18 @@ int main(int argc, char *argv[])
         energyParams.emplace_back(1.0 - lambda);
     //    energyTerms.emplace_back(new FracCuts::ARAPEnergy());
         energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
+//        energyTerms.back()->checkEnergyVal(*triSoup[0]);
+//        energyTerms.back()->checkGradient(*triSoup[0]);
+//        energyTerms.back()->checkHessian(*triSoup[0]);
     }
     if((lambda != 0.0) && startWithTriSoup) {
         //DEBUG alternating framework
         energyParams.emplace_back(lambda);
         energyTerms.emplace_back(new FracCuts::SeparationEnergy(triSoup[0]->avgEdgeLen * triSoup[0]->avgEdgeLen, delta));
 //        energyTerms.emplace_back(new FracCuts::CohesiveEnergy(triSoup[0]->avgEdgeLen, delta));
-        //    energyTerms.back()->checkEnergyVal(*triSoup[0]);
+//        energyTerms.back()->checkEnergyVal(*triSoup[0]);
 //        energyTerms.back()->checkGradient(*triSoup[0]);
-        //    energyTerms.back()->checkHessian(*triSoup[0]);
+//        energyTerms.back()->checkHessian(*triSoup[0]);
     }
     optimizer = new FracCuts::Optimizer(*triSoup[0], energyTerms, energyParams, false); //DEBUG alternating framework
     lastStart = clock();
@@ -889,13 +900,13 @@ int main(int argc, char *argv[])
         if(delta == 0.0) {
             altBase = true;
         }
-        else {
-            optimizer->setRelGL2Tol(1.0e-4);
-        }
+//        else {
+//            optimizer->setRelGL2Tol(1.0e-5);
+//        }
     }
-    else if((lambda > 0.0) && startWithTriSoup) {
-        optimizer->setRelGL2Tol(1.0e-4);
-    }
+//    else if((lambda > 0.0) && startWithTriSoup) {
+//        optimizer->setRelGL2Tol(1.0e-4);
+//    }
     
     // Setup viewer and launch
     viewer.core.background_color << 1.0f, 1.0f, 1.0f, 0.0f;

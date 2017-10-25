@@ -189,13 +189,18 @@ namespace FracCuts {
         assert(index.size() * dim == block.rows());
         assert(mtr.rows() == mtr.cols());
         assert(index.maxCoeff() * dim + dim - 1 < mtr.rows());
-        assert(index.minCoeff() >= 0);
         
         for(int indI = 0; indI < index.size(); indI++) {
+            if(index[indI] < 0) {
+                continue;
+            }
             int startIndI = index[indI] * dim;
             int startIndI_block = indI * dim;
             
             for(int indJ = 0; indJ < index.size(); indJ++) {
+                if(index[indJ] < 0) {
+                    continue;
+                }
                 int startIndJ = index[indJ] * dim;
                 int startIndJ_block = indJ * dim;
                 
@@ -208,17 +213,19 @@ namespace FracCuts {
         }
     }
     
-    void IglUtils::writeSparseMatrixToFile(const std::string& filePath, const Eigen::SparseMatrix<double>& mtr)
+    void IglUtils::writeSparseMatrixToFile(const std::string& filePath, const Eigen::SparseMatrix<double>& mtr, bool MATLAB)
     {
         std::ofstream out;
         out.open(filePath);
         if(out.is_open()) {
-            out << mtr.rows() << " " << mtr.cols() << " " << mtr.nonZeros() << std::endl;
+            if(!MATLAB) {
+                out << mtr.rows() << " " << mtr.cols() << " " << mtr.nonZeros() << std::endl;
+            }
             for (int k = 0; k < mtr.outerSize(); ++k)
             {
                 for (Eigen::SparseMatrix<double>::InnerIterator it(mtr, k); it; ++it)
                 {
-                    out << it.row() << " " << it.col() << " " << it.value() << std::endl;
+                    out << it.row() + MATLAB << " " << it.col() + MATLAB << " " << it.value() << std::endl;
                 }
             }
             out.close();

@@ -63,7 +63,7 @@ namespace FracCuts {
             }
         }
         
-        pardisoThreadAmt = 1;
+        pardisoThreadAmt = 0;
     }
     
     Optimizer::~Optimizer(void)
@@ -338,15 +338,54 @@ namespace FracCuts {
             }
         }
         
-        if(!pardisoThreadAmt) {
-            searchDir = cholSolver.solve(-gradient);
-            if(cholSolver.info() != Eigen::Success) {
-                assert(0 && "Cholesky solve failed!");
+        if(precondMtr.rows() == result.V.rows() * 2) {
+            if(!pardisoThreadAmt) {
+                searchDir = cholSolver.solve(-gradient);
+                if(cholSolver.info() != Eigen::Success) {
+                    assert(0 && "Cholesky solve failed!");
+                }
+            }
+            else {
+                Eigen::VectorXd minusG = -gradient;
+                pardisoSolver.solve(minusG, searchDir);
             }
         }
         else {
-            Eigen::VectorXd minusG = -gradient;
-            pardisoSolver.solve(minusG, searchDir);
+            assert(precondMtr.rows() == result.V.rows());
+            
+            Eigen::VectorXd gradient_x, gradient_y;
+            gradient_x.resize(result.V.rows());
+            gradient_y.resize(result.V.rows());
+            for(int vI = 0; vI < result.V.rows(); vI++) {
+                int startInd = vI * 2;
+                gradient_x[vI] = gradient[startInd];
+                gradient_y[vI] = gradient[startInd + 1];
+            }
+            
+            Eigen::VectorXd searchDir_x, searchDir_y;
+            if(!pardisoThreadAmt) {
+                searchDir_x = cholSolver.solve(-gradient_x);
+                if(cholSolver.info() != Eigen::Success) {
+                    assert(0 && "Cholesky solve failed!");
+                }
+                searchDir_y = cholSolver.solve(-gradient_y);
+                if(cholSolver.info() != Eigen::Success) {
+                    assert(0 && "Cholesky solve failed!");
+                }
+            }
+            else {
+                Eigen::VectorXd minusG_x = -gradient_x;
+                pardisoSolver.solve(minusG_x, searchDir_x);
+                Eigen::VectorXd minusG_y = -gradient_y;
+                pardisoSolver.solve(minusG_y, searchDir_y);
+            }
+
+            searchDir.resize(result.V.rows() * 2);
+            for(int vI = 0; vI < result.V.rows(); vI++) {
+                int startInd = vI * 2;
+                searchDir[startInd] = searchDir_x[vI];
+                searchDir[startInd + 1] = searchDir_y[vI];
+            }
         }
         
         bool stopped = lineSearch();
@@ -368,22 +407,22 @@ namespace FracCuts {
         
         const double m = searchDir.dot(gradient);
         const double c1m = 1.0e-4 * m;
-//        const double c2m = 0.9 * m;
+        const double c2m = (1.0 - 1.0e-6) * m;
         TriangleSoup testingData = result;
         stepForward(testingData, stepSize);
 //        double stepLen = (stepSize * searchDir).squaredNorm();
         double testingE;
         Eigen::VectorXd testingG;
         computeEnergyVal(testingData, testingE);
-//        computeGradient(testingData, testingG);
+        computeGradient(testingData, testingG);
 //        if(!mute) {
 //            logFile << "searchDir " << searchDir.norm() << std::endl;
 //            logFile << "testingE" << globalIterNum << " " << testingE << " > " << lastEnergyVal << " " << stepSize * c1m << std::endl;
 //            logFile << "testingG" << globalIterNum << " " << searchDir.dot(testingG) << " < " << c2m << std::endl;
 //        }
-//        while((testingE > lastEnergyVal + stepSize * c1m) ||
-//              (searchDir.dot(testingG) < c2m)) // Wolfe condition
-        while(testingE > lastEnergyVal + stepSize * c1m) // Armijo condition
+        while((testingE > lastEnergyVal + stepSize * c1m) ||
+              (searchDir.dot(testingG) < c2m)) // Wolfe condition
+//        while(testingE > lastEnergyVal + stepSize * c1m) // Armijo condition
 //        while(0)
         {
             stepSize /= 2.0;
@@ -391,12 +430,16 @@ namespace FracCuts {
 //            if(stepLen < targetGRes) {
             if(stepSize == 0.0) {
                 stopped = true;
+                if(!mute) {
+                    logFile << "testingE" << globalIterNum << " " << testingE << " > " << lastEnergyVal << " " << stepSize * c1m << std::endl;
+                    logFile << "testingG" << globalIterNum << " " << searchDir.dot(testingG) << " < " << c2m << std::endl;
+                }
                 break;
             }
             
             stepForward(testingData, stepSize);
             computeEnergyVal(testingData, testingE);
-//            computeGradient(testingData, testingG);
+            computeGradient(testingData, testingG);
         }
 //        if(!mute) {
 //            logFile << "testingE" << globalIterNum << " " << testingE << " > " << lastEnergyVal << " " << stepSize * c1m << std::endl;
@@ -498,7 +541,32 @@ namespace FracCuts {
         for(int eI = 1; eI < energyTerms.size(); eI++) {
             Eigen::SparseMatrix<double> precondMtrI;
             energyTerms[eI]->computePrecondMtr(data, precondMtrI);
-            precondMtr += energyParams[eI] * precondMtrI;
+            if(precondMtrI.rows() == precondMtr.rows() * 2) {
+                precondMtrI *= energyParams[eI];
+                for (int k = 0; k < precondMtr.outerSize(); ++k)
+                {
+                    for (Eigen::SparseMatrix<double>::InnerIterator it(precondMtr, k); it; ++it)
+                    {
+                        precondMtrI.coeffRef(it.row() * 2, it.col() * 2) += it.value();
+                        precondMtrI.coeffRef(it.row() * 2 + 1, it.col() * 2 + 1) += it.value();
+                    }
+                }
+                precondMtr = precondMtrI;
+            }
+            else if(precondMtrI.rows() * 2 == precondMtr.rows()) {
+                for (int k = 0; k < precondMtrI.outerSize(); ++k)
+                {
+                    for (Eigen::SparseMatrix<double>::InnerIterator it(precondMtrI, k); it; ++it)
+                    {
+                        precondMtr.coeffRef(it.row() * 2, it.col() * 2) += energyParams[eI] * it.value();
+                        precondMtr.coeffRef(it.row() * 2 + 1, it.col() * 2 + 1) += energyParams[eI] * it.value();
+                    }
+                }
+            }
+            else {
+                assert(precondMtrI.rows() == precondMtr.rows());
+                precondMtr += energyParams[eI] * precondMtrI;
+            }
         }
         
 //        Eigen::BDCSVD<Eigen::MatrixXd> svd((Eigen::MatrixXd(precondMtr)));

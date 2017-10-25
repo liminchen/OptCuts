@@ -95,6 +95,12 @@ namespace FracCuts {
         hessian_finiteDiff.resize(data.V.rows() * 2, data.V.rows() * 2);
         for(int vI = 0; vI < data.V.rows(); vI++)
         {
+            if(data.fixedVert.find(vI) != data.fixedVert.end()) {
+                hessian_finiteDiff.insert(vI * 2, vI * 2) = 1.0;
+                hessian_finiteDiff.insert(vI * 2 + 1, vI * 2 + 1) = 1.0;
+                continue;
+            }
+            
             for(int dimI = 0; dimI < 2; dimI++) {
                 perturbed.V = data.V;
                 perturbed.V(vI, dimI) += h;
@@ -103,6 +109,10 @@ namespace FracCuts {
                 Eigen::VectorXd hessian_colI = (gradient_perturbed - gradient0) / h;
                 int colI = vI * 2 + dimI;
                 for(int rowI = 0; rowI < data.V.rows() * 2; rowI++) {
+                    if(data.fixedVert.find(rowI / 2) != data.fixedVert.end()) {
+                        continue;
+                    }
+                    
                     hessian_finiteDiff.insert(rowI, colI) = hessian_colI[rowI];
                 }
             }

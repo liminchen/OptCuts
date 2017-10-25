@@ -266,11 +266,9 @@ namespace FracCuts {
     
     void TriangleSoup::computeLaplacianMtr(void)
     {
-        //        Eigen::SparseMatrix<double> M;
-        //        massmatrix(data.V_rest, data.F, igl::MASSMATRIX_TYPE_DEFAULT, M);
         Eigen::SparseMatrix<double> L;
         igl::cotmatrix(V_rest, F, L);
-        LaplacianMtr.resize(V.rows() * 2, V.rows() * 2);
+        LaplacianMtr.resize(L.rows(), L.cols());
         LaplacianMtr.setZero();
         LaplacianMtr.reserve(L.nonZeros());
         for (int k = 0; k < L.outerSize(); ++k)
@@ -280,16 +278,18 @@ namespace FracCuts {
                 if((fixedVert.find(static_cast<int>(it.row())) == fixedVert.end()) &&
                    (fixedVert.find(static_cast<int>(it.col())) == fixedVert.end()))
                 {
-                    LaplacianMtr.insert(it.row() * 2, it.col() * 2) = -it.value();// * M.coeffRef(it.row(), it.row());
-                    LaplacianMtr.insert(it.row() * 2 + 1, it.col() * 2 + 1) = -it.value();// * M.coeffRef(it.row(), it.row());
+                    LaplacianMtr.insert(it.row(), it.col()) = -it.value();
                 }
             }
         }
         for(const auto fixedVI : fixedVert) {
-            LaplacianMtr.insert(2 * fixedVI, 2 * fixedVI) = 1.0;
-            LaplacianMtr.insert(2 * fixedVI + 1, 2 * fixedVI + 1) = 1.0;
+            LaplacianMtr.insert(fixedVI, fixedVI) = 1.0;
         }
         LaplacianMtr.makeCompressed();
+//        //        Eigen::SparseMatrix<double> M;
+//        //        massmatrix(data.V_rest, data.F, igl::MASSMATRIX_TYPE_DEFAULT, M);
+//                    LaplacianMtr.insert(it.row() * 2, it.col() * 2) = -it.value();// * M.coeffRef(it.row(), it.row());
+//                    LaplacianMtr.insert(it.row() * 2 + 1, it.col() * 2 + 1) = -it.value();// * M.coeffRef(it.row(), it.row());
     }
     
     void TriangleSoup::computeFeatures(bool multiComp, bool resetFixedV)

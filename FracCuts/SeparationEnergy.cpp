@@ -98,11 +98,13 @@ namespace FracCuts {
                 const double w = data.edgeLen[cohI] / normalizer_div;
                 
                 const double sqn_xamc = xamc.squaredNorm();
-                const Eigen::Matrix4d hessian_ac = (w * //(kernelHessian(sqn_xamc) * dtddx_ac * dtddx_ac.transpose() +
-                                                    kernelGradient(sqn_xamc)) * dt2dd2x;//);
+                const Eigen::Matrix4d hessian_ac = (w * kernelGradient(sqn_xamc)) * dt2dd2x;
+//                const Eigen::Matrix4d hessian_ac = w * (kernelHessian(sqn_xamc) * dtddx_ac * dtddx_ac.transpose() +
+//                                                    kernelGradient(sqn_xamc) * dt2dd2x);
                 const double sqn_xbmd = xbmd.squaredNorm();
-                const Eigen::Matrix4d hessian_bd = (w * //(kernelHessian(sqn_xbmd) * dtddx_bd * dtddx_bd.transpose() +
-                                                    kernelGradient(sqn_xbmd)) * dt2dd2x;//);
+                const Eigen::Matrix4d hessian_bd = (w * kernelGradient(sqn_xbmd)) * dt2dd2x;
+//                const Eigen::Matrix4d hessian_bd = w * (kernelHessian(sqn_xbmd) * dtddx_bd * dtddx_bd.transpose() +
+//                                                    kernelGradient(sqn_xbmd) * dt2dd2x);
                 
                 bool fixed[4];
                 for(int vI = 0; vI < 4; vI++) {

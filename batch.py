@@ -3,7 +3,7 @@ import subprocess
 from os import listdir
 from os.path import isfile, join
 
-meshFolderPath = '/Users/mincli/Downloads/meshes/'
+meshFolderPath = '/Users/mincli/Downloads/meshes/debug/simp/'
 onlyfiles = [f for f in listdir(meshFolderPath) if isfile(join(meshFolderPath, f))]
 
 FracCutsPath = '/Users/mincli/Library/Developer/Xcode/DerivedData/FracCuts-agmhaiwbuwzkmvfhishexuvkyjdo/Build/Products/Release/FracCuts'
@@ -22,7 +22,7 @@ FracCutsPath = '/Users/mincli/Library/Developer/Xcode/DerivedData/FracCuts-agmha
 
 for inputModelNameI in onlyfiles:
 	# current best
-	runCommand = FracCutsPath + ' 100 ' + inputModelNameI + ' 0.025 1 0'
+	runCommand = FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.025 1 0'
 	if subprocess.call([runCommand], shell=True):
 		continue
 
@@ -35,8 +35,9 @@ for inputModelNameI in onlyfiles:
 	# subprocess.call([runCommand], shell=True)
 
 	# # AutoCuts
-	# runCommand = FracCutsPath + ' 100 ' + inputModelNameI + ' 0.2 4 1'
-	# subprocess.call([runCommand], shell=True)
+	# runCommand = FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.05 4 1'
+	# if subprocess.call([runCommand], shell=True):
+	# 	continue
 	# runCommand = FracCutsPath + ' 100 ' + inputModelNameI + ' 0.1 4 1'
 	# subprocess.call([runCommand], shell=True)
 	# runCommand = FracCutsPath + ' 100 ' + inputModelNameI + ' 0.05 4 1'
