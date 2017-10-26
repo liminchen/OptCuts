@@ -35,8 +35,14 @@ namespace FracCuts {
         
         static void addBlockToMatrix(Eigen::SparseMatrix<double>& mtr, const Eigen::MatrixXd& block,
                                      const Eigen::VectorXi& index, int dim);
+        static void addBlockToMatrix(const Eigen::MatrixXd& block, const Eigen::VectorXi& index, int dim,
+                                     Eigen::VectorXd* V, Eigen::VectorXi* I = NULL, Eigen::VectorXi* J = NULL);
+        static void addDiagonalToMatrix(const Eigen::VectorXd& diagonal, const Eigen::VectorXi& index, int dim,
+                                     Eigen::VectorXd* V, Eigen::VectorXi* I = NULL, Eigen::VectorXi* J = NULL);
         
         static void writeSparseMatrixToFile(const std::string& filePath, const Eigen::SparseMatrix<double>& mtr, bool MATLAB = false);
+        static void writeSparseMatrixToFile(const std::string& filePath, const Eigen::VectorXi& I, const Eigen::VectorXi& J,
+                                            const Eigen::VectorXd& V, bool MATLAB = false);
         static void loadSparseMatrixFromFile(const std::string& filePath, Eigen::SparseMatrix<double>& mtr);
         
         static void sparseMatrixToTriplet(const Eigen::SparseMatrix<double>& mtr,

@@ -36,6 +36,8 @@ namespace FracCuts {
         TriangleSoup result; // intermediate results of each iteration
         // constant precondition matrix for solving the linear system for search directions
         Eigen::SparseMatrix<double> precondMtr;
+        Eigen::VectorXi I_mtr, J_mtr; // triplet representation
+        Eigen::VectorXd V_mtr;
         // cholesky solver for solving the linear system for search directions
         Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> cholSolver;
         PardisoSolver<Eigen::VectorXi, Eigen::VectorXd> pardisoSolver;
@@ -89,7 +91,7 @@ namespace FracCuts {
         
         void computeEnergyVal(const TriangleSoup& data, double& energyVal);
         void computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient);
-        void computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr) const;
+        void computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr);
         void computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const;
         
         void initStepSize(const TriangleSoup& data, double& stepSize) const;

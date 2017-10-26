@@ -875,7 +875,7 @@ int main(int argc, char *argv[])
         energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
 //        energyTerms.back()->checkEnergyVal(*triSoup[0]);
 //        energyTerms.back()->checkGradient(*triSoup[0]);
-//        energyTerms.back()->checkHessian(*triSoup[0]);
+//        energyTerms.back()->checkHessian(*triSoup[0], true);
     }
     if((lambda != 0.0) && startWithTriSoup) {
         //DEBUG alternating framework
@@ -901,7 +901,7 @@ int main(int argc, char *argv[])
             altBase = true;
         }
 //        else {
-//            optimizer->setRelGL2Tol(1.0e-4);
+//            optimizer->setRelGL2Tol(1.0e-8); //!!! different model can succeed with different tolerance, is it a matter of curvature or because sometimes the optimal split is inside?
 //        }
     }
 //    else if((lambda > 0.0) && startWithTriSoup) {

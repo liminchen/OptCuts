@@ -41,6 +41,9 @@ namespace FracCuts{
         Eigen::VectorXd triAreaSq; // triangle rest squared area
         Eigen::VectorXd e0dote1; // triangle rest edge dot product
         Eigen::VectorXd e0SqLen, e1SqLen; // triangle edge rest squared length
+        Eigen::VectorXd e0SqLen_div_dbAreaSq;
+        Eigen::VectorXd e1SqLen_div_dbAreaSq;
+        Eigen::VectorXd e0dote1_div_dbAreaSq;
         double avgEdgeLen;
         double virtualPerimeter;
         std::set<int> fixedVert; // for linear solve

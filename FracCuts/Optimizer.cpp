@@ -63,6 +63,7 @@ namespace FracCuts {
             }
         }
         
+//        pardisoThreadAmt = 0;
         pardisoThreadAmt = 1;
     }
     
@@ -113,10 +114,7 @@ namespace FracCuts {
         }
         else {
             pardisoSolver.set_type(pardisoThreadAmt, 2);
-            Eigen::VectorXi I, J;
-            Eigen::VectorXd V;
-            IglUtils::sparseMatrixToTriplet(precondMtr, I, J, V);
-            pardisoSolver.set_pattern(I, J, V);
+            pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
             pardisoSolver.analyze_pattern();
             pardisoSolver.factorize();
         }
@@ -201,9 +199,7 @@ namespace FracCuts {
             }
         }
         else {
-            Eigen::VectorXd V;
-            IglUtils::sparseMatrixToTriplet(precondMtr, V);
-            pardisoSolver.update_a(V);
+            pardisoSolver.update_a(V_mtr);
             pardisoSolver.factorize();
         }
     }
@@ -241,10 +237,7 @@ namespace FracCuts {
             else {
                 pardisoSolver = PardisoSolver<Eigen::VectorXi, Eigen::VectorXd>(); //TODO: make it cheaper!
                 pardisoSolver.set_type(pardisoThreadAmt, 2);
-                Eigen::VectorXi I, J;
-                Eigen::VectorXd V;
-                IglUtils::sparseMatrixToTriplet(precondMtr, I, J, V);
-                pardisoSolver.set_pattern(I, J, V);
+                pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
                 pardisoSolver.analyze_pattern();
                 if(!needRefactorize) {
                     pardisoSolver.factorize();
@@ -295,10 +288,7 @@ namespace FracCuts {
             else {
                 pardisoSolver = PardisoSolver<Eigen::VectorXi, Eigen::VectorXd>(); //TODO: make it cheaper!
                 pardisoSolver.set_type(pardisoThreadAmt, 2);
-                Eigen::VectorXi I, J;
-                Eigen::VectorXd V;
-                IglUtils::sparseMatrixToTriplet(precondMtr, I, J, V);
-                pardisoSolver.set_pattern(I, J, V);
+                pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
                 pardisoSolver.analyze_pattern();
                 if(!needRefactorize) {
                     pardisoSolver.factorize();
@@ -334,14 +324,13 @@ namespace FracCuts {
                 }
             }
             else {
-                Eigen::VectorXd V;
-                IglUtils::sparseMatrixToTriplet(precondMtr, V);
-                pardisoSolver.update_a(V);
+                pardisoSolver.update_a(V_mtr);
                 pardisoSolver.factorize();
             }
         }
         
-        if(precondMtr.rows() == result.V.rows() * 2) {
+        //TODO: half matrix size when you can
+//        if(precondMtr.rows() == result.V.rows() * 2) {
             if(!pardisoThreadAmt) {
                 searchDir = cholSolver.solve(-gradient);
                 if(cholSolver.info() != Eigen::Success) {
@@ -352,44 +341,44 @@ namespace FracCuts {
                 Eigen::VectorXd minusG = -gradient;
                 pardisoSolver.solve(minusG, searchDir);
             }
-        }
-        else {
-            assert(precondMtr.rows() == result.V.rows());
-            
-            Eigen::VectorXd gradient_x, gradient_y;
-            gradient_x.resize(result.V.rows());
-            gradient_y.resize(result.V.rows());
-            for(int vI = 0; vI < result.V.rows(); vI++) {
-                int startInd = vI * 2;
-                gradient_x[vI] = gradient[startInd];
-                gradient_y[vI] = gradient[startInd + 1];
-            }
-            
-            Eigen::VectorXd searchDir_x, searchDir_y;
-            if(!pardisoThreadAmt) {
-                searchDir_x = cholSolver.solve(-gradient_x);
-                if(cholSolver.info() != Eigen::Success) {
-                    assert(0 && "Cholesky solve failed!");
-                }
-                searchDir_y = cholSolver.solve(-gradient_y);
-                if(cholSolver.info() != Eigen::Success) {
-                    assert(0 && "Cholesky solve failed!");
-                }
-            }
-            else {
-                Eigen::VectorXd minusG_x = -gradient_x;
-                pardisoSolver.solve(minusG_x, searchDir_x);
-                Eigen::VectorXd minusG_y = -gradient_y;
-                pardisoSolver.solve(minusG_y, searchDir_y);
-            }
-
-            searchDir.resize(result.V.rows() * 2);
-            for(int vI = 0; vI < result.V.rows(); vI++) {
-                int startInd = vI * 2;
-                searchDir[startInd] = searchDir_x[vI];
-                searchDir[startInd + 1] = searchDir_y[vI];
-            }
-        }
+//        }
+//        else {
+//            assert(precondMtr.rows() == result.V.rows());
+//            
+//            Eigen::VectorXd gradient_x, gradient_y;
+//            gradient_x.resize(result.V.rows());
+//            gradient_y.resize(result.V.rows());
+//            for(int vI = 0; vI < result.V.rows(); vI++) {
+//                int startInd = vI * 2;
+//                gradient_x[vI] = gradient[startInd];
+//                gradient_y[vI] = gradient[startInd + 1];
+//            }
+//            
+//            Eigen::VectorXd searchDir_x, searchDir_y;
+//            if(!pardisoThreadAmt) {
+//                searchDir_x = cholSolver.solve(-gradient_x);
+//                if(cholSolver.info() != Eigen::Success) {
+//                    assert(0 && "Cholesky solve failed!");
+//                }
+//                searchDir_y = cholSolver.solve(-gradient_y);
+//                if(cholSolver.info() != Eigen::Success) {
+//                    assert(0 && "Cholesky solve failed!");
+//                }
+//            }
+//            else {
+//                Eigen::VectorXd minusG_x = -gradient_x;
+//                pardisoSolver.solve(minusG_x, searchDir_x);
+//                Eigen::VectorXd minusG_y = -gradient_y;
+//                pardisoSolver.solve(minusG_y, searchDir_y);
+//            }
+//
+//            searchDir.resize(result.V.rows() * 2);
+//            for(int vI = 0; vI < result.V.rows(); vI++) {
+//                int startInd = vI * 2;
+//                searchDir[startInd] = searchDir_x[vI];
+//                searchDir[startInd + 1] = searchDir_y[vI];
+//            }
+//        }
         
         bool stopped = lineSearch();
         if(stopped) {
@@ -537,38 +526,53 @@ namespace FracCuts {
             gradient += gradient_ET[eI];
         }
     }
-    void Optimizer::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr) const
+    void Optimizer::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr)
     {
-        energyTerms[0]->computePrecondMtr(data, precondMtr);
-        precondMtr *= energyParams[0];
-        for(int eI = 1; eI < energyTerms.size(); eI++) {
-            Eigen::SparseMatrix<double> precondMtrI;
-            energyTerms[eI]->computePrecondMtr(data, precondMtrI);
-            if(precondMtrI.rows() == precondMtr.rows() * 2) {
-                precondMtrI *= energyParams[eI];
-                for (int k = 0; k < precondMtr.outerSize(); ++k)
-                {
-                    for (Eigen::SparseMatrix<double>::InnerIterator it(precondMtr, k); it; ++it)
+        //TODO: Augment matrix with new information, use the previous sparse structure, for eI>=1, especially separation energy
+        
+        if(pardisoThreadAmt) {
+            I_mtr.resize(0);
+            J_mtr.resize(0);
+            V_mtr.resize(0);
+            energyTerms[0]->computePrecondMtr(data, &V_mtr, &I_mtr, &J_mtr);
+            V_mtr *= energyParams[0];
+//            IglUtils::writeSparseMatrixToFile("/Users/mincli/Desktop/FracCuts/mtr", I_mtr, J_mtr, V_mtr, true);
+            //TODO: eI >= 1
+        }
+        else {
+            //TODO: triplet representation for eigen matrices
+            precondMtr.setZero();
+            energyTerms[0]->computePrecondMtr(data, precondMtr);
+            precondMtr *= energyParams[0];
+            for(int eI = 1; eI < energyTerms.size(); eI++) {
+                Eigen::SparseMatrix<double> precondMtrI;
+                energyTerms[eI]->computePrecondMtr(data, precondMtrI);
+                if(precondMtrI.rows() == precondMtr.rows() * 2) {
+                    precondMtrI *= energyParams[eI];
+                    for (int k = 0; k < precondMtr.outerSize(); ++k)
                     {
-                        precondMtrI.coeffRef(it.row() * 2, it.col() * 2) += it.value();
-                        precondMtrI.coeffRef(it.row() * 2 + 1, it.col() * 2 + 1) += it.value();
+                        for (Eigen::SparseMatrix<double>::InnerIterator it(precondMtr, k); it; ++it)
+                        {
+                            precondMtrI.coeffRef(it.row() * 2, it.col() * 2) += it.value();
+                            precondMtrI.coeffRef(it.row() * 2 + 1, it.col() * 2 + 1) += it.value();
+                        }
+                    }
+                    precondMtr = precondMtrI;
+                }
+                else if(precondMtrI.rows() * 2 == precondMtr.rows()) {
+                    for (int k = 0; k < precondMtrI.outerSize(); ++k)
+                    {
+                        for (Eigen::SparseMatrix<double>::InnerIterator it(precondMtrI, k); it; ++it)
+                        {
+                            precondMtr.coeffRef(it.row() * 2, it.col() * 2) += energyParams[eI] * it.value();
+                            precondMtr.coeffRef(it.row() * 2 + 1, it.col() * 2 + 1) += energyParams[eI] * it.value();
+                        }
                     }
                 }
-                precondMtr = precondMtrI;
-            }
-            else if(precondMtrI.rows() * 2 == precondMtr.rows()) {
-                for (int k = 0; k < precondMtrI.outerSize(); ++k)
-                {
-                    for (Eigen::SparseMatrix<double>::InnerIterator it(precondMtrI, k); it; ++it)
-                    {
-                        precondMtr.coeffRef(it.row() * 2, it.col() * 2) += energyParams[eI] * it.value();
-                        precondMtr.coeffRef(it.row() * 2 + 1, it.col() * 2 + 1) += energyParams[eI] * it.value();
-                    }
+                else {
+                    assert(precondMtrI.rows() == precondMtr.rows());
+                    precondMtr += energyParams[eI] * precondMtrI;
                 }
-            }
-            else {
-                assert(precondMtrI.rows() == precondMtr.rows());
-                precondMtr += energyParams[eI] * precondMtrI;
             }
         }
         

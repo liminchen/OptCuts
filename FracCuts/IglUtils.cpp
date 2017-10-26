@@ -213,6 +213,121 @@ namespace FracCuts {
         }
     }
     
+    void IglUtils::addDiagonalToMatrix(const Eigen::VectorXd& diagonal, const Eigen::VectorXi& index, int dim,
+                                    Eigen::VectorXd* V, Eigen::VectorXi* I, Eigen::VectorXi* J)
+    {
+        assert(index.size() * dim == diagonal.size());
+        
+        assert(V);
+        int tripletInd = static_cast<int>(V->size());
+        const int entryAmt = static_cast<int>(diagonal.size());
+        V->conservativeResize(tripletInd + entryAmt);
+        if(I) {
+            assert(J);
+            assert(I->size() == tripletInd);
+            assert(J->size() == tripletInd);
+            I->conservativeResize(tripletInd + entryAmt);
+            J->conservativeResize(tripletInd + entryAmt);
+        }
+        
+        for(int indI = 0; indI < index.size(); indI++) {
+            if(index[indI] < 0) {
+                assert(0 && "currently doesn't support fixed vertices here!");
+                continue;
+            }
+            int startIndI = index[indI] * dim;
+            int startIndI_diagonal = indI * dim;
+            
+            for(int dimI = 0; dimI < dim; dimI++) {
+                (*V)[tripletInd] = diagonal(startIndI_diagonal + dimI);
+                if(I) {
+                    (*I)[tripletInd] = (*J)[tripletInd] = startIndI + dimI;
+                }
+                tripletInd++;
+            }
+        }
+    }
+    
+    void IglUtils::addBlockToMatrix(const Eigen::MatrixXd& block, const Eigen::VectorXi& index, int dim,
+                                 Eigen::VectorXd* V, Eigen::VectorXi* I, Eigen::VectorXi* J)
+    {
+        int num_free = 0;
+        for(int indI = 0; indI < index.size(); indI++) {
+            if(index[indI] >= 0) {
+                num_free++;
+            }
+        }
+        if(!num_free) {
+            return;
+        }
+        
+        assert(block.rows() == block.cols());
+        assert(index.size() * dim == block.rows());
+        
+        assert(V);
+        int tripletInd = static_cast<int>(V->size());
+        const int entryAmt = static_cast<int>(dim * dim * num_free * num_free);
+        V->conservativeResize(tripletInd + entryAmt);
+        if(I) {
+            assert(J);
+            assert(I->size() == tripletInd);
+            assert(J->size() == tripletInd);
+            I->conservativeResize(tripletInd + entryAmt);
+            J->conservativeResize(tripletInd + entryAmt);
+        }
+        
+        for(int indI = 0; indI < index.size(); indI++) {
+            if(index[indI] < 0) {
+                continue;
+            }
+            int startIndI = index[indI] * dim;
+            int startIndI_block = indI * dim;
+            
+            for(int indJ = 0; indJ < index.size(); indJ++) {
+                if(index[indJ] < 0) {
+                    continue;
+                }
+                int startIndJ = index[indJ] * dim;
+                int startIndJ_block = indJ * dim;
+                
+                for(int dimI = 0; dimI < dim; dimI++) {
+                    for(int dimJ = 0; dimJ < dim; dimJ++) {
+                        (*V)[tripletInd] = block(startIndI_block + dimI, startIndJ_block + dimJ);
+                        if(I) {
+                            (*I)[tripletInd] = startIndI + dimI;
+                            (*J)[tripletInd] = startIndJ + dimJ;
+                        }
+                        tripletInd++;
+                    }
+                }
+            }
+        }
+        assert(tripletInd == V->size());
+    }
+    
+    void IglUtils::writeSparseMatrixToFile(const std::string& filePath, const Eigen::VectorXi& I, const Eigen::VectorXi& J,
+                                        const Eigen::VectorXd& V, bool MATLAB)
+    {
+        assert(I.size() == J.size());
+        assert(V.size() == I.size());
+        
+        std::ofstream out;
+        out.open(filePath);
+        if(out.is_open()) {
+            if(!MATLAB) {
+                out << I.maxCoeff() + 1 << " " << J.maxCoeff() + 1 << " " << I.size() << std::endl;
+            }
+            for (int k = 0; k < I.size(); k++) {
+                out << I[k] + MATLAB << " " << J[k] + MATLAB << " " << V[k] << std::endl;
+            }
+            out.close();
+        }
+        else {
+            std::cout << "writeSparseMatrixToFile failed! file open error!" << std::endl;
+        }
+
+    }
+    
     void IglUtils::writeSparseMatrixToFile(const std::string& filePath, const Eigen::SparseMatrix<double>& mtr, bool MATLAB)
     {
         std::ofstream out;

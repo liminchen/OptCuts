@@ -40,6 +40,12 @@ namespace FracCuts {
         energyVal = energyValPerElem.sum();
     }
     
+    void Energy::computePrecondMtr(const TriangleSoup& data, Eigen::VectorXd* V,
+                                   Eigen::VectorXi* I, Eigen::VectorXi* J) const
+    {
+        assert(0 && "please implement this method in your subclass!");
+    }
+    
     void Energy::checkGradient(const TriangleSoup& data) const
     {
         std::cout << "checking energy gradient computation..." << std::endl;
@@ -83,7 +89,7 @@ namespace FracCuts {
         logFile << "g_finiteDiff = \n" << gradient_finiteDiff << std::endl;
     }
     
-    void Energy::checkHessian(const TriangleSoup& data) const
+    void Energy::checkHessian(const TriangleSoup& data, bool triplet) const
     {
         std::cout << "checking energy hessian computation..." << std::endl;
         
@@ -123,7 +129,20 @@ namespace FracCuts {
         }
         
         Eigen::SparseMatrix<double> hessian_symbolic;
-        computeHessian(data, hessian_symbolic);
+        if(triplet) {
+            Eigen::VectorXi I, J;
+            Eigen::VectorXd V;
+            computePrecondMtr(data, &V, &I, &J); //TODO: change name to Hessian!
+            std::vector<Eigen::Triplet<double>> triplet(V.size());
+            for(int entryI = 0; entryI < V.size(); entryI++) {
+                triplet[entryI] = Eigen::Triplet<double>(I[entryI], J[entryI], V[entryI]);
+            }
+            hessian_symbolic.resize(data.V.rows() * 2, data.V.rows() * 2);
+            hessian_symbolic.setFromTriplets(triplet.begin(), triplet.end());
+        }
+        else {
+            computeHessian(data, hessian_symbolic);
+        }
         
         Eigen::SparseMatrix<double> difMtr = hessian_symbolic - hessian_finiteDiff;
         const double dif_L2 = difMtr.norm();

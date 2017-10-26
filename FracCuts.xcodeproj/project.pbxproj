@@ -15,6 +15,7 @@
 		988ED1321F575C3C00B21181 /* IglUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 988ED1301F575C3C00B21181 /* IglUtils.cpp */; };
 		988ED1351F5871F200B21181 /* Optimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 988ED1331F5871F200B21181 /* Optimizer.cpp */; };
 		98A5A32B1F5F5BB900584EFD /* ARAPEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98A5A3291F5F5BB900584EFD /* ARAPEnergy.cpp */; };
+		98BFBB1F1FA153EA00142E10 /* libtbb.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 98BFBB1E1FA153EA00142E10 /* libtbb.dylib */; };
 		98C2D8F41F6348820048B18A /* SeparationEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98C2D8F21F6348820048B18A /* SeparationEnergy.cpp */; };
 		98CE47681F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 98CE47671F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib */; };
 		98CE476F1F71E66300627725 /* PardisoSolver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98CE476D1F71E66300627725 /* PardisoSolver.cpp */; };
@@ -51,6 +52,7 @@
 		988ED1371F58721B00B21181 /* Energy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Energy.hpp; sourceTree = "<group>"; };
 		98A5A3291F5F5BB900584EFD /* ARAPEnergy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ARAPEnergy.cpp; sourceTree = "<group>"; };
 		98A5A32A1F5F5BB900584EFD /* ARAPEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ARAPEnergy.hpp; sourceTree = "<group>"; };
+		98BFBB1E1FA153EA00142E10 /* libtbb.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbb.dylib; path = ../../../../usr/local/lib/libtbb.dylib; sourceTree = "<group>"; };
 		98C2D8F21F6348820048B18A /* SeparationEnergy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SeparationEnergy.cpp; sourceTree = "<group>"; };
 		98C2D8F31F6348820048B18A /* SeparationEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SeparationEnergy.hpp; sourceTree = "<group>"; };
 		98CE47671F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libpardiso500-MACOS-X86-64.dylib"; path = "../../../../usr/local/lib/libpardiso500-MACOS-X86-64.dylib"; sourceTree = "<group>"; };
@@ -70,6 +72,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				98BFBB1F1FA153EA00142E10 /* libtbb.dylib in Frameworks */,
 				98CE47681F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib in Frameworks */,
 				98D5B2101F67274100DCE9F4 /* libstb_image.a in Frameworks */,
 				988ED12C1F57237F00B21181 /* libglfw.3.2.dylib in Frameworks */,
@@ -127,6 +130,7 @@
 		988ED1261F57211500B21181 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				98BFBB1E1FA153EA00142E10 /* libtbb.dylib */,
 				98CE47691F71E2DC00627725 /* gfortran */,
 				98CE47671F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib */,
 				98D5B20F1F67274100DCE9F4 /* libstb_image.a */,
@@ -307,6 +311,7 @@
 					"/Users/mincli/Documents/eigen-eigen-5a0156e40feb",
 					"/Users/mincli/Documents/glfw-3.2.1/include",
 					/Users/mincli/Documents/libigl/external/stb_image,
+					/Users/mincli/Documents/tbb2018_20170919oss/include,
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
@@ -325,6 +330,7 @@
 					"/Users/mincli/Documents/eigen-eigen-5a0156e40feb",
 					"/Users/mincli/Documents/glfw-3.2.1/include",
 					/Users/mincli/Documents/libigl/external/stb_image,
+					/Users/mincli/Documents/tbb2018_20170919oss/include,
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,

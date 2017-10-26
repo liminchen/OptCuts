@@ -321,6 +321,9 @@ namespace FracCuts {
         e0SqLen.resize(F.rows());
         e1SqLen.resize(F.rows());
         e0dote1.resize(F.rows());
+        e0SqLen_div_dbAreaSq.resize(F.rows());
+        e1SqLen_div_dbAreaSq.resize(F.rows());
+        e0dote1_div_dbAreaSq.resize(F.rows());
         for(int triI = 0; triI < F.rows(); triI++) {
             const Eigen::Vector3i& triVInd = F.row(triI);
             
@@ -337,6 +340,10 @@ namespace FracCuts {
             e0SqLen[triI] = P2m1.squaredNorm();
             e1SqLen[triI] = P3m1.squaredNorm();
             e0dote1[triI] = P2m1.dot(P3m1);
+            
+            e0SqLen_div_dbAreaSq[triI] = e0SqLen[triI] / 2. / triAreaSq[triI];
+            e1SqLen_div_dbAreaSq[triI] = e1SqLen[triI] / 2. / triAreaSq[triI];
+            e0dote1_div_dbAreaSq[triI] = e0dote1[triI] / 2. / triAreaSq[triI];
         }
         avgEdgeLen = igl::avg_edge_length(V_rest, F);
         virtualPerimeter = avgEdgeLen * std::sqrt(F.rows());
