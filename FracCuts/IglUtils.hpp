@@ -40,6 +40,20 @@ namespace FracCuts {
         static void addDiagonalToMatrix(const Eigen::VectorXd& diagonal, const Eigen::VectorXi& index, int dim,
                                      Eigen::VectorXd* V, Eigen::VectorXi* I = NULL, Eigen::VectorXi* J = NULL);
         
+        template<typename Scalar, int rows, int cols>
+        static void symmetrizeMatrix(Eigen::Matrix<Scalar, rows, cols>& mtr) {
+            if(rows != cols) {
+                return;
+            }
+            
+            for(int rowI = 0; rowI < rows; rowI++) {
+                for(int colI = rowI + 1; colI < cols; colI++) {
+                    double &a = mtr(rowI, colI), &b = mtr(colI, rowI);
+                    a = b = (a + b) / 2.0;
+                }
+            }
+        }
+        
         static void writeSparseMatrixToFile(const std::string& filePath, const Eigen::SparseMatrix<double>& mtr, bool MATLAB = false);
         static void writeSparseMatrixToFile(const std::string& filePath, const Eigen::VectorXi& I, const Eigen::VectorXi& J,
                                             const Eigen::VectorXd& V, bool MATLAB = false);

@@ -99,15 +99,19 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/debug/simp/max_planck_i_f8000.obj 0.025 1 0 test"
+            argument = "0 /Users/mincli/Downloads/meshes/needMoreTime/max_planck_i_f8000.obj 0.025 1 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/passed/needMuchTime/dragon_i_f10000.obj 0.025 1 0"
+            argument = "100 /Users/mincli/Downloads/meshes/needMoreTime/rgb_dragon_o_f8000.obj 0.025 4 0"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "100 /Users/mincli/Downloads/meshes/needMoreTime/lucy_o_f8000.obj 0.025 4 0"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/passed/cat.obj 0.025 4 0"
+            argument = "0 /Users/mincli/Downloads/meshes/cat.obj 0.025 4 0"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument

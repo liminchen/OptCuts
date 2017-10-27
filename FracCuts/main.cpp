@@ -64,6 +64,7 @@ bool isCapture3D = false;
 int capture3DI = 0;
 GifWriter GIFWriter;
 const uint32_t GIFDelay = 16; //*10ms
+double GIFScale = 0.5;
 
 
 void proceedOptimization(int proceedNum = 1)
@@ -177,7 +178,7 @@ void updateViewerData(void)
 void saveScreenshot(const std::string& filePath, double scale = 1.0, bool writeGIF = false, bool writePNG = true)
 {
     if(writeGIF) {
-        scale = 1.0;
+        scale = GIFScale;
     }
     
     int width = static_cast<int>(scale * (viewer.core.viewport[2] - viewer.core.viewport[0]));
@@ -257,8 +258,8 @@ void toggleOptimization(void)
         else {
             if(iterNum == 0) {
                 GifBegin(&GIFWriter, (outputFolderPath + "anim.gif").c_str(),
-                         viewer.core.viewport[2] - viewer.core.viewport[0],
-                         viewer.core.viewport[3] - viewer.core.viewport[1], GIFDelay);
+                         GIFScale * (viewer.core.viewport[2] - viewer.core.viewport[0]),
+                         GIFScale * (viewer.core.viewport[3] - viewer.core.viewport[1]), GIFDelay);
                 
                 homoTransFile.open(outputFolderPath + "homotopyTransition.txt");
                 assert(homoTransFile.is_open());

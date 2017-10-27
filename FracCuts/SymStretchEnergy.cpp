@@ -16,6 +16,7 @@
 
 #include <limits>
 #include <fstream>
+#include <cfloat>
 
 extern std::ofstream logFile;
 
@@ -166,56 +167,52 @@ namespace FracCuts {
             const Eigen::Matrix2d dLeft1dRight1T = dLeft1 * dRight1.transpose();
             curHessian.block(0, 0, 2, 2) = w * (d2Left11 * rightTerm + dLeft1dRight1T +
                                                 d2Right11 * leftTerm * Eigen::Matrix2d::Identity() + dLeft1dRight1T.transpose());
-            
+            curHessian(0, 1) = curHessian(1, 0) = (curHessian(0, 1) + curHessian(1, 0)) / 2.0;
+        
             const Eigen::Matrix2d d2Left12 = dAreaRatio_div_dArea_mult * edge_oppo1_Ortho * edge_oppo2_Ortho.transpose() +
             areaRatio * dOrtho_div_dU;
             const double d2Right12 = (e0dote1_div_dbAreaSq - e1SqLen_div_dbAreaSq);
             curHessian.block(0, 2, 2, 2) = w * (d2Left12 * rightTerm + dLeft1 * dRight2.transpose() +
                                                 d2Right12 * leftTerm * Eigen::Matrix2d::Identity() + dRight1 * dLeft2.transpose());
-            
+            curHessian.block(2, 0, 2, 2) = curHessian.block(0, 2, 2, 2).transpose();
+    
             const Eigen::Matrix2d d2Left13 = dAreaRatio_div_dArea_mult * edge_oppo1_Ortho * edge_oppo3_Ortho.transpose() +
             areaRatio * (-dOrtho_div_dU);
             const double d2Right13 = (e0dote1_div_dbAreaSq - e0SqLen_div_dbAreaSq);
             curHessian.block(0, 4, 2, 2) = w * (d2Left13 * rightTerm + dLeft1 * dRight3.transpose() +
                                                 d2Right13 * leftTerm * Eigen::Matrix2d::Identity() + dRight1 * dLeft3.transpose());
-            
+            curHessian.block(4, 0, 2, 2) = curHessian.block(0, 4, 2, 2).transpose();
+        
             // compute second order derivatives for g_U2
-            curHessian.block(2, 0, 2, 2) = curHessian.block(0, 2, 2, 2).transpose();
-            
             const Eigen::Matrix2d d2Left22 = dAreaRatio_div_dArea_mult * edge_oppo2_Ortho * edge_oppo2_Ortho.transpose();
             const double d2Right22 = e1SqLen_div_dbAreaSq;
             curHessian.block(2, 2, 2, 2) = w * (d2Left22 * rightTerm + dLeft2 * dRight2.transpose() +
                                                 d2Right22 * leftTerm * Eigen::Matrix2d::Identity() + dRight2 * dLeft2.transpose());
-            
+            curHessian(2, 3) = curHessian(3, 2) = (curHessian(2, 3) + curHessian(3, 2)) / 2.0;
+        
             const Eigen::Matrix2d d2Left23 = dAreaRatio_div_dArea_mult * edge_oppo2_Ortho * edge_oppo3_Ortho.transpose() +
             areaRatio * dOrtho_div_dU;
             const double d2Right23 = -e0dote1_div_dbAreaSq;
             curHessian.block(2, 4, 2, 2) = w * (d2Left23 * rightTerm + dLeft2 * dRight3.transpose() +
                                                 d2Right23 * leftTerm * Eigen::Matrix2d::Identity() + dRight2 * dLeft3.transpose());
-            
-            // compute second order derivatives for g_U3
-            curHessian.block(4, 0, 2, 2) = curHessian.block(0, 4, 2, 2).transpose();
-            
             curHessian.block(4, 2, 2, 2) = curHessian.block(2, 4, 2, 2).transpose();
-            
+        
+            // compute second order derivatives for g_U3
             const Eigen::Matrix2d d2Left33 = dAreaRatio_div_dArea_mult * edge_oppo3_Ortho * edge_oppo3_Ortho.transpose();
             const double d2Right33 = e0SqLen_div_dbAreaSq;
             curHessian.block(4, 4, 2, 2) = w * (d2Left33 * rightTerm + dLeft3 * dRight3.transpose() +
                                                 d2Right33 * leftTerm * Eigen::Matrix2d::Identity() + dRight3 * dLeft3.transpose());
+            curHessian(4, 5) = curHessian(5, 4) = (curHessian(4, 5) + curHessian(5, 4)) / 2.0;
             
             // project to nearest SPD matrix
             Eigen::JacobiSVD<Eigen::Matrix<double, 6, 6>> svd(curHessian, Eigen::ComputeFullV);
             Eigen::Matrix<double, 6, 6> curHessian_SPD = 0.5 * (curHessian +
                 svd.matrixV() * Eigen::DiagonalMatrix<double, 6>(svd.singularValues()) * svd.matrixV().transpose());
-//            Eigen::Matrix<double, 6, 6> curHessian_SPD_ensure = curHessian_SPD;//0.5 * (curHessian_SPD + curHessian_SPD.transpose());
-//            if(curHessian_SPD_ensure.determinant() < 0.0) {
-////                logFile << curHessian_SPD_ensure.determinant() << " ";
-//                Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double, 6, 6>> eigenSolver(curHessian_SPD_ensure);
-//                curHessian_SPD_ensure.diagonal() -= eigenSolver.eigenvalues()[0] * Eigen::VectorXd::Ones(6);
-////                logFile << curHessian_SPD_ensure.determinant() << std::endl;
-////                logFile << eigenSolver.eigenvalues().transpose() << std::endl;
+            IglUtils::symmetrizeMatrix(curHessian_SPD);
+//            for(int corI = 0; (curHessian_SPD.determinant() <= 0.0) && (corI < 1); corI++) {
+//                Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double, 6, 6>> eigenSolver(curHessian_SPD);
+//                curHessian_SPD.diagonal() -= std::nextafter(eigenSolver.eigenvalues()[0], DBL_MIN) * Eigen::VectorXd::Ones(6);
 //            }
-////            logFile << std::endl;
             
             Eigen::VectorXi vInd = triVInd;
             for(int vI = 0; vI < 3; vI++) {

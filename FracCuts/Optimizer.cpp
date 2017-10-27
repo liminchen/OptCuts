@@ -113,7 +113,7 @@ namespace FracCuts {
             }
         }
         else {
-            pardisoSolver.set_type(pardisoThreadAmt, 2);
+            pardisoSolver.set_type(pardisoThreadAmt, -2);
             pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
             pardisoSolver.analyze_pattern();
             pardisoSolver.factorize();
@@ -236,7 +236,7 @@ namespace FracCuts {
             }
             else {
                 pardisoSolver = PardisoSolver<Eigen::VectorXi, Eigen::VectorXd>(); //TODO: make it cheaper!
-                pardisoSolver.set_type(pardisoThreadAmt, 2);
+                pardisoSolver.set_type(pardisoThreadAmt, -2);
                 pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
                 pardisoSolver.analyze_pattern();
                 if(!needRefactorize) {
@@ -287,7 +287,7 @@ namespace FracCuts {
             }
             else {
                 pardisoSolver = PardisoSolver<Eigen::VectorXi, Eigen::VectorXd>(); //TODO: make it cheaper!
-                pardisoSolver.set_type(pardisoThreadAmt, 2);
+                pardisoSolver.set_type(pardisoThreadAmt, -2);
                 pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
                 pardisoSolver.analyze_pattern();
                 if(!needRefactorize) {
@@ -325,7 +325,13 @@ namespace FracCuts {
             }
             else {
                 pardisoSolver.update_a(V_mtr);
-                pardisoSolver.factorize();
+                try {
+                    pardisoSolver.factorize();
+                }
+                catch(std::exception e) {
+                    IglUtils::writeSparseMatrixToFile(outputFolderPath + "mtr", I_mtr, J_mtr, V_mtr, true);
+                    exit(-1);
+                }
             }
         }
         
