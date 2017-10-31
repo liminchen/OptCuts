@@ -58,6 +58,7 @@ namespace FracCuts{
         double preFracEInc;
         std::set<int> fracTail;
         std::array<std::pair<std::set<int>, std::set<int>>, 2> subOptimizerInfo;
+        double initSeamLen;
         
     public: // constructor
         // default constructor that doesn't do anything
@@ -66,7 +67,8 @@ namespace FracCuts{
         // initialize from a triangle mesh, V will be constructed from UV_mesh in 2D,
         // V_mesh will be used to initialize restShape
         TriangleSoup(const Eigen::MatrixXd& V_mesh, const Eigen::MatrixXi& F_mesh,
-                     const Eigen::MatrixXd& UV_mesh, const Eigen::MatrixXi& FUV_mesh = Eigen::MatrixXi(), bool separateTri = true);
+                     const Eigen::MatrixXd& UV_mesh, const Eigen::MatrixXi& FUV_mesh = Eigen::MatrixXi(),
+                     bool separateTri = true, double p_initSeamLen = 0.0);
         
         TriangleSoup(Primitive primitive, double size = 1.0, double spacing = 0.1, bool separateTri = true);
         
@@ -80,6 +82,11 @@ namespace FracCuts{
         void resetSubOptInfo(void);
         bool splitEdge(double lambda_t, double thres = 0.0, bool propagate = false); //DEBUG
         bool mergeEdge(void); //DEBUG
+        
+        void onePointCut(int vI = 0);
+        void highCurvOnePointCut(void);
+        void farthestPointCut(void);
+        void cutPath(const std::vector<int>& path);
         
         void computeSeamScore(Eigen::VectorXd& seamScore) const;
         void computeSeamSparsity(double& sparsity) const;

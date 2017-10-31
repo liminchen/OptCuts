@@ -205,10 +205,7 @@ namespace FracCuts {
             curHessian(4, 5) = curHessian(5, 4) = (curHessian(4, 5) + curHessian(5, 4)) / 2.0;
             
             // project to nearest SPD matrix
-            Eigen::JacobiSVD<Eigen::Matrix<double, 6, 6>> svd(curHessian, Eigen::ComputeFullV);
-            Eigen::Matrix<double, 6, 6> curHessian_SPD = 0.5 * (curHessian +
-                svd.matrixV() * Eigen::DiagonalMatrix<double, 6>(svd.singularValues()) * svd.matrixV().transpose());
-            IglUtils::symmetrizeMatrix(curHessian_SPD);
+            IglUtils::makePD(curHessian);
 //            for(int corI = 0; (curHessian_SPD.determinant() <= 0.0) && (corI < 1); corI++) {
 //                Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double, 6, 6>> eigenSolver(curHessian_SPD);
 //                curHessian_SPD.diagonal() -= std::nextafter(eigenSolver.eigenvalues()[0], DBL_MIN) * Eigen::VectorXd::Ones(6);
@@ -220,8 +217,7 @@ namespace FracCuts {
                     vInd[vI] = -1;
                 }
             }
-            IglUtils::addBlockToMatrix(curHessian_SPD, vInd, 2, V, I, J);
-//            IglUtils::addBlockToMatrix(curHessian, vInd, 2, V, I, J);
+            IglUtils::addBlockToMatrix(curHessian, vInd, 2, V, I, J);
         }
 //        std::cout << static_cast<double>(clock() - start) / CLOCKS_PER_SEC << "s" << std::endl;
         

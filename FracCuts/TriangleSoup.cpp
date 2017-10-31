@@ -24,11 +24,12 @@ namespace FracCuts {
     
     TriangleSoup::TriangleSoup(void)
     {
-        
+        initSeamLen = 0.0;
     }
     
     TriangleSoup::TriangleSoup(const Eigen::MatrixXd& V_mesh, const Eigen::MatrixXi& F_mesh,
-                               const Eigen::MatrixXd& UV_mesh, const Eigen::MatrixXi& FUV_mesh, bool separateTri)
+                               const Eigen::MatrixXd& UV_mesh, const Eigen::MatrixXi& FUV_mesh,
+                               bool separateTri, double p_initSeamLen)
     {
         bool multiComp = false; //TODO: detect whether the mesh is multi-component
         if(separateTri)
@@ -165,11 +166,17 @@ namespace FracCuts {
                 }
             }
             else {
-                assert(0 && "No UV provided!");
+                assert(V_mesh.rows() > 0);
+                assert(F_mesh.rows() > 0);
+                V_rest = V_mesh;
+                F = F_mesh;
+                V = Eigen::MatrixXd::Zero(V_rest.rows(), 2);
+                std::cout << "No UV provided, initialized to all 0" << std::endl;
             }
         }
         
         computeFeatures();
+        initSeamLen = p_initSeamLen;
     }
     
     void initCylinder(double r1_x, double r1_y, double r2_x, double r2_y, double height, int circle_res, int height_resolution,
@@ -262,6 +269,7 @@ namespace FracCuts {
         else {
             computeFeatures();
         }
+        initSeamLen = 0.0;
     }
     
     void TriangleSoup::computeLaplacianMtr(void)
@@ -372,7 +380,7 @@ namespace FracCuts {
         
         edge2Tri.clear();
         vNeighbor.resize(0);
-        vNeighbor.resize(V.rows());
+        vNeighbor.resize(V_rest.rows());
         for(int triI = 0; triI < F.rows(); triI++) {
             const Eigen::RowVector3i& triVInd = F.row(triI);
             for(int vI = 0; vI < 3; vI++) {
@@ -906,6 +914,210 @@ namespace FracCuts {
         }
     }
     
+    void TriangleSoup::onePointCut(int vI)
+    {
+        assert((vI >= 0) && (vI < V_rest.rows()));
+        std::vector<int> path(vNeighbor[vI].begin(), vNeighbor[vI].end());
+        assert(path.size() >= 3);
+        path[1] = vI;
+        path.resize(3);
+        
+        for(int pI = 0; pI + 1 < path.size(); pI++) {
+            initSeamLen += 2.0 * (V_rest.row(path[pI]) - V_rest.row(path[pI + 1])).norm();
+        }
+        
+        cutPath(path);
+    }
+    
+    void TriangleSoup::highCurvOnePointCut(void)
+    {
+        std::vector<double> gaussianCurv(V.rows(), 2.0 * M_PI);
+        for(int triI = 0; triI < F.rows(); triI++) {
+            const Eigen::RowVector3i& triVInd = F.row(triI);
+            const Eigen::RowVector3d v[3] = {
+                V_rest.row(triVInd[0]),
+                V_rest.row(triVInd[1]),
+                V_rest.row(triVInd[2])
+            };
+            for(int vI = 0; vI < 3; vI++) {
+                int vI_post = (vI + 1) % 3;
+                int vI_pre = (vI + 2) % 3;
+                const Eigen::RowVector3d e0 = v[vI_pre] - v[vI];
+                const Eigen::RowVector3d e1 = v[vI_post] - v[vI];
+                gaussianCurv[triVInd[vI]] -= std::acos(std::max(-1.0, std::min(1.0, e0.dot(e1) / e0.norm() / e1.norm())));
+            }
+        }
+        
+        double maxGC = 0.0;
+        int vI_maxGC = -1;
+        for(int vI = 0; vI < gaussianCurv.size(); vI++) {
+            if(gaussianCurv[vI] > maxGC) {
+                maxGC = gaussianCurv[vI];
+                vI_maxGC = vI;
+            }
+        }
+        onePointCut(vI_maxGC);
+    }
+    
+    // A utility function to find the vertex with minimum distance value, from
+    // the set of vertices not yet included in shortest path tree
+    int minDistance(const std::vector<double>& dist, const std::vector<bool>& sptSet)
+    {
+        // Initialize min value
+        double min = __DBL_MAX__;
+        int min_index = -1;
+        
+        for (int v = 0; v < dist.size(); v++) {
+            if ((!sptSet[v]) && (dist[v] <= min)) {
+                min = dist[v], min_index = v;
+            }
+        }
+        
+        return min_index;
+    }
+    
+    // Funtion that implements Dijkstra's single source shortest path algorithm
+    // for a graph represented using adjacency matrix representation
+    void dijkstra(const std::vector<std::map<int, double>>& graph, int src, std::vector<int>& path)
+    {
+        int nV = static_cast<int>(graph.size());
+        
+        std::vector<double> dist(nV, __DBL_MAX__);     // The output array.  dist[i] will hold the shortest
+        // distance from src to i
+        
+        std::vector<bool> sptSet(nV, false); // sptSet[i] will true if vertex i is included in shortest
+        // path tree or shortest distance from src to i is finalized
+        
+        std::vector<int> parent(nV, -1);
+        
+        // Distance of source vertex from itself is always 0
+        dist[src] = 0.0;
+        
+        // Find shortest path for all vertices
+        for (int count = 0; count + 1 < nV; count++)
+        {
+            // Pick the minimum distance vertex from the set of vertices not
+            // yet processed. u is always equal to src in first iteration.
+            int u = minDistance(dist, sptSet);
+            
+            // Mark the picked vertex as processed
+            sptSet[u] = true;
+            
+            for(const auto v : graph[u]) {
+                // Update dist[v] only if is not in sptSet, there is an edge from
+                // u to v, and total weight of path from src to  v through u is
+                // smaller than current value of dist[v]
+                if ((!sptSet[v.first]) && (dist[u] != __DBL_MAX__)
+                    && (dist[u] + v.second < dist[v.first]))
+                {
+                    dist[v.first] = dist[u] + v.second;
+                    parent[v.first] = u;
+                }
+            }
+        }
+        
+        double maxDist = 0.0;
+        int vI_maxDist = -1;
+        for(int vI = 0; vI < nV; vI++) {
+            if(dist[vI] > maxDist) {
+                maxDist = dist[vI];
+                vI_maxDist = vI;
+            }
+        }
+        assert(vI_maxDist >= 0);
+        path.resize(0);
+        while(vI_maxDist >= 0) {
+            path.emplace_back(vI_maxDist);
+            vI_maxDist = parent[vI_maxDist];
+        }
+        std::reverse(path.begin(), path.end());
+    }
+    
+    void TriangleSoup::farthestPointCut(void)
+    {
+        assert(vNeighbor.size() == V_rest.rows());
+        
+        std::vector<std::map<int, double>> graph(vNeighbor.size());
+        for(int vI = 0; vI < vNeighbor.size(); vI++) {
+            for(const auto nbI : vNeighbor[vI]) {
+                if(nbI > vI) {
+                    graph[nbI][vI] = graph[vI][nbI] = (V_rest.row(vI) - V_rest.row(nbI)).norm();
+                }
+            }
+        }
+        
+        std::vector<int> path;
+        dijkstra(graph, 0, path);
+        dijkstra(graph, path.back(), path);
+        
+        for(int pI = 0; pI + 1 < path.size(); pI++) {
+            initSeamLen += 2.0 * (V_rest.row(path[pI]) - V_rest.row(path[pI + 1])).norm();
+        }
+        
+        cutPath(path);
+//        save("/Users/mincli/Downloads/meshes/test_triSoup.obj");
+//        saveAsMesh("/Users/mincli/Downloads/meshes/test_mesh.obj");
+    }
+    
+    void TriangleSoup::cutPath(const std::vector<int>& path)
+    {
+        assert(path.size() >= 3);
+        
+        std::vector<int> tri_left;
+        int vI = path[1];
+        int vI_new = path[0];
+        while(1) {
+            auto finder = edge2Tri.find(std::pair<int, int>(vI, vI_new));
+            assert(finder != edge2Tri.end());
+            tri_left.emplace_back(finder->second);
+            const Eigen::RowVector3i& triVInd = F.row(finder->second);
+            for(int i = 0; i < 3; i++) {
+                if((triVInd[i] != vI) && (triVInd[i] != vI_new)) {
+                    vI_new = triVInd[i];
+                    break;
+                }
+            }
+            
+            if(vI_new == path[2]) {
+                break;
+            }
+            if(vI_new == path[0]) {
+                assert(0 && "not a valid path!");
+            }
+        }
+        
+        int nV = static_cast<int>(V_rest.rows());
+        V_rest.conservativeResize(nV + 1, 3);
+        V_rest.row(nV) = V_rest.row(path[1]);
+        V.conservativeResize(nV + 1, 2);
+        V.row(nV) = V.row(path[1]);
+        for(const auto triI : tri_left) {
+            for(int vI = 0; vI < 3; vI++) {
+                if(F(triI, vI) == path[1]) {
+                    F(triI, vI) = nV;
+                    break;
+                }
+            }
+        }
+//        int nCoh = static_cast<int>(cohE.rows());
+//        cohE.conservativeResize(nCoh + 2, 4);
+//        cohE.row(nCoh) << nV, path[0], path[1], path[0];
+//        cohE.row(nCoh + 1) << path[2], nV, path[2], path[1];
+        
+        computeFeatures();
+        
+        for(int vI = 2; vI + 1 < path.size(); vI++) {
+            int vInd_s = path[vI];
+            int vInd_e = path[vI + 1];
+            assert(edge2Tri.find(std::pair<int, int>(vInd_s, vInd_e)) != edge2Tri.end());
+            assert(edge2Tri.find(std::pair<int, int>(vInd_e, vInd_s)) != edge2Tri.end());
+            Eigen::Matrix2d newVertPos;
+            newVertPos << V.row(vInd_s), V.row(vInd_s);
+            splitEdgeOnBoundary(std::pair<int, int>(vInd_s, vInd_e), newVertPos, edge2Tri, vNeighbor, cohEIndex);
+            updateFeatures();
+        }
+    }
+    
     void TriangleSoup::computeSeamScore(Eigen::VectorXd& seamScore) const
     {
         seamScore.resize(cohE.rows());
@@ -936,6 +1148,7 @@ namespace FracCuts {
                 }
             }
         }
+        sparsity += initSeamLen;
     }
     void TriangleSoup::computeStandardStretch(double& stretch_l2, double& stretch_inf, double& stretch_shear) const
     {
@@ -1008,7 +1221,7 @@ namespace FracCuts {
     
     bool TriangleSoup::checkInversion(void) const
     {
-        const double eps = 1.0e-20 * avgEdgeLen * avgEdgeLen;
+        const double eps = 0.0;//1.0e-20 * avgEdgeLen * avgEdgeLen;
         for(int triI = 0; triI < F.rows(); triI++)
         {
             const Eigen::Vector3i& triVInd = F.row(triI);

@@ -39,8 +39,8 @@ bool outerLoopFinished = false;
 
 std::ofstream logFile;
 std::string outputFolderPath = "/Users/mincli/Desktop/output_FracCuts/";
-//const std::string meshFolder = "/Users/mincli/Desktop/meshes/";
-const std::string meshFolder = "/Users/mincli/Downloads/meshes/";
+const std::string meshFolder = "/Users/mincli/Desktop/meshes/";
+//const std::string meshFolder = "/Users/mincli/Downloads/meshes/";
 
 // visualization
 igl::viewer::Viewer viewer;
@@ -837,11 +837,30 @@ int main(int argc, char *argv[])
                 "_" + startDS + folderTail;
         }
         else {
-            // rigid initialization for UV
-            assert((lambda > 0.0) && startWithTriSoup);
-            triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, Eigen::MatrixXd()));
-            outputFolderPath += meshName + "_rigid_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +
-                "_" + startDS + folderTail;
+//            // rigid initialization for UV
+//            assert((lambda > 0.0) && startWithTriSoup);
+//            triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, Eigen::MatrixXd()));
+//            outputFolderPath += meshName + "_rigid_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +
+//                "_" + startDS + folderTail;
+            
+            FracCuts::TriangleSoup *temp = new FracCuts::TriangleSoup(V, F, Eigen::MatrixXd(), Eigen::MatrixXi(), false);
+            temp->farthestPointCut(); // open up a boundary for Tutte embedding
+//            temp->highCurvOnePointCut();
+//            temp->onePointCut();
+            
+            igl::boundary_loop(temp->F, bnd);
+            assert(bnd.size());
+            Eigen::MatrixXd bnd_uv;
+            FracCuts::IglUtils::map_vertices_to_circle(temp->V_rest, bnd, bnd_uv);
+            Eigen::SparseMatrix<double> A, M;
+            FracCuts::IglUtils::computeUniformLaplacian(temp->F, A);
+            Eigen::MatrixXd UV_Tutte;
+            igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
+            triSoup.emplace_back(new FracCuts::TriangleSoup(temp->V_rest, temp->F, UV_Tutte, Eigen::MatrixXi(), false, temp->initSeamLen));
+            
+            delete temp;
+            outputFolderPath += meshName + "_farthestTutte_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +
+                            "_" + startDS + folderTail;
         }
     }
     
