@@ -167,7 +167,7 @@ namespace FracCuts {
             const Eigen::Matrix2d dLeft1dRight1T = dLeft1 * dRight1.transpose();
             curHessian.block(0, 0, 2, 2) = w * (d2Left11 * rightTerm + dLeft1dRight1T +
                                                 d2Right11 * leftTerm * Eigen::Matrix2d::Identity() + dLeft1dRight1T.transpose());
-            curHessian(0, 1) = curHessian(1, 0) = (curHessian(0, 1) + curHessian(1, 0)) / 2.0;
+//            curHessian(0, 1) = curHessian(1, 0) = (curHessian(0, 1) + curHessian(1, 0)) / 2.0;
         
             const Eigen::Matrix2d d2Left12 = dAreaRatio_div_dArea_mult * edge_oppo1_Ortho * edge_oppo2_Ortho.transpose() +
             areaRatio * dOrtho_div_dU;
@@ -188,7 +188,7 @@ namespace FracCuts {
             const double d2Right22 = e1SqLen_div_dbAreaSq;
             curHessian.block(2, 2, 2, 2) = w * (d2Left22 * rightTerm + dLeft2 * dRight2.transpose() +
                                                 d2Right22 * leftTerm * Eigen::Matrix2d::Identity() + dRight2 * dLeft2.transpose());
-            curHessian(2, 3) = curHessian(3, 2) = (curHessian(2, 3) + curHessian(3, 2)) / 2.0;
+//            curHessian(2, 3) = curHessian(3, 2) = (curHessian(2, 3) + curHessian(3, 2)) / 2.0;
         
             const Eigen::Matrix2d d2Left23 = dAreaRatio_div_dArea_mult * edge_oppo2_Ortho * edge_oppo3_Ortho.transpose() +
             areaRatio * dOrtho_div_dU;
@@ -202,7 +202,7 @@ namespace FracCuts {
             const double d2Right33 = e0SqLen_div_dbAreaSq;
             curHessian.block(4, 4, 2, 2) = w * (d2Left33 * rightTerm + dLeft3 * dRight3.transpose() +
                                                 d2Right33 * leftTerm * Eigen::Matrix2d::Identity() + dRight3 * dLeft3.transpose());
-            curHessian(4, 5) = curHessian(5, 4) = (curHessian(4, 5) + curHessian(5, 4)) / 2.0;
+//            curHessian(4, 5) = curHessian(5, 4) = (curHessian(4, 5) + curHessian(5, 4)) / 2.0;
             
             // project to nearest SPD matrix
             IglUtils::makePD(curHessian);

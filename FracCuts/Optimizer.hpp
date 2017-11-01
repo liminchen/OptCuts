@@ -68,7 +68,7 @@ namespace FracCuts {
         void updatePrecondMtrAndFactorize(void);
         
         void separateTriangles(double energyThres);
-        bool createFracture(double stressThres, bool allowPropagate = true);
+        bool createFracture(double stressThres, bool initiation, bool allowPropagate = true);
         
         void computeLastEnergyVal(void);
         

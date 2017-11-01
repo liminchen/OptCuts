@@ -56,18 +56,25 @@ namespace FracCuts {
         
         template<typename Scalar, int size>
         static void makePD(Eigen::Matrix<Scalar, size, size>& mtr) {
-            Eigen::JacobiSVD<Eigen::Matrix<Scalar, size, size>> svd(mtr, Eigen::ComputeFullV);
+//            Eigen::JacobiSVD<Eigen::Matrix<Scalar, size, size>> svd(mtr, Eigen::ComputeFullV);
+//            mtr = 0.5 * (mtr + svd.matrixV() * Eigen::DiagonalMatrix<Scalar, size>(svd.singularValues()) * svd.matrixV().transpose());
             
-            mtr = 0.5 * (mtr + svd.matrixV() * Eigen::DiagonalMatrix<Scalar, size>(svd.singularValues()) * svd.matrixV().transpose());
-//            Eigen::DiagonalMatrix<Scalar, size> sigma_clamp(svd.singularValues());
-//            for(int i = 0; i < size; i++) {
-//                if(sigma_clamp.diagonal()[i] < 0.0) {
-//                    sigma_clamp.diagonal()[i] = 0.0;
-//                }
-//            }
-//            mtr = svd.matrixV() * sigma_clamp * svd.matrixV().transpose();
+            Eigen::SelfAdjointEigenSolver<Eigen::Matrix<Scalar, size, size>> eigenSolver(mtr);
+            if(eigenSolver.eigenvalues()[0] >= 0.0) {
+                return;
+            }
+            Eigen::DiagonalMatrix<Scalar, size> D(eigenSolver.eigenvalues());
+            for(int i = 0; i < size; i++) {
+                if(D.diagonal()[i] < 0.0) {
+                    D.diagonal()[i] = 0.0;
+                }
+                else {
+                    break;
+                }
+            }
+            mtr = eigenSolver.eigenvectors() * D * eigenSolver.eigenvectors().transpose();
             
-            symmetrizeMatrix(mtr);
+//            symmetrizeMatrix(mtr); // to avoid numerical errors
         }
         
         static void writeSparseMatrixToFile(const std::string& filePath, const Eigen::SparseMatrix<double>& mtr, bool MATLAB = false);

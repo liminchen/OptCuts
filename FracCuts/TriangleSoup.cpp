@@ -702,6 +702,7 @@ namespace FracCuts {
         // found all candiate edges and evaluate the measurement
         std::pair<int, int> edgeToSplit;
         double maxStress = thres;
+//        std::cout << "split thres = " << maxStress << std::endl;
         double fracEInc = 0.0;
         Eigen::Matrix2d newVertPos;
         std::map<std::pair<int, int>, double> candidateEdge;
@@ -728,11 +729,15 @@ namespace FracCuts {
 //                    const Eigen::Vector2d& stretchDir0 = dg[eI.second].matrixU().block(0, 0, 2, 1);
 //                    const Eigen::Vector2d& stretchDir1 = dg[ETFinder->second].matrixU().block(0, 0, 2, 1);
 //                    const Eigen::Vector2d edgeDir = (V.row(eI.first.first) - V.row(eI.first.second)).normalized();
-//                    const double cosine0 = std::abs(edgeDir.dot(stretchDir0));
-//                    const double cosine1 = std::abs(edgeDir.dot(stretchDir1));
-//                    
+//                    const double cosine0 = std::min(1.0, std::abs(edgeDir.dot(stretchDir0)));
+//                    const double cosine1 = std::min(1.0, std::abs(edgeDir.dot(stretchDir1)));
 //                    candidateEdge[eI.first] = dg[eI.second].singularValues()[0] * (1.0 - cosine0) +
 //                        dg[ETFinder->second].singularValues()[0] * (1.0 - cosine1);
+//                    if(candidateEdge[eI.first] > maxStress) {
+//                        maxStress = candidateEdge[eI.first];
+//                        edgeToSplit = eI.first;
+//                    }
+                    
                     Eigen::Matrix2d newVertPosI;
                     const double eLen = (V_rest.row(eI.first.first) - V_rest.row(eI.first.second)).norm();
                     const double fracEIncI = lambda_t * eLen * 2.0 / virtualPerimeter;
@@ -781,8 +786,10 @@ namespace FracCuts {
 //            preFracEInc += fracEInc;
             std::cout << "last inner descent step E_dec = " << thres << std::endl;
             std::cout << "split edge E_dec = " << maxStress << std::endl;
-            logFile << maxStress << std::endl;
+//            logFile << maxStress << std::endl;
+//            computeEnergyDecrease(edgeToSplit, edge2Tri, vNeighbor, cohEIndex, newVertPos);
             splitEdgeOnBoundary(edgeToSplit, newVertPos, edge2Tri, vNeighbor, cohEIndex);
+//            splitEdgeOnBoundary(edgeToSplit, newVertPos, edge2Tri, vNeighbor, cohEIndex, false);
             updateFeatures();
             std::cout << "edge splitted" << std::endl;
             return true;
@@ -1597,7 +1604,7 @@ namespace FracCuts {
     
     void TriangleSoup::splitEdgeOnBoundary(const std::pair<int, int>& edge, const Eigen::Matrix2d& newVertPos,
         std::map<std::pair<int, int>, int>& edge2Tri, std::vector<std::set<int>>& vNeighbor,
-        std::map<std::pair<int, int>, int>& cohEIndex)
+        std::map<std::pair<int, int>, int>& cohEIndex, bool changeVertPos)
     {
         assert(vNeighbor.size() == V.rows());
         auto edgeTriIndFinder = edge2Tri.find(edge);
@@ -1638,9 +1645,13 @@ namespace FracCuts {
         V_rest.conservativeResize(nV + 1, 3);
         V_rest.row(nV) = V_rest.row(vI_boundary);
         V.conservativeResize(nV + 1, 2);
-        V.row(nV) = newVertPos.block(1, 0, 1, 2);
-        V.row(vI_boundary) = newVertPos.block(0, 0, 1, 2);
-//        V.row(nV) = V.row(vI_boundary);
+        if(changeVertPos) {
+            V.row(nV) = newVertPos.block(1, 0, 1, 2);
+            V.row(vI_boundary) = newVertPos.block(0, 0, 1, 2);
+        }
+        else {
+            V.row(nV) = V.row(vI_boundary);
+        }
         
         for(const auto triI : tri_toSep) {
             for(int vI = 0; vI < 3; vI++) {

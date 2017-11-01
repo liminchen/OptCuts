@@ -116,7 +116,13 @@ namespace FracCuts {
             pardisoSolver.set_type(pardisoThreadAmt, -2);
             pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
             pardisoSolver.analyze_pattern();
-            pardisoSolver.factorize();
+            try {
+                pardisoSolver.factorize();
+            }
+            catch(std::exception e) {
+                IglUtils::writeSparseMatrixToFile(outputFolderPath + "mtr_factorizeFail", I_mtr, J_mtr, V_mtr, true);
+                exit(-1);
+            }
         }
         
         lastEDec = 0.0;
@@ -140,7 +146,8 @@ namespace FracCuts {
         for(int iterI = 0; iterI < maxIter; iterI++)
         {
             if(withTopologyStep) {
-                if(!createFracture(lastEDec + 1.0e-6 * lastEnergyVal)) {
+//                if(!createFracture(lastEDec + 1.0e-6 * lastEnergyVal, false)) {
+                if(!createFracture(lastEDec, false)) {
                     withTopologyStep = false;
                 }//DEBUG
             }
@@ -246,15 +253,15 @@ namespace FracCuts {
         }
     }
     
-    bool Optimizer::createFracture(double stressThres, bool allowPropagate)
+    bool Optimizer::createFracture(double stressThres, bool initiation, bool allowPropagate)
     {
-        if(stressThres == 0.0) {
+        if(initiation) {
             topoIter++;
         }
         
         clock_t tickStart = clock();
 //        bool changed = result.splitVertex(Eigen::VectorXd::Zero(result.V.rows()), stressThres); //DEBUG
-        bool changed = result.splitEdge(1.0 - energyParams[0], stressThres, stressThres > 0.0); //DEBUG
+        bool changed = result.splitEdge(1.0 - energyParams[0], stressThres, !initiation); //DEBUG
 //        logFile << result.V.rows() << std::endl;
 //        bool changed = (result.mergeEdge() | result.splitEdge()); //DEBUG
         if(changed) {
@@ -295,7 +302,7 @@ namespace FracCuts {
                 }
             }
             
-            if(allowPropagate && (stressThres == 0.0)) {
+            if(allowPropagate && initiation) {
                 solve(1);
                 withTopologyStep = true;
             }

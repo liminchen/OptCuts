@@ -115,7 +115,7 @@ namespace FracCuts{
         
         void splitEdgeOnBoundary(const std::pair<int, int>& edge, const Eigen::Matrix2d& newVertPos,
             std::map<std::pair<int, int>, int>& edge2Tri, std::vector<std::set<int>>& vNeighbor,
-            std::map<std::pair<int, int>, int>& cohEIndex);
+            std::map<std::pair<int, int>, int>& cohEIndex, bool changeVertPos = true);
         void mergeBoundaryEdges(const std::pair<int, int>& edge0, const std::pair<int, int>& edge1,
             std::map<std::pair<int, int>, int>& edge2Tri, std::vector<std::set<int>>& vNeighbor,
             std::map<std::pair<int, int>, int>& cohEIndex);

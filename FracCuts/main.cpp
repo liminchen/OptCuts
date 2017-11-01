@@ -33,9 +33,11 @@ bool converged = false;
 bool autoHomotopy = true;
 std::ofstream homoTransFile;
 bool fractureMode = false;
-double fracThres = 0.0; //TODO: make as prog args
+double fracThres = 0.0; //stop according to local estimation TODO: make as prog args
+//double fracThres = -__DBL_MAX__; //stop according to descent step TODO: make as prog args
 bool altBase = false;
 bool outerLoopFinished = false;
+double lastE_w = 0.0;
 
 std::ofstream logFile;
 std::string outputFolderPath = "/Users/mincli/Desktop/output_FracCuts/";
@@ -361,7 +363,7 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                         converged = false;
                         optimizer->updatePrecondMtrAndFactorize();
                         if(fractureMode) {
-                            optimizer->createFracture(fracThres, !altBase);
+                            optimizer->createFracture(fracThres, true, !altBase);
                         }
                     }
                     else {
@@ -488,20 +490,19 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                 converged = false;
                 optimizer->updatePrecondMtrAndFactorize();
                 if(fractureMode) {
-                    optimizer->createFracture(fracThres, !altBase);
+                    optimizer->createFracture(fracThres, true, !altBase);
                 }
                 ticksPast += clock() - lastStart;
             }
             else {
                 if(fractureMode) {
-                    homoTransFile << iterNum << std::endl;
-                    lastStart = clock();
-                    if(optimizer->createFracture(fracThres, !altBase)) {
-                        ticksPast += clock() - lastStart;
-                        converged = false;
-                    }
-                    else {
-                        ticksPast += clock() - lastStart;
+                    double E_se;
+                    triSoup[channel_result]->computeSeamSparsity(E_se);
+                    const double E_w = optimizer->getLastEnergyVal() +
+                        (1.0 - energyParams[0]) * E_se / triSoup[channel_result]->virtualPerimeter;
+                    if(E_w >= lastE_w) {
+//                    if(false) {
+                        //TODO: !!! roll back
                         
                         infoName = "finalResult";
                         // perform exact solve
@@ -513,17 +514,52 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         }
                         secPast += difftime(time(NULL), lastStart_world);
                         updateViewerData();
-
+                        
                         optimization_on = false;
                         viewer.core.is_animating = false;
                         const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
                         const double timeUsed_frac = static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC;
                         std::cout << "optimization converged, with " << timeUsed << "s, where " <<
-                            timeUsed_frac << "s is for fracture computation." << std::endl;
+                        timeUsed_frac << "s is for fracture computation." << std::endl;
                         logFile << "optimization converged, with " << timeUsed << "s, where " <<
-                            timeUsed_frac << "s is for fracture computation." << std::endl;
+                        timeUsed_frac << "s is for fracture computation." << std::endl;
                         homoTransFile.close();
                         outerLoopFinished = true;
+                    }
+                    else {
+                        lastE_w = E_w;
+                    
+                        homoTransFile << iterNum << std::endl;
+                        lastStart = clock();
+                        if(optimizer->createFracture(fracThres, true, !altBase)) {
+                            ticksPast += clock() - lastStart;
+                            converged = false;
+                        }
+                        else {
+                            ticksPast += clock() - lastStart;
+                            
+                            infoName = "finalResult";
+                            // perform exact solve
+                            optimizer->setRelGL2Tol(1.0e-8);
+                            //!! can recompute precondmtr if needed
+                            converged = false;
+                            while(!converged) {
+                                proceedOptimization(1000);
+                            }
+                            secPast += difftime(time(NULL), lastStart_world);
+                            updateViewerData();
+
+                            optimization_on = false;
+                            viewer.core.is_animating = false;
+                            const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
+                            const double timeUsed_frac = static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC;
+                            std::cout << "optimization converged, with " << timeUsed << "s, where " <<
+                                timeUsed_frac << "s is for fracture computation." << std::endl;
+                            logFile << "optimization converged, with " << timeUsed << "s, where " <<
+                                timeUsed_frac << "s is for fracture computation." << std::endl;
+                            homoTransFile.close();
+                            outerLoopFinished = true;
+                        }
                     }
                 }
                 else {
@@ -915,8 +951,10 @@ int main(int argc, char *argv[])
         // fracture mode
         fractureMode = true;
         
-//        optimizer->separateTriangles(fracThres);
-//        optimizer->createFracture(fracThres, !altBase); //DEBUG alternating framework
+        double E_se;
+        triSoup[channel_result]->computeSeamSparsity(E_se);
+        lastE_w = optimizer->getLastEnergyVal() + (1.0 - energyParams[0]) * E_se / triSoup[channel_result]->virtualPerimeter;
+        
         if(delta == 0.0) {
             altBase = true;
         }

@@ -23,6 +23,7 @@ mtype(-1)
 template <typename vectorTypeI, typename vectorTypeS>
 void PardisoSolver<vectorTypeI,vectorTypeS>::set_type(int threadAmt, int _mtype , bool is_upper_half)
 {
+//    _mtype = 2;
     if((_mtype !=-2) && (_mtype !=2) && (_mtype !=1) && (_mtype !=11)) {
         throw std::runtime_error(std::string("Pardiso mtype not supported. mtype = ") + std::to_string(_mtype));
     }

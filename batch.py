@@ -4,7 +4,7 @@ from os import listdir
 from os.path import isfile, join
 
 # meshFolderPath = '/Users/mincli/Downloads/meshes/'
-meshFolderPath = '/Users/mincli/Downloads/meshes/closed/'
+meshFolderPath = '/Users/mincli/Downloads/meshes/needMoreTime/'
 onlyfiles = [f for f in listdir(meshFolderPath) if isfile(join(meshFolderPath, f))]
 
 FracCutsPath = '/Users/mincli/Library/Developer/Xcode/DerivedData/FracCuts-agmhaiwbuwzkmvfhishexuvkyjdo/Build/Products/Release/FracCuts'
