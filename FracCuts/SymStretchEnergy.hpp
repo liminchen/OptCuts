@@ -23,6 +23,10 @@ namespace FracCuts {
                                        Eigen::VectorXi* I = NULL, Eigen::VectorXi* J = NULL) const;
         virtual void computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const;
         
+        virtual void getEnergyValPerVert(const TriangleSoup& data, Eigen::VectorXd& energyValPerVert) const;
+        virtual void computeLocalGradient(const TriangleSoup& data, Eigen::MatrixXd& localGradients) const;
+        virtual void getDivGradPerElem(const TriangleSoup& data, Eigen::VectorXd& divGradPerElem) const;
+        
         // to prevent element inversion
         virtual void initStepSize(const TriangleSoup& data, const Eigen::VectorXd& searchDir, double& stepSize) const;
         

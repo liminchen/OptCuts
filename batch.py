@@ -4,7 +4,7 @@ from os import listdir
 from os.path import isfile, join
 
 # meshFolderPath = '/Users/mincli/Downloads/meshes/'
-meshFolderPath = '/Users/mincli/Downloads/meshes/needMoreTime/'
+meshFolderPath = '/Users/mincli/Downloads/meshes/test/'
 onlyfiles = [f for f in listdir(meshFolderPath) if isfile(join(meshFolderPath, f))]
 
 FracCutsPath = '/Users/mincli/Library/Developer/Xcode/DerivedData/FracCuts-agmhaiwbuwzkmvfhishexuvkyjdo/Build/Products/Release/FracCuts'
@@ -23,7 +23,7 @@ FracCutsPath = '/Users/mincli/Library/Developer/Xcode/DerivedData/FracCuts-agmha
 
 for inputModelNameI in onlyfiles:
 	# current best
-	runCommand = FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.025 7 0'
+	runCommand = FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.025 8 0'
 	if subprocess.call([runCommand], shell=True):
 		continue
 

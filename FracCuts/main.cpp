@@ -117,8 +117,11 @@ void updateViewerData_distortion(void)
     if(showDistortion) {
         Eigen::VectorXd distortionPerElem;
         energyTerms[0]->getEnergyValPerElem(*triSoup[viewChannel], distortionPerElem, true);
+//        dynamic_cast<FracCuts::SymStretchEnergy*>(energyTerms[0])->getDivGradPerElem(*triSoup[viewChannel], distortionPerElem);
         Eigen::MatrixXd color_distortionVis;
         FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 6.0);
+//        FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis,
+//            distortionPerElem.minCoeff(), distortionPerElem.maxCoeff());
         viewer.data.set_colors(color_distortionVis);
     }
     else {
@@ -501,6 +504,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     const double E_w = optimizer->getLastEnergyVal() +
                         (1.0 - energyParams[0]) * E_se / triSoup[channel_result]->virtualPerimeter;
                     if(E_w >= lastE_w) {
+                        logFile << "E_w is not decreased, end process." << std::endl;
 //                    if(false) {
                         //TODO: !!! roll back
                         
@@ -957,6 +961,7 @@ int main(int argc, char *argv[])
         
         if(delta == 0.0) {
             altBase = true;
+//            optimizer->setRelGL2Tol(1.0e-10);
         }
 //        else {
 //            optimizer->setRelGL2Tol(1.0e-8); //!!! different model can succeed with different tolerance, is it a matter of curvature or because sometimes the optimal split is inside?

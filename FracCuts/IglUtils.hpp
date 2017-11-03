@@ -54,12 +54,10 @@ namespace FracCuts {
             }
         }
         
+        // project a symmetric real matrix to the nearest SPD matrix
         template<typename Scalar, int size>
-        static void makePD(Eigen::Matrix<Scalar, size, size>& mtr) {
-//            Eigen::JacobiSVD<Eigen::Matrix<Scalar, size, size>> svd(mtr, Eigen::ComputeFullV);
-//            mtr = 0.5 * (mtr + svd.matrixV() * Eigen::DiagonalMatrix<Scalar, size>(svd.singularValues()) * svd.matrixV().transpose());
-            
-            Eigen::SelfAdjointEigenSolver<Eigen::Matrix<Scalar, size, size>> eigenSolver(mtr);
+        static void makePD(Eigen::Matrix<Scalar, size, size>& symMtr) {
+            Eigen::SelfAdjointEigenSolver<Eigen::Matrix<Scalar, size, size>> eigenSolver(symMtr);
             if(eigenSolver.eigenvalues()[0] >= 0.0) {
                 return;
             }
@@ -72,9 +70,7 @@ namespace FracCuts {
                     break;
                 }
             }
-            mtr = eigenSolver.eigenvectors() * D * eigenSolver.eigenvectors().transpose();
-            
-//            symmetrizeMatrix(mtr); // to avoid numerical errors
+            symMtr = eigenSolver.eigenvectors() * D * eigenSolver.eigenvectors().transpose();
         }
         
         static void writeSparseMatrixToFile(const std::string& filePath, const Eigen::SparseMatrix<double>& mtr, bool MATLAB = false);

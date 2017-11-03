@@ -46,6 +46,121 @@ namespace FracCuts {
         }
     }
     
+    void SymStretchEnergy::getEnergyValPerVert(const TriangleSoup& data, Eigen::VectorXd& energyValPerVert) const
+    {
+        Eigen::VectorXd energyValPerElem;
+        getEnergyValPerElem(data, energyValPerElem);
+        
+        Eigen::VectorXd totalWeight;
+        totalWeight.resize(data.V_rest.rows());
+        totalWeight.setZero();
+        energyValPerVert.resize(data.V_rest.rows());
+        energyValPerVert.setZero();
+        for(int triI = 0; triI < data.F.rows(); triI++) {
+            for(int i = 0; i < 3; i++) {
+                energyValPerVert[data.F(triI, i)] += energyValPerElem[triI];
+                totalWeight[data.F(triI, i)] += data.triArea[triI];
+                //TODO: verify the scale if the value will be used rather than the rank!
+            }
+        }
+        for(int vI = 0; vI < data.V_rest.rows(); vI++) {
+            energyValPerVert[vI] /= totalWeight[vI];
+        }
+    }
+    
+    void SymStretchEnergy::getDivGradPerElem(const TriangleSoup& data, Eigen::VectorXd& divGradPerElem) const
+    {
+        Eigen::MatrixXd localGradients;
+        computeLocalGradient(data, localGradients);
+        
+        // narrow down querying range
+        Eigen::VectorXd divGrad_vert;
+        divGrad_vert.resize(data.V_rest.rows());
+        for(int vI = 0; vI < data.V_rest.rows(); vI++) {
+            if(!data.isBoundaryVert(data.edge2Tri, data.vNeighbor, vI)) {
+                //TODO: also compute it for inner vertices
+                divGrad_vert[vI] = 0.0;
+                continue;
+            }
+            
+            double divergence = 0.0;
+            int count = 0;
+            for(const auto& nbI : data.vNeighbor[vI]) {
+                const auto finder = data.edge2Tri.find(std::pair<int, int>(vI, nbI));
+                if(finder != data.edge2Tri.end()) {
+                    int vI_other = -1;
+                    int vI_local = -1;
+                    for(int i = 0; i < 3; i++) {
+                        if(data.F(finder->second, i) == vI) {
+                            vI_local = i;
+                            vI_other = data.F(finder->second, (i + 2) % 3);
+                            break;
+                        }
+                    }
+                    assert(vI_other >= 0);
+//                    const Eigen::RowVector2d e = data.V.row(vI_other) - data.V.row(nbI); // how to define divergence? is it really matches? visualize!
+//                    const Eigen::Vector2d eOrtho(-e[1], e[0]);
+                    const Eigen::Vector2d stretchDir = localGradients.row(finder->second * 3 + vI_local);
+//                    divergence += eOrtho.dot(stretchDir);
+                    divergence += stretchDir.squaredNorm();
+                    count++;
+                }
+            }
+//            divGrad_vert[vI] = std::abs(divergence);
+            divGrad_vert[vI] = std::sqrt(divergence / count);
+        }
+        
+        // for visualization only
+        divGradPerElem.resize(data.F.rows());
+        for(int triI = 0; triI < data.F.rows(); triI++) {
+            const Eigen::RowVector3i& triVInd = data.F.row(triI);
+            divGradPerElem[triI] = (divGrad_vert[triVInd[0]] + divGrad_vert[triVInd[1]] + divGrad_vert[triVInd[2]]) / 3.0;
+        }
+    }
+    
+    void SymStretchEnergy::computeLocalGradient(const TriangleSoup& data, Eigen::MatrixXd& localGradients) const
+    {
+        const double normalizer_div = data.surfaceArea;
+        
+        localGradients.resize(data.F.rows() * 3, 2);
+        for(int triI = 0; triI < data.F.rows(); triI++) {
+            const Eigen::Vector3i& triVInd = data.F.row(triI);
+            
+            const Eigen::Vector2d& U1 = data.V.row(triVInd[0]);
+            const Eigen::Vector2d& U2 = data.V.row(triVInd[1]);
+            const Eigen::Vector2d& U3 = data.V.row(triVInd[2]);
+            
+            const Eigen::Vector2d U2m1 = U2 - U1;
+            const Eigen::Vector2d U3m1 = U3 - U1;
+            
+            const double area_U = 0.5 * (U2m1[0] * U3m1[1] - U2m1[1] * U3m1[0]);
+            
+            const double leftTerm = 1.0 + data.triAreaSq[triI] / area_U / area_U;
+            const double rightTerm = (U3m1.squaredNorm() * data.e0SqLen[triI] + U2m1.squaredNorm() * data.e1SqLen[triI]) /
+            4 / data.triAreaSq[triI] - U3m1.dot(U2m1) * data.e0dote1[triI] / 2 / data.triAreaSq[triI];
+            
+            const double areaRatio = data.triAreaSq[triI] / area_U / area_U / area_U;
+            const double w = data.triArea[triI] / normalizer_div;
+            const int startRowI = triI * 3;
+            
+            const Eigen::Vector2d edge_oppo1 = U3 - U2;
+            const Eigen::Vector2d dLeft1 = areaRatio * Eigen::Vector2d(edge_oppo1[1], -edge_oppo1[0]);
+            const Eigen::Vector2d dRight1 = ((data.e0dote1[triI] - data.e0SqLen[triI]) * U3m1 +
+                                             (data.e0dote1[triI] - data.e1SqLen[triI]) * U2m1) / 2.0 / data.triAreaSq[triI];
+            localGradients.row(startRowI) = w * (dLeft1 * rightTerm + dRight1 * leftTerm);
+            
+            const Eigen::Vector2d edge_oppo2 = U1 - U3;
+            const Eigen::Vector2d dLeft2 = areaRatio * Eigen::Vector2d(edge_oppo2[1], -edge_oppo2[0]);
+            const Eigen::Vector2d dRight2 = (data.e1SqLen[triI] * U2m1 - data.e0dote1[triI] * U3m1) / 2.0 / data.triAreaSq[triI];
+            localGradients.row(startRowI + 1) = w * (dLeft2 * rightTerm + dRight2 * leftTerm);
+            
+            const Eigen::Vector2d edge_oppo3 = U2 - U1;
+            const Eigen::Vector2d dLeft3 = areaRatio * Eigen::Vector2d(edge_oppo3[1], -edge_oppo3[0]);
+            const Eigen::Vector2d dRight3 = (data.e0SqLen[triI] * U3m1 - data.e0dote1[triI] * U2m1) / 2.0 / data.triAreaSq[triI];
+            localGradients.row(startRowI + 2) = w * (dLeft3 * rightTerm + dRight3 * leftTerm);
+        }
+    }
+    
     void SymStretchEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const
     {
         const double normalizer_div = data.surfaceArea;
@@ -167,7 +282,6 @@ namespace FracCuts {
             const Eigen::Matrix2d dLeft1dRight1T = dLeft1 * dRight1.transpose();
             curHessian.block(0, 0, 2, 2) = w * (d2Left11 * rightTerm + dLeft1dRight1T +
                                                 d2Right11 * leftTerm * Eigen::Matrix2d::Identity() + dLeft1dRight1T.transpose());
-//            curHessian(0, 1) = curHessian(1, 0) = (curHessian(0, 1) + curHessian(1, 0)) / 2.0;
         
             const Eigen::Matrix2d d2Left12 = dAreaRatio_div_dArea_mult * edge_oppo1_Ortho * edge_oppo2_Ortho.transpose() +
             areaRatio * dOrtho_div_dU;
@@ -188,7 +302,6 @@ namespace FracCuts {
             const double d2Right22 = e1SqLen_div_dbAreaSq;
             curHessian.block(2, 2, 2, 2) = w * (d2Left22 * rightTerm + dLeft2 * dRight2.transpose() +
                                                 d2Right22 * leftTerm * Eigen::Matrix2d::Identity() + dRight2 * dLeft2.transpose());
-//            curHessian(2, 3) = curHessian(3, 2) = (curHessian(2, 3) + curHessian(3, 2)) / 2.0;
         
             const Eigen::Matrix2d d2Left23 = dAreaRatio_div_dArea_mult * edge_oppo2_Ortho * edge_oppo3_Ortho.transpose() +
             areaRatio * dOrtho_div_dU;
@@ -202,14 +315,9 @@ namespace FracCuts {
             const double d2Right33 = e0SqLen_div_dbAreaSq;
             curHessian.block(4, 4, 2, 2) = w * (d2Left33 * rightTerm + dLeft3 * dRight3.transpose() +
                                                 d2Right33 * leftTerm * Eigen::Matrix2d::Identity() + dRight3 * dLeft3.transpose());
-//            curHessian(4, 5) = curHessian(5, 4) = (curHessian(4, 5) + curHessian(5, 4)) / 2.0;
             
             // project to nearest SPD matrix
             IglUtils::makePD(curHessian);
-//            for(int corI = 0; (curHessian_SPD.determinant() <= 0.0) && (corI < 1); corI++) {
-//                Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double, 6, 6>> eigenSolver(curHessian_SPD);
-//                curHessian_SPD.diagonal() -= std::nextafter(eigenSolver.eigenvalues()[0], DBL_MIN) * Eigen::VectorXd::Ones(6);
-//            }
             
             Eigen::VectorXi vInd = triVInd;
             for(int vI = 0; vI < 3; vI++) {
