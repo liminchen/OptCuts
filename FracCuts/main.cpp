@@ -961,7 +961,7 @@ int main(int argc, char *argv[])
         
         if(delta == 0.0) {
             altBase = true;
-//            optimizer->setRelGL2Tol(1.0e-10);
+//            optimizer->setRelGL2Tol(1.0e-8);
         }
 //        else {
 //            optimizer->setRelGL2Tol(1.0e-8); //!!! different model can succeed with different tolerance, is it a matter of curvature or because sometimes the optimal split is inside?

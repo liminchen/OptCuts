@@ -46,6 +46,7 @@ namespace FracCuts{
         Eigen::VectorXd e0dote1_div_dbAreaSq;
         double avgEdgeLen;
         double virtualPerimeter;
+        std::vector<std::set<std::pair<int, int>>> validSplit;
         std::set<int> fixedVert; // for linear solve
         Eigen::Matrix<double, 2, 3> bbox;
 //        Eigen::MatrixXd cotVals; // cotangent values of rest triangle corners
@@ -55,7 +56,6 @@ namespace FracCuts{
         std::vector<std::set<int>> vNeighbor;
         std::map<std::pair<int, int>, int> cohEIndex;
         
-        double preFracEInc;
         std::set<int> fracTail;
         std::array<std::pair<std::set<int>, std::set<int>>, 2> subOptimizerInfo;
         double initSeamLen;
@@ -80,13 +80,13 @@ namespace FracCuts{
         bool separateTriangle(const Eigen::VectorXd& measure, double thres);
         bool splitVertex(const Eigen::VectorXd& measure, double thres);
         void resetSubOptInfo(void);
-        bool splitEdge(double lambda_t, double thres = 0.0, bool propagate = false); //DEBUG
+        bool splitEdge(double lambda_t, double thres = 0.0, bool propagate = false, bool splitInterior = true); //DEBUG
         bool mergeEdge(void); //DEBUG
         
         void onePointCut(int vI = 0);
         void highCurvOnePointCut(void);
         void farthestPointCut(void);
-        void cutPath(const std::vector<int>& path);
+        void cutPath(const std::vector<int>& path, bool makeCoh = false, int changePos = 0, const Eigen::MatrixXd& newVertPos = Eigen::MatrixXd());
         
         void computeSeamScore(Eigen::VectorXd& seamScore) const;
         void computeSeamSparsity(double& sparsity) const;
@@ -103,26 +103,31 @@ namespace FracCuts{
         
         void saveAsMesh(const std::string& filePath, bool scaleUV = false) const;
         
-    protected: // helper function
+    public: // helper function
         void computeLaplacianMtr(void);
         
         bool findBoundaryEdge(int vI, const std::pair<int, int>& startEdge,
                               const std::map<std::pair<int, int>, int>& edge2Tri,
                               std::pair<int, int>& boundaryEdge);
+        
+        // toBound = false indicate counter-clockwise
         bool isBoundaryVert(const std::map<std::pair<int, int>, int>& edge2Tri, int vI, int vI_neighbor,
                             std::vector<int>& tri_toSep, std::pair<int, int>& boundaryEdge, bool toBound = true) const;
         bool isBoundaryVert(const std::map<std::pair<int, int>, int>& edge2Tri, const std::vector<std::set<int>>& vNeighbor, int vI) const;
         
-        void splitEdgeOnBoundary(const std::pair<int, int>& edge, const Eigen::Matrix2d& newVertPos,
+        void splitEdgeOnBoundary(const std::pair<int, int>& edge, const Eigen::MatrixXd& newVertPos,
             std::map<std::pair<int, int>, int>& edge2Tri, std::vector<std::set<int>>& vNeighbor,
             std::map<std::pair<int, int>, int>& cohEIndex, bool changeVertPos = true);
         void mergeBoundaryEdges(const std::pair<int, int>& edge0, const std::pair<int, int>& edge1,
             std::map<std::pair<int, int>, int>& edge2Tri, std::vector<std::set<int>>& vNeighbor,
             std::map<std::pair<int, int>, int>& cohEIndex);
         
-        double computeEnergyDecrease(const std::pair<int, int>& edge,
+        double computeLocalEwDec(int vI, double lambda_t, std::vector<int>& path, Eigen::MatrixXd& newVertPos) const;
+        double computeLocalEDec(const std::pair<int, int>& edge,
             const std::map<std::pair<int, int>, int>& edge2Tri, const std::vector<std::set<int>>& vNeighbor,
-            const std::map<std::pair<int, int>, int>& cohEIndex, Eigen::Matrix2d& newVertPos, bool propagate = false) const; //TODO: write this in a new class
+            const std::map<std::pair<int, int>, int>& cohEIndex, Eigen::MatrixXd& newVertPos, bool propagate = false) const; //TODO: write this in a new class
+        double computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
+                                std::map<int, Eigen::RowVector2d>& newVertPos, int maxIter = 100) const;
     };
     
 }

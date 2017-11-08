@@ -75,7 +75,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "100 /Users/mincli/Downloads/meshes/needMoreTime/hand_1_i_f5000.obj 0.025 111 0 test"
+            argument = "0 /Users/mincli/Downloads/meshes/needMoreTime/hand_1_i_f5000.obj 0.025 1 0 testtest"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -91,7 +91,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/needMoreTime/max_planck_i_f8000.obj 0.025 4 0 test"
+            argument = "0 /Users/mincli/Downloads/meshes/needSmallerTol/max_planck_i_f8000.obj 0.025 4 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -99,12 +99,20 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/cat.obj 0.025 0 0"
+            argument = "0 /Users/mincli/Downloads/meshes/male_body_i_f10000.obj 0.025 0 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 camelhead_f1500.obj 0.025 0 0"
+            argument = "0 /Users/mincli/Downloads/meshes/chinese_lion_i_f10000.obj 0.025 1 0 test"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 cone2.0.obj 0.025 1 0 testtest"
             isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 /Users/mincli/Downloads/meshes/interiorDif_/bimba.obj 0.025 0 0 TESTTEST"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "1 0 /Users/mincli/Desktop/output_FracCuts/cmH1000_tutte_0.2_8.0_modifiedSH/precondMtr_140"

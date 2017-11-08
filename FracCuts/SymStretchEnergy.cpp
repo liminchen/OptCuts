@@ -64,7 +64,29 @@ namespace FracCuts {
             }
         }
         for(int vI = 0; vI < data.V_rest.rows(); vI++) {
-            energyValPerVert[vI] /= totalWeight[vI];
+            energyValPerVert[vI] /= totalWeight[vI]; //!!! is normalization needed?
+        }
+    }
+    
+    void SymStretchEnergy::computeDivGradPerVert(const TriangleSoup& data, Eigen::VectorXd& divGradPerVert) const
+    {
+        Eigen::MatrixXd localGradients;
+        computeLocalGradient(data, localGradients);
+        
+        divGradPerVert = Eigen::VectorXd::Zero(data.V_rest.rows());
+        Eigen::VectorXi incTriAmt = Eigen::VectorXi::Zero(data.V_rest.rows());
+        for(int triI = 0; triI < data.F.rows(); triI++) {
+            const Eigen::RowVector3i& triVInd = data.F.row(triI);
+            int locGradStartInd = triI * 3;
+            divGradPerVert[triVInd[0]] += localGradients.row(locGradStartInd).squaredNorm();
+            divGradPerVert[triVInd[1]] += localGradients.row(locGradStartInd + 1).squaredNorm();
+            divGradPerVert[triVInd[2]] += localGradients.row(locGradStartInd + 2).squaredNorm();
+            incTriAmt[triVInd[0]]++;
+            incTriAmt[triVInd[1]]++;
+            incTriAmt[triVInd[2]]++;
+        }
+        for(int vI = 0; vI < data.V_rest.rows(); vI++) {
+            divGradPerVert[vI] = std::sqrt(divGradPerVert[vI] / (incTriAmt[vI] - 1.0));
         }
     }
     
@@ -73,7 +95,6 @@ namespace FracCuts {
         Eigen::MatrixXd localGradients;
         computeLocalGradient(data, localGradients);
         
-        // narrow down querying range
         Eigen::VectorXd divGrad_vert;
         divGrad_vert.resize(data.V_rest.rows());
         for(int vI = 0; vI < data.V_rest.rows(); vI++) {
@@ -115,6 +136,121 @@ namespace FracCuts {
         for(int triI = 0; triI < data.F.rows(); triI++) {
             const Eigen::RowVector3i& triVInd = data.F.row(triI);
             divGradPerElem[triI] = (divGrad_vert[triVInd[0]] + divGrad_vert[triVInd[1]] + divGrad_vert[triVInd[2]]) / 3.0;
+        }
+    }
+    
+    // doesn't work well for topology filtering
+    void SymStretchEnergy::computeLocalSearchDir(const TriangleSoup& data, Eigen::MatrixXd& localSearchDir) const
+    {
+        const double normalizer_div = data.surfaceArea;
+        
+        localSearchDir.resize(data.F.rows() * 3, 2);
+        for(int triI = 0; triI < data.F.rows(); triI++) {
+            const Eigen::Vector3i& triVInd = data.F.row(triI);
+            
+            const Eigen::Vector2d& U1 = data.V.row(triVInd[0]);
+            const Eigen::Vector2d& U2 = data.V.row(triVInd[1]);
+            const Eigen::Vector2d& U3 = data.V.row(triVInd[2]);
+            
+            const Eigen::Vector2d U2m1 = U2 - U1;
+            const Eigen::Vector2d U3m1 = U3 - U1;
+            
+            const double area_U = 0.5 * (U2m1[0] * U3m1[1] - U2m1[1] * U3m1[0]);
+            const double areaRatio = data.triAreaSq[triI] / area_U / area_U / area_U;
+            const double dAreaRatio_div_dArea_mult = 3.0 / 2.0 * areaRatio / area_U;
+            
+            const double w = data.triArea[triI] / normalizer_div;
+            
+            const double e0SqLen_div_dbAreaSq = data.e0SqLen_div_dbAreaSq[triI];
+            const double e1SqLen_div_dbAreaSq = data.e1SqLen_div_dbAreaSq[triI];
+            const double e0dote1_div_dbAreaSq = data.e0dote1_div_dbAreaSq[triI];
+            
+            // compute energy terms
+            const double leftTerm = 1.0 + data.triAreaSq[triI] / area_U / area_U;
+            const double rightTerm = (U3m1.squaredNorm() * e0SqLen_div_dbAreaSq + U2m1.squaredNorm() * e1SqLen_div_dbAreaSq) / 2. - U3m1.dot(U2m1) * e0dote1_div_dbAreaSq;
+            
+            const Eigen::Vector2d edge_oppo1 = U3 - U2;
+            const Eigen::Vector2d edge_oppo2 = U1 - U3;
+            const Eigen::Vector2d edge_oppo3 = U2 - U1;
+            const Eigen::Vector2d edge_oppo1_Ortho = Eigen::Vector2d(edge_oppo1[1], -edge_oppo1[0]);
+            const Eigen::Vector2d edge_oppo2_Ortho = Eigen::Vector2d(edge_oppo2[1], -edge_oppo2[0]);
+            const Eigen::Vector2d edge_oppo3_Ortho = Eigen::Vector2d(edge_oppo3[1], -edge_oppo3[0]);
+            Eigen::Matrix2d dOrtho_div_dU; dOrtho_div_dU << 0.0, -1.0, 1.0, 0.0;
+            
+            // compute 1st order derivatives
+            const Eigen::Vector2d dLeft1 = areaRatio * edge_oppo1_Ortho;
+            const Eigen::Vector2d dRight1 = ((e0dote1_div_dbAreaSq - e0SqLen_div_dbAreaSq) * U3m1 +
+                                             (e0dote1_div_dbAreaSq - e1SqLen_div_dbAreaSq) * U2m1);
+            
+            const Eigen::Vector2d dLeft2 = areaRatio * edge_oppo2_Ortho;
+            const Eigen::Vector2d dRight2 = (e1SqLen_div_dbAreaSq * U2m1 - e0dote1_div_dbAreaSq * U3m1);
+            
+            const Eigen::Vector2d dLeft3 = areaRatio * edge_oppo3_Ortho;
+            const Eigen::Vector2d dRight3 = (e0SqLen_div_dbAreaSq * U3m1 - e0dote1_div_dbAreaSq * U2m1);
+            
+            Eigen::VectorXd localGrad;
+            localGrad.resize(6);
+            localGrad << w * (dLeft1 * rightTerm + dRight1 * leftTerm),
+                w * (dLeft2 * rightTerm + dRight2 * leftTerm),
+                w * (dLeft3 * rightTerm + dRight3 * leftTerm);
+            
+            Eigen::Matrix<double, 6, 6> curHessian;
+            
+            // compute second order derivatives for g_U1
+            const Eigen::Matrix2d d2Left11 = dAreaRatio_div_dArea_mult * edge_oppo1_Ortho * edge_oppo1_Ortho.transpose();
+            const double d2Right11 = (e0SqLen_div_dbAreaSq + e1SqLen_div_dbAreaSq - 2.0 * e0dote1_div_dbAreaSq);
+            const Eigen::Matrix2d dLeft1dRight1T = dLeft1 * dRight1.transpose();
+            curHessian.block(0, 0, 2, 2) = w * (d2Left11 * rightTerm + dLeft1dRight1T +
+                                                d2Right11 * leftTerm * Eigen::Matrix2d::Identity() + dLeft1dRight1T.transpose());
+            
+            const Eigen::Matrix2d d2Left12 = dAreaRatio_div_dArea_mult * edge_oppo1_Ortho * edge_oppo2_Ortho.transpose() +
+            areaRatio * dOrtho_div_dU;
+            const double d2Right12 = (e0dote1_div_dbAreaSq - e1SqLen_div_dbAreaSq);
+            curHessian.block(0, 2, 2, 2) = w * (d2Left12 * rightTerm + dLeft1 * dRight2.transpose() +
+                                                d2Right12 * leftTerm * Eigen::Matrix2d::Identity() + dRight1 * dLeft2.transpose());
+            curHessian.block(2, 0, 2, 2) = curHessian.block(0, 2, 2, 2).transpose();
+            
+            const Eigen::Matrix2d d2Left13 = dAreaRatio_div_dArea_mult * edge_oppo1_Ortho * edge_oppo3_Ortho.transpose() +
+            areaRatio * (-dOrtho_div_dU);
+            const double d2Right13 = (e0dote1_div_dbAreaSq - e0SqLen_div_dbAreaSq);
+            curHessian.block(0, 4, 2, 2) = w * (d2Left13 * rightTerm + dLeft1 * dRight3.transpose() +
+                                                d2Right13 * leftTerm * Eigen::Matrix2d::Identity() + dRight1 * dLeft3.transpose());
+            curHessian.block(4, 0, 2, 2) = curHessian.block(0, 4, 2, 2).transpose();
+            
+            // compute second order derivatives for g_U2
+            const Eigen::Matrix2d d2Left22 = dAreaRatio_div_dArea_mult * edge_oppo2_Ortho * edge_oppo2_Ortho.transpose();
+            const double d2Right22 = e1SqLen_div_dbAreaSq;
+            curHessian.block(2, 2, 2, 2) = w * (d2Left22 * rightTerm + dLeft2 * dRight2.transpose() +
+                                                d2Right22 * leftTerm * Eigen::Matrix2d::Identity() + dRight2 * dLeft2.transpose());
+            
+            const Eigen::Matrix2d d2Left23 = dAreaRatio_div_dArea_mult * edge_oppo2_Ortho * edge_oppo3_Ortho.transpose() +
+            areaRatio * dOrtho_div_dU;
+            const double d2Right23 = -e0dote1_div_dbAreaSq;
+            curHessian.block(2, 4, 2, 2) = w * (d2Left23 * rightTerm + dLeft2 * dRight3.transpose() +
+                                                d2Right23 * leftTerm * Eigen::Matrix2d::Identity() + dRight2 * dLeft3.transpose());
+            curHessian.block(4, 2, 2, 2) = curHessian.block(2, 4, 2, 2).transpose();
+            
+            // compute second order derivatives for g_U3
+            const Eigen::Matrix2d d2Left33 = dAreaRatio_div_dArea_mult * edge_oppo3_Ortho * edge_oppo3_Ortho.transpose();
+            const double d2Right33 = e0SqLen_div_dbAreaSq;
+            curHessian.block(4, 4, 2, 2) = w * (d2Left33 * rightTerm + dLeft3 * dRight3.transpose() +
+                                                d2Right33 * leftTerm * Eigen::Matrix2d::Identity() + dRight3 * dLeft3.transpose());
+            
+//            // project to nearest SPD matrix
+////            IglUtils::makePD(curHessian);
+//            
+//            Eigen::VectorXd searchDir = curHessian.colPivHouseholderQr().solve(-localGrad); //!!! whether need to fix vertices?
+            int startRow = triI * 3;
+//            localSearchDir(startRow, 0) = searchDir[0];
+//            localSearchDir(startRow, 1) = searchDir[1];
+//            localSearchDir(startRow + 1, 0) = searchDir[2];
+//            localSearchDir(startRow + 1, 1) = searchDir[3];
+//            localSearchDir(startRow + 2, 0) = searchDir[4];
+//            localSearchDir(startRow + 2, 1) = searchDir[5];
+            
+            localSearchDir.row(startRow) = curHessian.block(0, 0, 2, 2).colPivHouseholderQr().solve(-localGrad.block(0, 0, 2, 1)).transpose();
+            localSearchDir.row(startRow + 1) = curHessian.block(2, 2, 2, 2).colPivHouseholderQr().solve(-localGrad.block(2, 0, 2, 1)).transpose();
+            localSearchDir.row(startRow + 2) = curHessian.block(4, 4, 2, 2).colPivHouseholderQr().solve(-localGrad.block(4, 0, 2, 1)).transpose();
         }
     }
     

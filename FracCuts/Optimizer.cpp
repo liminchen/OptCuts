@@ -276,6 +276,9 @@ namespace FracCuts {
             
             // compute gradient and output
             computeGradient(result, gradient);
+            if(gradient.squaredNorm() < targetGRes) {
+                logFile << "||g||^2 = " << gradient.squaredNorm() << " after fracture initiation!" << std::endl;
+            }
             
             // for the changing hessian
             if(!mute) {
