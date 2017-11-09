@@ -253,7 +253,7 @@ namespace FracCuts {
         }
     }
     
-    bool Optimizer::createFracture(double stressThres, bool initiation, bool allowPropagate)
+    bool Optimizer::createFracture(double stressThres, bool initiation, bool allowPropagate, bool allowInSplit)
     {
         if(initiation) {
             topoIter++;
@@ -261,7 +261,7 @@ namespace FracCuts {
         
         clock_t tickStart = clock();
 //        bool changed = result.splitVertex(Eigen::VectorXd::Zero(result.V.rows()), stressThres); //DEBUG
-        bool changed = result.splitEdge(1.0 - energyParams[0], stressThres, !initiation); //DEBUG
+        bool changed = result.splitEdge(1.0 - energyParams[0], stressThres, !initiation, allowInSplit); //DEBUG
 //        logFile << result.V.rows() << std::endl;
 //        bool changed = (result.mergeEdge() | result.splitEdge()); //DEBUG
         if(changed) {

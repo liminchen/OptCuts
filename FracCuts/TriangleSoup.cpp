@@ -33,6 +33,8 @@ namespace FracCuts {
                                const Eigen::MatrixXd& UV_mesh, const Eigen::MatrixXi& FUV_mesh,
                                bool separateTri, double p_initSeamLen)
     {
+        initSeamLen = p_initSeamLen;
+        
         bool multiComp = false; //TODO: detect whether the mesh is multi-component
         if(separateTri)
         {
@@ -107,11 +109,13 @@ namespace FracCuts {
         else {
             // deal with mesh
             if(UV_mesh.rows() == V_mesh.rows()) {
+                // same vertex and uv index
                 V_rest = V_mesh;
                 V = UV_mesh;
                 F = F_mesh;
             }
             else if(UV_mesh.rows() != 0) {
+                // different vertex and uv index, split 3D surface according to UV and merge back while saving into files
                 assert(F_mesh.rows() == FUV_mesh.rows());
                 // UV map contains seams
                 // Split triangles along the seams on the surface (construct cohesive edges there)
@@ -145,12 +149,15 @@ namespace FracCuts {
                                 cohEdges.back().emplace_back(triVInd_UV[vI_post]);
                                 cohEdges.back().emplace_back(FUV_mesh(finder->second.first, (finder->second.second + 1) % 3));
                                 cohEdges.back().emplace_back(FUV_mesh(finder->second.first, finder->second.second));
-                                HE.erase(std::pair<int, int>(triVInd[vI], triVInd[vI_post]));
+                                HE.erase(std::pair<int, int>(triVInd[vI], triVInd[vI_post])); // prevent from inserting again
                             }
                         }
                     }
                 }
-                igl::list_to_matrix(cohEdges, cohE);
+                bool makeCoh = false;
+                if(makeCoh) {
+                    igl::list_to_matrix(cohEdges, cohE);
+                }
                 
                 V_rest.resize(UV_mesh.rows(), 3);
                 V = UV_mesh;
@@ -166,6 +173,12 @@ namespace FracCuts {
                         }
                     }
                 }
+                
+                if(!makeCoh) {
+                    for(const auto& cohI : cohEdges) {
+                        initSeamLen += 2.0 * (V_rest.row(cohI[0]) - V_rest.row(cohI[1])).norm();
+                    }
+                }
             }
             else {
                 assert(V_mesh.rows() > 0);
@@ -178,7 +191,6 @@ namespace FracCuts {
         }
         
         computeFeatures();
-        initSeamLen = p_initSeamLen;
     }
     
     void initCylinder(double r1_x, double r1_y, double r2_x, double r2_y, double height, int circle_res, int height_resolution,
@@ -707,9 +719,8 @@ namespace FracCuts {
     
     bool TriangleSoup::splitEdge(double lambda_t, double thres, bool propagate, bool splitInterior)
     {
-//        splitInterior = false;
-        const double filterExp_b = 1.0;
-        const double filterExp_in = 1.0;
+        const double filterExp_b = 0.9;
+        const double filterExp_in = 0.9;
         
         std::vector<int> bestCandVerts;
         int bestCandAmt_b = 0; // number of boundary vertices to query

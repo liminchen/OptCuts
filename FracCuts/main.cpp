@@ -540,29 +540,37 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                             converged = false;
                         }
                         else {
-                            ticksPast += clock() - lastStart;
-                            
-                            infoName = "finalResult";
-                            // perform exact solve
-                            optimizer->setRelGL2Tol(1.0e-8);
-                            //!! can recompute precondmtr if needed
-                            converged = false;
-                            while(!converged) {
-                                proceedOptimization(1000);
+                            altBase = true; // no propagation for now after interior splits
+                            //TODO: no need to also query boundary vertices here
+                            if(optimizer->createFracture(fracThres, true, !altBase, true)) {
+                                ticksPast += clock() - lastStart;
+                                converged = false;
                             }
-                            secPast += difftime(time(NULL), lastStart_world);
-                            updateViewerData();
+                            else {
+                                ticksPast += clock() - lastStart;
+                                
+                                infoName = "finalResult";
+                                // perform exact solve
+                                optimizer->setRelGL2Tol(1.0e-8);
+                                //!! can recompute precondmtr if needed
+                                converged = false;
+                                while(!converged) {
+                                    proceedOptimization(1000);
+                                }
+                                secPast += difftime(time(NULL), lastStart_world);
+                                updateViewerData();
 
-                            optimization_on = false;
-                            viewer.core.is_animating = false;
-                            const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
-                            const double timeUsed_frac = static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC;
-                            std::cout << "optimization converged, with " << timeUsed << "s, where " <<
-                                timeUsed_frac << "s is for fracture computation." << std::endl;
-                            logFile << "optimization converged, with " << timeUsed << "s, where " <<
-                                timeUsed_frac << "s is for fracture computation." << std::endl;
-                            homoTransFile.close();
-                            outerLoopFinished = true;
+                                optimization_on = false;
+                                viewer.core.is_animating = false;
+                                const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
+                                const double timeUsed_frac = static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC;
+                                std::cout << "optimization converged, with " << timeUsed << "s, where " <<
+                                    timeUsed_frac << "s is for fracture computation." << std::endl;
+                                logFile << "optimization converged, with " << timeUsed << "s, where " <<
+                                    timeUsed_frac << "s is for fracture computation." << std::endl;
+                                homoTransFile.close();
+                                outerLoopFinished = true;
+                            }
                         }
                     }
                 }

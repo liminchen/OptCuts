@@ -80,7 +80,7 @@ namespace FracCuts{
         bool separateTriangle(const Eigen::VectorXd& measure, double thres);
         bool splitVertex(const Eigen::VectorXd& measure, double thres);
         void resetSubOptInfo(void);
-        bool splitEdge(double lambda_t, double thres = 0.0, bool propagate = false, bool splitInterior = true); //DEBUG
+        bool splitEdge(double lambda_t, double thres = 0.0, bool propagate = false, bool splitInterior = false); //DEBUG
         bool mergeEdge(void); //DEBUG
         
         void onePointCut(int vI = 0);
