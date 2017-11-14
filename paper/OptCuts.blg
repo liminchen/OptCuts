@@ -1,0 +1,62 @@
+This is BibTeX, Version 0.99d (TeX Live 2017)
+Capacity: max_strings=100000, hash_size=100000, hash_prime=85009
+The top-level auxiliary file: OptCuts.aux
+The style file: ACM-Reference-Format.bst
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
+Database file #1: OptCuts.bib
+Warning--I didn't find a database entry for "?"
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Warning--can't use both volume and number fields in Julius2005D
+Warning--empty publisher in Julius2005D
+Warning--empty address in Julius2005D
+Warning--page numbers missing in both pages and numpages fields in Poranne2017Autocuts
+Warning--empty publisher in Sheffer2002Seamster
+Warning--empty address in Sheffer2002Seamster
+Warning--no journal in Snyder2003Multi
+Warning--no number and no volume in Snyder2003Multi
+Warning--page numbers missing in both pages and numpages fields in Snyder2003Multi
+Warning--empty publisher in Teran2005Robust
+Warning--empty address in Teran2005Robust
+You've used 8 entries,
+            5580 wiz_defined-function locations,
+            1346 strings with 16677 characters,
+and the built_in function-call counts, 8354 in all, are:
+= -- 1015
+> -- 374
+< -- 0
++ -- 116
+- -- 128
+* -- 640
+:= -- 943
+add.period$ -- 41
+call.type$ -- 8
+change.case$ -- 59
+chr.to.int$ -- 8
+cite$ -- 19
+duplicate$ -- 657
+empty$ -- 475
+format.name$ -- 160
+if$ -- 1989
+int.to.chr$ -- 1
+int.to.str$ -- 0
+missing$ -- 31
+newline$ -- 101
+num.names$ -- 64
+pop$ -- 273
+preamble$ -- 1
+purify$ -- 98
+quote$ -- 0
+skip$ -- 190
+stack$ -- 0
+substring$ -- 548
+swap$ -- 61
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 112
+warning$ -- 11
+while$ -- 57
+width$ -- 0
+write$ -- 174
+(There were 12 warnings)

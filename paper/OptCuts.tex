@@ -1,0 +1,176 @@
+\documentclass[acmtog, review, anonymous]{acmart}
+
+\usepackage{booktabs} % For formal tables
+
+% TOG prefers author-name bib system with square brackets
+\citestyle{acmauthoryear}
+\setcitestyle{square}
+
+
+\usepackage[ruled]{algorithm2e} % For algorithms
+\renewcommand{\algorithmcfname}{ALGORITHM}
+\SetAlFnt{\small}
+\SetAlCapFnt{\small}
+\SetAlCapNameFnt{\small}
+\SetAlCapHSkip{0pt}
+\IncMargin{-\parindent}
+
+% Metadata Information
+\acmJournal{TOG}
+% \acmVolume{9}
+% \acmNumber{4}
+% \acmArticle{39}
+% \acmYear{2010}
+% \acmMonth{3}
+
+% Copyright
+%\setcopyright{acmcopyright}
+%\setcopyright{acmlicensed}
+%\setcopyright{rightsretained}
+%\setcopyright{usgov}
+% \setcopyright{usgovmixed}
+%\setcopyright{cagov}
+%\setcopyright{cagovmixed}
+
+% DOI
+% \acmDOI{0000001.0000001_2}
+
+% Paper history
+% \received{February 2007}
+% \received{March 2009}
+% \received[final version]{June 2009}
+% \received[accepted]{July 2009}
+
+
+% Document starts
+\begin{document}
+% Title portion
+\title{OptCuts: Joint Optimization for Seam Placement and Parameterization of 3D Surfaces} 
+
+\author{Minchen Li}
+% \orcid{1234-5678-9012-3456}
+% \affiliation{%
+%   \institution{College of William and Mary}
+%   \streetaddress{104 Jamestown Rd}
+%   \city{Williamsburg}
+%   \state{VA}
+%   \postcode{23185}
+%   \country{USA}}
+\email{minchernl@gmail.com}
+% \author{Valerie B\'eranger}
+% \affiliation{%
+%   \institution{Inria Paris-Rocquencourt}
+%   \city{Rocquencourt}
+%   \country{France}
+% }
+% \email{beranger@inria.fr}
+% \author{Aparna Patel} 
+% \affiliation{%
+%  \institution{Rajiv Gandhi University}
+%  \streetaddress{Rono-Hills}
+%  \city{Doimukh} 
+%  \state{Arunachal Pradesh}
+%  \country{India}}
+% \email{aprna_patel@rguhs.ac.in}
+% \author{Huifen Chan}
+% \affiliation{%
+%   \institution{Tsinghua University}
+%   \streetaddress{30 Shuangqing Rd}
+%   \city{Haidian Qu} 
+%   \state{Beijing Shi}
+%   \country{China}
+% }
+% \email{chan0345@tsinghua.edu.cn}
+% \author{Ting Yan}
+% \affiliation{%
+%   \institution{Eaton Innovation Center}
+%   \city{Prague}
+%   \country{Czech Republic}}
+% \email{yanting02@gmail.com}
+% \author{Tian He}
+% \affiliation{%
+%   \institution{University of Virginia}
+%   \department{School of Engineering}
+%   \city{Charlottesville}
+%   \state{VA}
+%   \postcode{22903}
+%   \country{USA}
+% }
+% \affiliation{%
+%   \institution{University of Minnesota}
+%   \country{USA}}
+% \email{tinghe@uva.edu}
+% \author{Chengdu Huang}
+% \author{John A. Stankovic}
+% \author{Tarek F. Abdelzaher}
+% \affiliation{%
+%   \institution{University of Virginia}
+%   \department{School of Engineering}
+%   \city{Charlottesville}
+%   \state{VA}
+%   \postcode{22903}
+%   \country{USA}
+% }
+
+\renewcommand\shortauthors{Li, M. et al}
+
+\begin{abstract}
+Parameterizing 3D surfaces to the 2D plane with low mapping distortion is a critical problem in computer graphics with many applications including texture mapping, remeshing, and detail transfer. 
+In most practical cases, it is not possible to map 3D surfaces to the 2D plane without introducing discontinuities (seams) and distortion. Most existing techniques follow a two step process - first placing seams and then minimizing distortion - that usually leads to suboptimal results. 
+In this paper, we attack seam placement and parameterization jointly in a single alternating optimization framework, where seams are optimally and progressively introduced \textcolor{red}{or removed} (in topology steps) in between distortion minimization (in descent steps). A linear combination of symmetric Dirichlet energy and seam length are taken as our objective, of which the stationary w.r.t. both UV topology and UV coordinates are guaranteed to be reached within a bounded number of alternating iterations per objective, input model, and initial embedding.
+
+Specifically, in descent steps, we minimize symmetric Dirichlet energy using projected Newton method given the current UV topology. In topology steps, we search for a nearby UV topology that locally decrease the objective the most by querying a filtered set of basic topological operations. To be appropriately aggressive on searching in the topological space, \textcolor{red}{we develop an analogous line search method as in continuous settings}.
+\textcolor{red}{Since in application scenarios, an upper bound for distortion or seam length is more intuitive than picking a balancing factor, we also provide a constrained optimization view of this broader problem that seeks stationary w.r.t. both primal (distortion and seams) and dual (balancing factor) variables subject to user specified upper bounds.}
+
+Our method automatically produces both visually pleasing and high quality UV maps with low mapping distortion and an optimally sparse set of seams without any user assistance. \textcolor{red}{We also show that given a UV configuration by other methods, our method can improve the distortion and seam placement}, and our framework has the potential to handle bijectivity, seamlessness, and user preferences jointly within it as well.
+\end{abstract}
+
+
+%
+% The code below should be generated by the tool at
+% http://dl.acm.org/ccs.cfm
+% Please copy and paste the code instead of the example below. 
+%
+\begin{CCSXML}
+<ccs2012>
+	<concept>
+		<concept_id>10010147.10010371.10010396.10010398</concept_id>
+		<concept_desc>Computing methodologies~Mesh geometry models</concept_desc>
+		<concept_significance>500</concept_significance>
+	</concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Computing methodologies~Mesh geometry models}
+
+%
+% End generated code
+%
+
+
+\keywords{geometry processing, mesh parameterization, seam placement, numerical optimization, ...}
+
+
+
+\maketitle
+
+\input{introduction}
+
+\input{relatedWorks}
+
+\input{alternatingFramework}
+
+\input{descentSteps}
+
+\input{topologySteps}
+
+\input{autoWeighting}
+
+\input{results}
+
+\input{conclusions}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{OptCuts} 
+
+\end{document}

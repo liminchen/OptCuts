@@ -1,0 +1,34 @@
+\textcolor{red}{\section{Weighting the Objective Automatically by Introducing a Dual Problem}}
+
+At each inner iterate $k+1$, we fix some $\lambda^{k+1}$ and minimize the bi-objective 
+\[ \min_{T,V} E_{SE}(V,T) + \lambda^{k+1} E_{SD}(V,T) \]
+
+How do we get $\lambda^{k+1}$? 
+
+Our overall minimization is inequality constrained with a specified upper bound $b \in \mathbb{R}_+$ on distortion. (L2 norm on SD  energy for now - pretty easy to modify to an extremal measure if we want later on.)
+
+Our model problem minimization is then 
+\[ \min_{T,V} E_{SE}(V,T) :  b - E_{SD}(V,T) \geq 0 \]
+
+Or, equivalently,
+\[ \min_{T,V} \max_{\lambda \geq 0} E_{SE}(V,T) + \lambda \big( E_{SD}(V,T) - b\big) \]
+
+Of course this is nonsmooth in $\lambda$ since it does not take into account very nicely the fact that per-iteration we will start away from feasibility and want to iteratively improve both our primal variables $\{V,T\}$ and our dual variable $\lambda$.  So to smoothly update to a current $\lambda^{k+1}$ from a previous estimate $\lambda^k$ we will add a regularizer $R(\lambda,\lambda^k)$ to make sure $\lambda$ iterates behave themselves reasonably. For now lets stick with something simple: a quadratic regularizer should do the trick  $R =\frac{1}{2\kappa} (\lambda- \lambda^k)^2$. 
+
+For iteration $k+1$ this gives us 
+\[ \min_{T,V} \max_{\lambda \geq 0} E_{SE}(V,T) + \lambda \big( E_{SD}(V,T) - b\big) - \frac{1}{2\kappa} (\lambda- \lambda^k)^2 \]
+
+And now we can first solve closed form for $\lambda$ as 
+\[ \lambda^{k+1} \leftarrow argmax_{\lambda \geq 0} E_{SE}(V,T) + \lambda \big( E_{SD}(V,T) - b\big) - \frac{1}{2\kappa} (\lambda- \lambda^k)^2 \]
+
+giving us 
+\[ \lambda^{k+1} \leftarrow \max\big(0,\kappa \big( E_{SD}(V,T) -b \big) + \lambda^k\big) \]
+
+We then can solve the inner iteration (with both discrete topology steps and smooth steps) with the energy 
+\[ \min_{T,V}  E_{SE}(V,T) + \lambda^{k+1}  E_{SD}(V,T) \]
+
+Followed by the next update of dual variable $\lambda$.
+
+(Notice that throughout the above we can define a progressive $\lambda$ without needing to employ subgradients to reason about nonsmoothness in our sparsity energy.)
+
+$R$ is to iteratively solving for $\lambda$ so that it could have intermediate values between $0$ and $\infty$. Then starting from full mesh, $\lambda$ will first increase as bound is not reached, and then it will decrease when bound is reached. But currently we don't have merge to increase $E_{SE}$ and decrease $E_{SD}$, so our process will stop right after it reaches the bound. The bound is obvious to be reached, how do we know the path of $\lambda$ is great? If we have merge, then will the optimization converge on all $T$, $V$, $\lambda$?

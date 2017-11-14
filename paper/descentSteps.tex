@@ -1,0 +1,10 @@
+\section{Descent Steps for Continuous Optimization}
+
+for each descent step inner iteration $j$, Newton-type Iteration:
+compute $E_{SD}$ Hessian proxy $P^j$ using projected Newton
+compute $E_{SD}$ gradient $g^j$
+solve for search direction $p^j$ ($P^j p^j = -g^j$) using PARDISO symmetric indefinite solver
+compute initial step size $\alpha^j_0$ by avoiding element inversion
+backtracking line search with Armijo rule
+update $U^{j+1} = U^j + \alpha^j p^j$
+record energy decrease $(1-\lambda_t)\Delta E_{SD}^j$

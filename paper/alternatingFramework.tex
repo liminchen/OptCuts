@@ -1,0 +1,50 @@
+\section{An Alternating Framework of Continuous and Discrete Optimization for Mesh Parameterization}
+
+The most basic and intuitive mesh parameterization objective regarding both seams and distortion is minimizing distortion with as-sparse-as-possible seams introduced. However, seam sparsity usually leads to discontinuous energies w.r.t. UV coordinates $U \in \mathcal{R}^{2n_v}$, which is non-trivial to be considered into existing distortion minimization routines. Instead of progressively approximating seam sparsity energy with a continuous counterpart applying homotopy optimization method as~\cite{Poranne2017Autocuts}, we handle this discrete energy in a combinatoric way - searching in the topological space.
+
+\subsection{Formulation}
+
+This topological space is a directed graph $G_T$ with its vertices $v_T \in V_T$ being all possible UV topologies of a given 3D surface, and its edges $e_T \in E_T$ are the basic topological operations on a mesh such as vertex split, edge merge, etc, that can transform one UV topology to a nearby topology.
+
+Now, if we consider both distortion and seam in one objective $E_w$, we can define the value $f_v$ of vertex $v_{T,i}$ as 
+\[ f_v(v_{T,i}) = \min_{U} E_w \]
+and the weights $f_w$ of edge $e_{T,m}$ from $v_{T,i}$ to $v_{T,j}$ could just be defined as 
+\[ f_w(e_{T,m}) = f_v(v_{T,j}) - f_v(v_{T,i}) \]
+Thus our problem could be written as
+\[ \min_{U, v_T} E_w \]
+which could be stated as to search for a $v_{T,i}$ on $G_T$ where all edges connected to it satisfies $f_w \geq 0$. 
+
+However, computing $f_v$ for one UV topology requires a whole continuous optimization process, and even the number of neighbors of a UV topology is in the scale of $n_v^2$. Consequently, we construct a search path on $G_T$ by progressively introducing or removing seams, and we only estimate $f_w$ on a local stencil of $U$ for a filtered set of neighbors so that the whole process of continuous optimization is only conducted while necessary:
+
+Let's consider a simple situation, minimizing symmetric Dirichlet energy~\cite{Smith2015Bijective}
+\[ E_{SD} = \frac{1}{n_t \overline{|A|}} \sum_t |A_t|(\sigma_{t,1}^2 + \sigma_{t,2}^2 + \sigma_{t,1}^{-2} + \sigma_{t,2}^{-2}) \]
+and total seam length
+\[ E_{se} = \frac{1}{\sqrt{n_t}\overline{|e|}} \sum_{i \in \mathcal{S}} 2|e_i| \]
+where a balancing factor $\lambda \in [0, 1]$ is controlling the ratio between the two: 
+\[ E_w = \lambda E_{se} + (1 - \lambda) E_{SD} \]
+We minimize $E_w$ by iteratively alternating between continuous optimization (in descent steps) and discrete optimization (in topology steps):
+\begin{itemize}
+\item In descent steps, we compute $f_v(v_{T,i})$ via projected Newton method~\cite{Teran2005Robust}:
+\[ f_v(v_{T,i}) = E_{se,i} + \min_U E_{SD} \]
+\item In topology steps, we estimate $f_v(v_{T,j})$ for a filtered set of neighbors on a local stencil of $U$ as $\hat{f}_v$ and move onto the neighbor $v_{T,i+1}$ with smallest $\hat{f}_v$.
+\end{itemize}
+If in a descent step, $f_v(v_{T,i}) \geq f_v(v_{T,i-1})$ is detected, we stop the process by rolling back to $v_{T,i-1}$, which is the stationary of $E_w$ w.r.t. both UV topology and UV coordinates that we are searching for.
+
+\subsection{Convergence}
+
+As our method is defined to guarantee convergence, we now analyze convergence rate. First, it's easy to see that $E_w$ is monotonically decreasing looking at each end of descent steps. Now we look at descent step $i$ and $i+1$, from $E^i_w \geq E^{i+1}_w$ we have
+\[ E^i_{SD} - E^{i+1}_{SD} \geq \frac{\lambda}{1-\lambda} (E^{i+1}_{se} - E^i_{se}) \geq \frac{\lambda}{1-\lambda} \frac{1}{\sqrt{n_t}\overline{|e|}} 2|e|_{min} \]
+if we now only consider splitting operations that keep increasing $E_{se}$. It's obvious that $E_{SD}$'s lower bound is defined to be $4$. So we have
+\[ n_{alter} \leq \frac{(1-\lambda)\sqrt{n_t}\overline{|e|}}{2\lambda|e|_{min}} (E^0_{SD} - 4) \]
+The most important hint we can read from this is, to accelerate convergence, we can move through multiple vertices on $G_T$ in each topology step to increase $E^{i+1}_{se} - E^i_{se}$. \textcolor{red}{Consequently, we build an anologous line search method to be appropriately agressive when searching in the topological space so that we won't fall into bad locally optimal UV topologies.}
+
+\textcolor{red}{Merge operations should be defined carefully to ensure convergence, and the proof will need updates.}
+
+\subsection{Potential Extensions}
+It will be interesting to replace $E_{SD}$ with other types of distortion energies, especially conformal energies like MIPS~\cite{Hormann2000MIPS} to see how it behaves.
+Besides, bijectivity could be potentially achieved by augmenting distortion energy with a penalty-based collision handling energy, possibly also assisted by air mesh method~\cite{?}.
+Similarly, seamless properties could also be achieved by augmenting distortion energy with the correspondingly developed new differentiable objectives, and our alternating framework stays the same.
+
+If an objective derived from an application is discontinuous and it could be expressed using mesh topology, then we can simply augment it into $E_{se}$ and tackle it in the topology steps. For example, the smoothness of seams, user preferences on regional seam placement, and properties related to charts should all be able to be considered in this way.
+
+Besides, parallelism not only accelerate our topology steps, but also could improve the results by conducting an either broader or deeper search in the topological space.
