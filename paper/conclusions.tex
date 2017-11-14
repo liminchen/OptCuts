@@ -1,5 +1,7 @@
 \section{Conclusions and Future Works}
 
+Our method doesn't provide globally optimal solutions, the results are still locally optimal, but w.r.t. both seams and distortion, which is better than previous 2-pass methods that breaks the correlation between seams and distortion.
+
 take advantage of basic SIMD type of parallelism for accelerating query and improving results' quality by directly evaluating $f_v$ for neighbors and track multiple branches, very useful for practical implementations
 
 if the user won't mind getting a slightly different triangulation, we could also create fractures in the interior of an element and locally remesh the stencil
