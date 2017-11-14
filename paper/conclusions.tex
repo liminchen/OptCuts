@@ -1,8 +1,10 @@
 \section{Conclusions and Future Works}
 
-multiple cut initiation in one topology step by global stretch analysis?
+take advantage of basic SIMD type of parallelism for accelerating query and improving results' quality by directly evaluating $f_v$ for neighbors and track multiple branches, very useful for practical implementations
 
-how to deal with closed surfaces (what will be the initial cuts for the initial embedding)?
+if the user won't mind getting a slightly different triangulation, we could also create fractures in the interior of an element and locally remesh the stencil
+
+start and solve in 3D by reducing curvature so that the need for locally injective initial embedding in parameterization problems could be eliminated, and the result is only "biased" by it's 3D shape, which is the most reasonable bias
 
 try conformal energy like MIPS
 
@@ -10,14 +12,6 @@ bijectivity, seamless, and other augmentation of continuous energy?
 
 handle user preferences on seam placement
 
-seam smoothness, patch related discrete energy?
-
-start and solve in 3D by reducing curvature so that the need for initial embedding could be eliminated, and the result is only "biased" by it's 3D shape, which is the most reasonable bias
-
-taking advantage of parallelism to look both broader and deeper when searching in topological space, very useful for practical implementations
-
-if the user won't mind getting a slightly different triangulation, we could also create fractures in the interior of an element and locally remesh the stencil
-
-given a symmetric shape, whether symmetrically triangulated or not, does our method preserve symmetry in UV space?
+seam smoothness, patch related discrete energy augmentation?
 
 \section{Acknowledgements}

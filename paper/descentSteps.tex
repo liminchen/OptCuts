@@ -1,10 +1,25 @@
 \section{Descent Steps for Continuous Optimization}
 
-for each descent step inner iteration $j$, Newton-type Iteration:
-compute $E_{SD}$ Hessian proxy $P^j$ using projected Newton
-compute $E_{SD}$ gradient $g^j$
-solve for search direction $p^j$ ($P^j p^j = -g^j$) using PARDISO symmetric indefinite solver
-compute initial step size $\alpha^j_0$ by avoiding element inversion
-backtracking line search with Armijo rule
-update $U^{j+1} = U^j + \alpha^j p^j$
-record energy decrease $(1-\lambda_t)\Delta E_{SD}^j$
+\subsection{Newton-type Iterations}
+
+for each descent step inner iteration $j$:
+
+compute $E_{SD}$ Hessian proxy $P^j$ using projected Newton;
+
+compute $E_{SD}$ gradient $g^j$;
+
+solve for search direction $p^j$ ($P^j p^j = -g^j$) using PARDISO symmetric indefinite solver;
+
+compute initial step size $\alpha^j_0$ by avoiding element inversion;
+
+backtracking line search with Armijo rule;
+
+update $U^{j+1} = U^j + \alpha^j p^j$;
+
+record energy decrease $(1-\lambda_t)\Delta E_{SD}^j$;
+
+\subsection{Potential Accelerations for Practical Use}
+
+Since our topological operations only change the mesh locally both on connectivity and coordinates, we could also update the Hessian or the decomposition locally after topology changes to save time. Besides, it's also interesting to try other Hessian approximation methods like L-BFGS or Majorization to explore further acceleration by finding a balance between computational cost and convergence rate.
+
+For convergence tolerance of descent steps, $||\nabla E_{SD}||^2 \leq 10^{-6}$ (note that our energy is normalized) works generally well for all input models judging from the initiated fracture in the following topology step. In fact more inexact solve performs well on most of the models with even $||\nabla E_{SD}||^2 \leq 10^{-4}$, but some may result even better with $||\nabla E_{SD}||^2 \leq 10^{-8}$. Since we are conducting non-convex optimization, $||\nabla E_{SD}||^2$ is not always decreasing, which is also why we don't use Wolfe conditions for line search. The argument here for tolerance issue is that, it depends on whether we are truly in the infinitesimal region of a stationary. Some configuration with $||\nabla E_{SD}||^2 \leq 10^{-6}$ may still not inside the infinitesimal region of a stationary, where if optimization goes on, the $||\nabla E_{SD}||^2$ will go up and then fall down again to a real stationary, which is understandable in non-convex optimization.
