@@ -33,8 +33,9 @@ bool converged = false;
 bool autoHomotopy = true;
 std::ofstream homoTransFile;
 bool fractureMode = false;
-double fracThres = 0.0; //stop according to local estimation TODO: make as prog args
-//double fracThres = -__DBL_MAX__; //stop according to descent step TODO: make as prog args
+//double fracThres = 0.0; //stop according to local estimation TODO: make as prog args
+double fracThres = -__DBL_MAX__; //stop according to descent step TODO: make as prog args
+bool lastFractureIn = false;
 bool altBase = false;
 bool outerLoopFinished = false;
 double lastE_w = 0.0;
@@ -503,32 +504,50 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     triSoup[channel_result]->computeSeamSparsity(E_se);
                     const double E_w = optimizer->getLastEnergyVal() +
                         (1.0 - energyParams[0]) * E_se / triSoup[channel_result]->virtualPerimeter;
+                    std::cout << "E_w from " << lastE_w << " to " << E_w << std::endl;
                     if(E_w >= lastE_w) {
-                        logFile << "E_w is not decreased, end process." << std::endl;
+                        assert(fracThres < 0.0);
 //                    if(false) {
-                        //TODO: !!! roll back
-                        
-                        infoName = "finalResult";
-                        // perform exact solve
-                        optimizer->setRelGL2Tol(1.0e-8);
-                        //!! can recompute precondmtr if needed
-                        converged = false;
-                        while(!converged) {
-                            proceedOptimization(1000);
+                        if(lastFractureIn) {
+                            logFile << "E_w is not decreased, end process." << std::endl;
+                            //TODO: !!! roll back
+                            
+                            infoName = "finalResult";
+                            // perform exact solve
+                            optimizer->setRelGL2Tol(1.0e-8);
+                            //!! can recompute precondmtr if needed
+                            converged = false;
+                            while(!converged) {
+                                proceedOptimization(1000);
+                            }
+                            secPast += difftime(time(NULL), lastStart_world);
+                            updateViewerData();
+                            
+                            optimization_on = false;
+                            viewer.core.is_animating = false;
+                            const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
+                            const double timeUsed_frac = static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC;
+                            std::cout << "optimization converged, with " << timeUsed << "s, where " <<
+                            timeUsed_frac << "s is for fracture computation." << std::endl;
+                            logFile << "optimization converged, with " << timeUsed << "s, where " <<
+                            timeUsed_frac << "s is for fracture computation." << std::endl;
+                            homoTransFile.close();
+                            outerLoopFinished = true;
                         }
-                        secPast += difftime(time(NULL), lastStart_world);
-                        updateViewerData();
-                        
-                        optimization_on = false;
-                        viewer.core.is_animating = false;
-                        const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
-                        const double timeUsed_frac = static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC;
-                        std::cout << "optimization converged, with " << timeUsed << "s, where " <<
-                        timeUsed_frac << "s is for fracture computation." << std::endl;
-                        logFile << "optimization converged, with " << timeUsed << "s, where " <<
-                        timeUsed_frac << "s is for fracture computation." << std::endl;
-                        homoTransFile.close();
-                        outerLoopFinished = true;
+                        else {
+                            lastE_w = E_w;
+                            
+                            homoTransFile << iterNum << std::endl;
+                            lastStart = clock();
+
+//                            altBase = true; // no propagation for now after interior splits
+                            //TODO: no need to also query boundary vertices here
+                            optimizer->createFracture(fracThres, true, !altBase, true);
+                            //TODO: what if gradient is still < tol after opening the fracture?
+                            lastFractureIn = true;
+                            ticksPast += clock() - lastStart;
+                            converged = false;
+                        }
                     }
                     else {
                         lastE_w = E_w;
@@ -536,13 +555,16 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         homoTransFile << iterNum << std::endl;
                         lastStart = clock();
                         if(optimizer->createFracture(fracThres, true, !altBase)) {
+                            lastFractureIn = false;
                             ticksPast += clock() - lastStart;
                             converged = false;
                         }
                         else {
-                            altBase = true; // no propagation for now after interior splits
+//                            altBase = true; // no propagation for now after interior splits
                             //TODO: no need to also query boundary vertices here
                             if(optimizer->createFracture(fracThres, true, !altBase, true)) {
+                                //TODO: what if gradient is still < tol after opening the fracture?
+                                lastFractureIn = true;
                                 ticksPast += clock() - lastStart;
                                 converged = false;
                             }

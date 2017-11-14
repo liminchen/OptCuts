@@ -719,8 +719,8 @@ namespace FracCuts {
     
     bool TriangleSoup::splitEdge(double lambda_t, double thres, bool propagate, bool splitInterior)
     {
-        const double filterExp_b = 0.9;
-        const double filterExp_in = 0.9;
+        const double filterExp_b = 0.8;
+        const double filterExp_in = 0.8;
         
         std::vector<int> bestCandVerts;
         int bestCandAmt_b = 0; // number of boundary vertices to query
@@ -816,8 +816,8 @@ namespace FracCuts {
                 candI_max = candI;
             }
         }
+        std::cout << "E_dec threshold = " << thres << std::endl;
         if(EwDecs[candI_max] > thres) {
-            std::cout << "E_dec threshold = " << thres << std::endl;
             if(candI_max < bestCandAmt_b) {
                 // boundary split
                 std::cout << "boundary split E_dec = " << EwDecs[candI_max] << std::endl;
@@ -837,6 +837,7 @@ namespace FracCuts {
             return true;
         }
         else {
+            std::cout << "max E_dec = " << EwDecs[candI_max] << " < thres" << std::endl;
             return false;
         }
     }
@@ -1205,18 +1206,18 @@ namespace FracCuts {
     }
     void TriangleSoup::computeSeamSparsity(double& sparsity) const
     {
-        const double thres = 1.0e-2;
+//        const double thres = 1.0e-2;
         sparsity = 0.0;
         for(int cohI = 0; cohI < cohE.rows(); cohI++)
         {
             if(!boundaryEdge[cohI]) {
                 const double w = edgeLen[cohI];
-                if((V.row(cohE(cohI, 0)) - V.row(cohE(cohI, 2))).norm() / avgEdgeLen > thres) {
+//                if((V.row(cohE(cohI, 0)) - V.row(cohE(cohI, 2))).norm() / avgEdgeLen > thres) {
                     sparsity += w;
-                }
-                if((V.row(cohE(cohI, 1)) - V.row(cohE(cohI, 3))).norm() / avgEdgeLen > thres) {
+//                }
+//                if((V.row(cohE(cohI, 1)) - V.row(cohE(cohI, 3))).norm() / avgEdgeLen > thres) {
                     sparsity += w;
-                }
+//                }
             }
         }
         sparsity += initSeamLen;
@@ -1593,6 +1594,7 @@ namespace FracCuts {
                     const double fracEIncI = lambda_t * eLen * 2.0 / virtualPerimeter;
                     const double curEwDec = -fracEIncI + (1.0 - lambda_t) *
                         computeLocalEDec(edge, edge2Tri, vNeighbor, cohEIndex, newVertPosI);
+//                    const double curEwDec = computeLocalEDec(edge, edge2Tri, vNeighbor, cohEIndex, newVertPosI) / (eLen * 2.0 / virtualPerimeter);
                     if(curEwDec > maxEwDec) {
                         maxEwDec = curEwDec;
                         path_max[0] = vI;
@@ -1606,7 +1608,7 @@ namespace FracCuts {
         else {
             for(const auto& nbVI : vNeighbor[vI]) {
                 if(isBoundaryVert(edge2Tri, vNeighbor, nbVI)) {
-                    return 0.0; // don't split vertices connected to boundary here
+                    return -__DBL_MAX__; // don't split vertices connected to boundary here
                 }
             }
             

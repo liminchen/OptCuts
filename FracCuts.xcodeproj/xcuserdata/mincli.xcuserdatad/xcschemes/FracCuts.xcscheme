@@ -75,8 +75,8 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/needMoreTime/hand_1_i_f5000.obj 0.025 1 0 testtest"
-            isEnabled = "YES">
+            argument = "0 /Users/mincli/Downloads/meshes/needSmallerTol/hand_1_i_f5000.obj 0.025 1 0 testtest"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "100 /Users/mincli/Downloads/meshes/needMoreTime/lucy_o_f8000.obj 0.025 4 0 test"
@@ -107,7 +107,11 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 cone2.0.obj 0.025 1 0 testtest"
+            argument = "0 cone2.0.obj 0.025 0 0 testtest"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 cone2.0_f1500.obj 0.025 1 0 testtest"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
