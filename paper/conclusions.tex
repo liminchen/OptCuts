@@ -1,19 +1,14 @@
 \section{Conclusions and Future Works}
 
-Our method doesn't provide globally optimal solutions, the results are still locally optimal, but w.r.t. both seams and distortion, which is better than previous 2-pass methods that breaks the correlation between seams and distortion.
-
-take advantage of basic SIMD type of parallelism for accelerating query and improving results' quality by directly evaluating $f_v$ for neighbors and track multiple branches, very useful for practical implementations
-
-if the user won't mind getting a slightly different triangulation, we could also create fractures in the interior of an element and locally remesh the stencil
-
-start and solve in 3D by reducing curvature so that the need for locally injective initial embedding in parameterization problems could be eliminated, and the result is only "biased" by it's 3D shape, which is the most reasonable bias
-
-try conformal energy like MIPS
-
-bijectivity, seamless, and other augmentation of continuous energy?
-
-handle user preferences on seam placement
-
-seam smoothness, patch related discrete energy augmentation?
+\begin{itemize}
+\item Our method doesn't provide globally optimal solutions, the results are still locally optimal, but w.r.t. both seams and distortion, which is better than previous 2-pass methods that breaks the correlation between seams and distortion.
+\item take advantage of basic SIMD type of parallelism for accelerating query and improving results' quality by directly evaluating $f_v$ for neighbors and track multiple branches, very useful for practical implementations
+\item if the user won't mind getting a slightly different triangulation, we could also create fractures in the interior of an element and locally remesh the stencil
+\item start and solve in 3D by reducing curvature so that the need for locally injective initial embedding in parameterization problems could be eliminated, and the result is only "biased" by it's 3D shape, which is the most reasonable bias
+\item try conformal energy like MIPS
+\item \textcolor{red}{bijectivity}, seamless, and other augmentation of continuous energy?
+\item handle user preferences on seam placement
+\item seam smoothness, patch related discrete energy augmentation?
+\end{itemize}
 
 \section{Acknowledgements}

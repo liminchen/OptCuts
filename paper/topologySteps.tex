@@ -2,24 +2,43 @@
 
 \subsection{Evaluating Topological Operations via Optimization on Local Stencils}
 
-Candidate Filtering:
-for each vertex
-  compute divergence of local gradients
-independently picking $\sqrt{n_{v,b}^i}$ boundary vertices and $\sqrt{n_{v,i}^i}$ interior vertices with largest divergence as candidates
+\begin{algorithm}[h]
+\SetAlgoLined
+\KwData{Input model, UV coordinates $U$, UV topology $v_T$}
+\KwResult{A filtered set of UV vertices}
+\For{each UV vertex}{
+  compute divergence of local gradients\;
+  independently picking $\sqrt{n_{v,b}^i}$ boundary vertices and $\sqrt{n_{v,i}^i}$ interior vertices with largest divergence as candidates\;
+}
+\caption{Candidate Filtering}
+\end{algorithm}
 
-Local Evaluation:
-for each candidate vertex
-  if on boundary
-    for each interior incident edge
-      split and compute $\Delta E_{SD,l}$ locally
-      compute $\Delta E_{w,l} = (1 - \lambda_t) \Delta E_{SD,l} + \lambda_t \Delta E_{se}$
-  else
-    for each pair of incident edges forming a smooth path
-      split and compute $\Delta E_{SD,l}$ locally
-      compute $\Delta E_{w,l} = 0.5((1 - \lambda_t) \Delta E_{SD,l} + \lambda_t \Delta E_{se})$
-
+\begin{algorithm}[h]
+\SetAlgoLined
+\KwData{Input model, UV coordinates $U$, UV topology $v_T$, candidate UV vertices}
+\KwResult{new UV topology $v_T$ and UV coordinates $U$}
+\For{each candidate UV vertex}{
+  \eIf{on boundary}
+  {
+    \For{each interior incident edge}{
+      split and compute $\Delta E_{SD,l}$ locally\;
+      compute $\Delta E_{w,l} = (1 - \lambda_t) \Delta E_{SD,l} + \lambda_t \Delta E_{se}$\;
+    }
+  }
+  {
+    \For{each pair of incident edges}{
+      split and compute $\Delta E_{SD,l}$ locally\;
+      compute $\Delta E_{w,l} = 0.5((1 - \lambda_t) \Delta E_{SD,l} + \lambda_t \Delta E_{se})$\;
+    }
+  }
+}
 split the vertex with largest $|\Delta E_{w,l}|$
-turn on fracture propagation
+\caption{Local Evaluation}
+\end{algorithm}
+
+\textcolor{red}{
+Do we need to treat compressed region and stretched region differently?
+}
 
 \textcolor{red}{
 Since we are using the local estimation to approximate true global energy decrease, it would be necessary to find a balance between accuracy and efficiency by weighing between size of local stencils and number of optimization iterations to run.
@@ -35,14 +54,25 @@ Once a fracture is initiated, it almost always be extended further in the later 
 
 After the fracture has been initiated, we first go to descent step to run an inner iteration and record the energy decrease $\Delta E_w^j$ and energy $E_w^{j,0}$. Then we evaluate $\hat{f}_v$'s for splitting the tail vertex of the newly initiated fracture along its incident edges. If the one with largest $\hat{f}_v$ satisfies $\hat{f}_v - E_w^{j,0} \leq \Delta E_w^j$, we propagate the fracture along this edge, and run another inner iteration to do another propagation query. If there's no propagation that could benefit more than running the inner iteration, we stop query propagation in the current descent step and run inner iterations till convergence:
 
-  for each fracture tail vertex $k$
-    for each interior incident edge of $k$
-      split and compute $\Delta E_{SD, l}$ locally
-      compute $\Delta E_{w,l} = (1 - \lambda_t) \Delta E_{SD,l} + \lambda_t \Delta E_{se}$
-  if the largest $|\Delta E_{w,l}|$ is larger than $|(1-\lambda_t)\Delta E_{SD}^j|$
-    propagate fracture by splitting the vertex
-  else
-    turn off fracture propagation for the rest of the current descent step
+\begin{algorithm}[h]
+\SetAlgoLined
+\KwData{Input model, UV coordinates $U$, UV topology $v_T$}
+\KwResult{new UV topology $v_T$ and UV coordinates $U$}
+\For{each fracture tail vertex $k$}{
+  \For{each interior incident edge of $k$}{
+    split and compute $\Delta E_{SD, l}$ locally\;
+    compute $\Delta E_{w,l} = (1 - \lambda_t) \Delta E_{SD,l} + \lambda_t \Delta E_{se}$\;
+  }
+  \eIf{the largest $|\Delta E_{w,l}|$ is larger than $|(1-\lambda_t)\Delta E_{SD}^j|$}
+  {
+    propagate fracture by splitting the vertex\;
+  }
+  {
+    turn off fracture propagation for the rest of the current descent step\;
+  }
+}
+\caption{Fracture Propagation Line Search}
+\end{algorithm}
 
 \textcolor{red}{Improve current propagation scheme by developing analogous line search method}
 

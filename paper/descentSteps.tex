@@ -2,21 +2,27 @@
 
 \subsection{Newton-type Iterations}
 
-for each descent step inner iteration $j$:
-
-compute $E_{SD}$ Hessian proxy $P^j$ using projected Newton;
-
-compute $E_{SD}$ gradient $g^j$;
-
-solve for search direction $p^j$ ($P^j p^j = -g^j$) using PARDISO symmetric indefinite solver;
-
-compute initial step size $\alpha^j_0$ by avoiding element inversion;
-
-backtracking line search with Armijo rule;
-
-update $U^{j+1} = U^j + \alpha^j p^j$;
-
-record energy decrease $(1-\lambda_t)\Delta E_{SD}^j$;
+\begin{algorithm}[h]
+\SetAlgoLined
+\KwData{Input model, UV coordinates $U$, UV topology $v_T$}
+\KwResult{$\arg\!\min_U E_{SD}$}
+\For{each descent step inner iteration $j$}{
+	compute $E_{SD}$ Hessian proxy $P^j$ using projected Newton\;
+	compute $E_{SD}$ gradient $g^j$\;
+	solve for search direction $p^j$ ($P^j p^j = -g^j$) using PARDISO symmetric indefinite solver\;
+	compute initial step size $\alpha^j_0$ by avoiding element inversion\;
+	backtracking line search with Armijo rule\;
+	update $U^{j+1} = U^j + \alpha^j p^j$\;
+	% read current\;
+	% \eIf{understand}{
+	% go to next section\;
+	% current section becomes this one\;
+	% }{
+	% go back to the beginning of current section\;
+	% }
+}
+\caption{Descent Steps}
+\end{algorithm}
 
 \subsection{Potential Accelerations for Practical Use}
 

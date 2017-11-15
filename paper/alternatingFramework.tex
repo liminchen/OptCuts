@@ -30,7 +30,7 @@ We minimize $E_w$ by iteratively alternate between continuous optimization (in d
 \[ f_v(v_{T,i}) = E_{se,i} + \min_{U_i} E_{SD} \]
 \item In topology steps, we estimate $f_v(v_{T,j})$ for a filtered set of neighbors on a local stencil of $U$ as $\hat{f}_v$ and move onto the neighbor $v_{T,i+1}$ with smallest $\hat{f}_v$.
 \end{itemize}
-If in a descent step, $f_v(v_{T,i}) \geq f_v(v_{T,i-1})$ is detected, we stop the process by rolling back to $v_{T,i-1}$, which is the stationary of $E_w$ w.r.t. both UV topology and UV coordinates that we are searching for.
+If in a descent step, $f_v(v_{T,i}) \geq f_v(v_{T,i-1})$ is detected, we stop the process by \textcolor{red}{rolling back} to $v_{T,i-1}$, which is the stationary of $E_w$ w.r.t. both UV topology and UV coordinates that we are searching for.
 
 \subsection{Convergence}
 
