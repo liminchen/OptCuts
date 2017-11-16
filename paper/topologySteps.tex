@@ -45,6 +45,10 @@ Since we are using the local estimation to approximate true global energy decrea
 }
 
 \textcolor{red}{
+Seamster's selected high curvature vertices are set to be the leaf of the seam tree, while our interior splitting scheme will allow fracture to be extended on both the 2 sides of a picked vertex, which seems suboptimal. However, instead of just trying to connect interior vertex to the boundary like geometry images, we still have the reason to preserve our interior splits because we've seen results that holes in UV map will be needed as a better solution for resolving some interior distortion. What we need to do is to take Seamster's inspiration and improve our interior splitting scheme.
+}
+
+\textcolor{red}{
 Enable merge operation.
 }
 
@@ -75,6 +79,8 @@ After the fracture has been initiated, we first go to descent step to run an inn
 \end{algorithm}
 
 \textcolor{red}{Improve current propagation scheme by developing analogous line search method}
+
+\textcolor{red}{Besides fracture propagation line search, increase the depth of querying fracture initiation did the same thing but with more computational cost. However, it could improve the results because it's more global!}
 
 \textcolor{red}{
 \subsection{Multiple Fracture Initiation}
