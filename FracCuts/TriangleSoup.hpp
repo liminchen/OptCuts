@@ -57,7 +57,6 @@ namespace FracCuts{
         std::map<std::pair<int, int>, int> cohEIndex;
         
         std::set<int> fracTail;
-        std::array<std::pair<std::set<int>, std::set<int>>, 2> subOptimizerInfo;
         double initSeamLen;
         
     public: // constructor
@@ -89,6 +88,7 @@ namespace FracCuts{
         void cutPath(const std::vector<int>& path, bool makeCoh = false, int changePos = 0, const Eigen::MatrixXd& newVertPos = Eigen::MatrixXd());
         
         void computeSeamScore(Eigen::VectorXd& seamScore) const;
+        void computeBoundaryLen(double& boundaryLen) const;
         void computeSeamSparsity(double& sparsity) const;
         void computeStandardStretch(double& stretch_l2, double& stretch_inf, double& stretch_shear) const;
         void outputStandardStretch(std::ofstream& file) const;
@@ -125,7 +125,7 @@ namespace FracCuts{
         double computeLocalEwDec(int vI, double lambda_t, std::vector<int>& path, Eigen::MatrixXd& newVertPos) const;
         double computeLocalEDec(const std::pair<int, int>& edge,
             const std::map<std::pair<int, int>, int>& edge2Tri, const std::vector<std::set<int>>& vNeighbor,
-            const std::map<std::pair<int, int>, int>& cohEIndex, Eigen::MatrixXd& newVertPos, bool propagate = false) const; //TODO: write this in a new class
+            const std::map<std::pair<int, int>, int>& cohEIndex, Eigen::MatrixXd& newVertPos) const; //TODO: write this in a new class
         double computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
                                 std::map<int, Eigen::RowVector2d>& newVertPos, int maxIter = 100) const;
     };

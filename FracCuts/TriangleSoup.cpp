@@ -709,12 +709,8 @@ namespace FracCuts {
     
     void TriangleSoup::resetSubOptInfo(void)
     {
-        //TODO: allow multiple propagation by recording info for each fracTail
+        //TODO: allow multiple propagation?
         fracTail.clear();
-        for(auto& infoI : subOptimizerInfo) {
-            infoI.first.clear();
-            infoI.second.clear();
-        }
     }
     
     bool TriangleSoup::splitEdge(double lambda_t, double thres, bool propagate, bool splitInterior)
@@ -1204,6 +1200,15 @@ namespace FracCuts {
             }
         }
     }
+    void TriangleSoup::computeBoundaryLen(double& boundaryLen) const
+    {
+        boundaryLen = 0.0;
+        for(const auto& e : edge2Tri) {
+            if(edge2Tri.find(std::pair<int, int>(e.first.second, e.first.first)) == edge2Tri.end()) {
+                boundaryLen += (V_rest.row(e.first.second) - V_rest.row(e.first.first)).norm();
+            }
+        }
+    }
     void TriangleSoup::computeSeamSparsity(double& sparsity) const
     {
 //        const double thres = 1.0e-2;
@@ -1590,11 +1595,9 @@ namespace FracCuts {
                    (edge2Tri.find(std::pair<int, int>(nbVI, vI)) != edge2Tri.end()))
                 {
                     Eigen::MatrixXd newVertPosI;
-                    const double eLen = (V_rest.row(vI) - V_rest.row(nbVI)).norm();
-                    const double fracEIncI = lambda_t * eLen * 2.0 / virtualPerimeter;
-                    const double curEwDec = -fracEIncI + (1.0 - lambda_t) *
-                        computeLocalEDec(edge, edge2Tri, vNeighbor, cohEIndex, newVertPosI);
-//                    const double curEwDec = computeLocalEDec(edge, edge2Tri, vNeighbor, cohEIndex, newVertPosI) / (eLen * 2.0 / virtualPerimeter);
+                    const double seInc = (V_rest.row(vI) - V_rest.row(nbVI)).norm() * 2.0 / virtualPerimeter;
+                    const double SDDec = computeLocalEDec(edge, edge2Tri, vNeighbor, cohEIndex, newVertPosI);
+                    const double curEwDec = (1.0 - lambda_t) * SDDec - lambda_t * seInc;
                     if(curEwDec > maxEwDec) {
                         maxEwDec = curEwDec;
                         path_max[0] = vI;
@@ -1646,23 +1649,22 @@ namespace FracCuts {
 //                        continue;
 //                    }
                     
-                    double EwDec = 0.0;
+                    double SDDec = 0.0;
                     Eigen::Matrix2d newVertPos;
                     
                     std::vector<int> triangles(umbrella.begin() + startI, umbrella.begin() + endI);
-                    EwDec += computeLocalEDec(triangles, freeVert, newVertPosMap);
+                    SDDec += computeLocalEDec(triangles, freeVert, newVertPosMap);
                     newVertPos.block(0, 0, 1, 2) = newVertPosMap[vI];
                     
                     triangles.resize(0);
                     triangles.insert(triangles.end(), umbrella.begin(), umbrella.begin() + startI);
                     triangles.insert(triangles.end(), umbrella.begin() + endI, umbrella.end());
-                    EwDec += computeLocalEDec(triangles, freeVert, newVertPosMap);
+                    SDDec += computeLocalEDec(triangles, freeVert, newVertPosMap);
                     newVertPos.block(1, 0, 1, 2) = newVertPosMap[vI];
                     
-                    EwDec *= (1.0 - lambda_t);
-                    
-                    EwDec -= lambda_t * 2.0 * ((V_rest.row(path[0]) - V_rest.row(path[1])).norm() +
-                                                 (V_rest.row(path[1]) - V_rest.row(path[2])).norm()) / virtualPerimeter;
+                    const double seInc = 2.0 * ((V_rest.row(path[0]) - V_rest.row(path[1])).norm() +
+                                                (V_rest.row(path[1]) - V_rest.row(path[2])).norm()) / virtualPerimeter;
+                    const double EwDec = (1.0 - lambda_t) * SDDec - lambda_t * seInc;
                     if(EwDec > EwDec_max) {
                         EwDec_max = EwDec;
                         newVertPos_max = newVertPos;
@@ -1734,7 +1736,7 @@ namespace FracCuts {
     
     double TriangleSoup::computeLocalEDec(const std::pair<int, int>& edge,
         const std::map<std::pair<int, int>, int>& edge2Tri, const std::vector<std::set<int>>& vNeighbor,
-        const std::map<std::pair<int, int>, int>& cohEIndex, Eigen::MatrixXd& newVertPos, bool propagate) const
+        const std::map<std::pair<int, int>, int>& cohEIndex, Eigen::MatrixXd& newVertPos) const
     {
         assert(vNeighbor.size() == V.rows());
         auto edgeTriIndFinder = edge2Tri.find(edge);
@@ -1794,11 +1796,6 @@ namespace FracCuts {
                     }
                 }
             }
-            if(propagate) {
-                tri_toSep.insert(tri_toSep.end(), subOptimizerInfo[toBound].second.begin(),
-                                 subOptimizerInfo[toBound].second.end());
-                freeVertGID.insert(subOptimizerInfo[toBound].first.begin(), subOptimizerInfo[toBound].first.end());
-            }
             
             std::map<int, Eigen::RowVector2d> newVertPosMap;
             eDec += computeLocalEDec(tri_toSep, freeVertGID, newVertPosMap);
@@ -1841,7 +1838,6 @@ namespace FracCuts {
         if(!duplicateBoth) {
             fracTail.insert(vI_interior);
         }
-        subOptimizerInfo[0].first.insert(vI_boundary); //!!! when both are boundary vert!!! no info for other tails!!!
         
         // duplicate vI_boundary
         std::vector<int> tri_toSep[2];
@@ -1849,7 +1845,6 @@ namespace FracCuts {
         for(int toBound = 0; toBound < 2; toBound++) {
             isBoundaryVert(edge2Tri, vI_boundary, vI_interior, tri_toSep[1], boundaryEdge[1], toBound);
             assert(!tri_toSep[1].empty());
-            subOptimizerInfo[toBound].second.insert(tri_toSep[1].begin(), tri_toSep[1].end());
         }
         if(duplicateBoth) {
             isBoundaryVert(edge2Tri, vI_interior, vI_boundary, tri_toSep[0], boundaryEdge[0], true);
@@ -1857,7 +1852,6 @@ namespace FracCuts {
         }
         
         int nV = static_cast<int>(V_rest.rows());
-        subOptimizerInfo[1].first.insert(nV);
         V_rest.conservativeResize(nV + 1, 3);
         V_rest.row(nV) = V_rest.row(vI_boundary);
         V.conservativeResize(nV + 1, 2);

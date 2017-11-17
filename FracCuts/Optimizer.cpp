@@ -253,6 +253,44 @@ namespace FracCuts {
         }
     }
     
+    void Optimizer::setConfig(const TriangleSoup& config)
+    {
+        result = config; //!!! is it able to copy all?
+        
+        updateTargetGRes();
+        
+        // compute energy and output
+        computeEnergyVal(result, lastEnergyVal);
+        
+        // compute gradient and output
+        computeGradient(result, gradient);
+        
+        // for the changing hessian
+        if(!mute) {
+            std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
+        }
+        computePrecondMtr(result, precondMtr);
+        if(!pardisoThreadAmt) {
+            cholSolver.analyzePattern(precondMtr);
+            if(!needRefactorize) {
+                cholSolver.factorize(precondMtr);
+                if(cholSolver.info() != Eigen::Success) {
+                    IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_decomposeFailed", precondMtr);
+                    assert(0 && "Cholesky decomposition failed!");
+                }
+            }
+        }
+        else {
+            pardisoSolver = PardisoSolver<Eigen::VectorXi, Eigen::VectorXd>(); //TODO: make it cheaper!
+            pardisoSolver.set_type(pardisoThreadAmt, -2);
+            pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
+            pardisoSolver.analyze_pattern();
+            if(!needRefactorize) {
+                pardisoSolver.factorize();
+            }
+        }
+    }
+    
     bool Optimizer::createFracture(double stressThres, bool initiation, bool allowPropagate, bool allowInSplit)
     {
         if(initiation) {
@@ -398,7 +436,8 @@ namespace FracCuts {
         
         bool stopped = lineSearch();
         if(stopped) {
-            IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_stopped_" + std::to_string(globalIterNum), precondMtr);
+//            IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_stopped_" + std::to_string(globalIterNum), precondMtr);
+            logFile << "descent step stopped at overallIter" << globalIterNum << " for no prominent energy decrease." << std::endl;
         }
         return stopped;
     }
@@ -456,6 +495,7 @@ namespace FracCuts {
         while(!testingData.checkInversion()) {
             stepSize /= 2.0;
             if(stepSize == 0.0) {
+                assert(0 && "line search failed!");
                 stopped = true;
                 break;
             }
@@ -465,6 +505,10 @@ namespace FracCuts {
         }
         result.V = testingData.V;
         lastEDec = lastEnergyVal - testingE;
+        if(lastEDec / lastEnergyVal / stepSize < 1.0e-6) {
+            // no prominent energy decrease, stop for accelerating the process
+            stopped = true;
+        }
         lastEnergyVal = testingE;
         
         if(!mute) {

@@ -24,6 +24,7 @@
 
 // optimization
 std::vector<const FracCuts::TriangleSoup*> triSoup;
+FracCuts::TriangleSoup triSoup_backup;
 FracCuts::Optimizer* optimizer;
 std::vector<FracCuts::Energy*> energyTerms;
 std::vector<double> energyParams;
@@ -244,7 +245,16 @@ void saveInfoForPresent(void)
         secPast << std::endl;
     
     double seamLen;
-    triSoup[channel_result]->computeSeamSparsity(seamLen);
+    if(energyParams[0] == 1.0) { // pure distortion minimization mode for models with initial cuts also reflected on the surface as boundary edges...
+        triSoup[channel_result]->computeBoundaryLen(seamLen);
+    }
+    else {
+        triSoup[channel_result]->computeSeamSparsity(seamLen);
+//        // for models with initial cuts also reflected on the surface as boundary edges...
+//        double boundaryLen;
+//        triSoup[channel_result]->computeBoundaryLen(boundaryLen);
+//        seamLen += boundaryLen;
+    }
     file << optimizer->getLastEnergyVal() / energyParams[0] << " " <<
         seamLen / triSoup[channel_result]->virtualPerimeter << std::endl;
     
@@ -505,12 +515,15 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     const double E_w = optimizer->getLastEnergyVal() +
                         (1.0 - energyParams[0]) * E_se / triSoup[channel_result]->virtualPerimeter;
                     std::cout << "E_w from " << lastE_w << " to " << E_w << std::endl;
-                    if(E_w >= lastE_w) {
+                    if(E_w > lastE_w) {
                         assert(fracThres < 0.0);
+                        
+                        // roll back
+                        optimizer->setConfig(triSoup_backup);
+                        
 //                    if(false) {
                         if(lastFractureIn) {
                             logFile << "E_w is not decreased, end process." << std::endl;
-                            //TODO: !!! roll back
                             
                             infoName = "finalResult";
                             // perform exact solve
@@ -535,7 +548,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                             outerLoopFinished = true;
                         }
                         else {
-                            lastE_w = E_w;
+//                            lastE_w = E_w; // commented out because of rolling back
                             
                             homoTransFile << iterNum << std::endl;
                             lastStart = clock();
@@ -550,6 +563,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         }
                     }
                     else {
+                        triSoup_backup = optimizer->getResult();
                         lastE_w = E_w;
                     
                         homoTransFile << iterNum << std::endl;
@@ -914,9 +928,9 @@ int main(int argc, char *argv[])
 //                "_" + startDS + folderTail;
             
             FracCuts::TriangleSoup *temp = new FracCuts::TriangleSoup(V, F, Eigen::MatrixXd(), Eigen::MatrixXi(), false);
-            temp->farthestPointCut(); // open up a boundary for Tutte embedding
+//            temp->farthestPointCut(); // open up a boundary for Tutte embedding
 //            temp->highCurvOnePointCut();
-//            temp->onePointCut();
+            temp->onePointCut();
             
             igl::boundary_loop(temp->F, bnd);
             assert(bnd.size());
@@ -929,7 +943,7 @@ int main(int argc, char *argv[])
             triSoup.emplace_back(new FracCuts::TriangleSoup(temp->V_rest, temp->F, UV_Tutte, Eigen::MatrixXi(), false, temp->initSeamLen));
             
             delete temp;
-            outputFolderPath += meshName + "_farthestTutte_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +
+            outputFolderPath += meshName + "_Tutte_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +
                             "_" + startDS + folderTail;
         }
     }
@@ -981,6 +995,7 @@ int main(int argc, char *argv[])
     optimizer->precompute();
     ticksPast += clock() - lastStart;
     triSoup.emplace_back(&optimizer->getResult());
+    triSoup_backup = optimizer->getResult();
     if((lambda > 0.0) && (!startWithTriSoup)) {
         // fracture mode
         fractureMode = true;
@@ -994,7 +1009,7 @@ int main(int argc, char *argv[])
 //            optimizer->setRelGL2Tol(1.0e-8);
         }
 //        else {
-//            optimizer->setRelGL2Tol(1.0e-8); //!!! different model can succeed with different tolerance, is it a matter of curvature or because sometimes the optimal split is inside?
+//            optimizer->setRelGL2Tol(1.0e-4); //!!! different model can succeed with different tolerance, is it a matter of curvature or because sometimes the optimal split is inside?
 //        }
     }
 //    else if((lambda > 0.0) && startWithTriSoup) {

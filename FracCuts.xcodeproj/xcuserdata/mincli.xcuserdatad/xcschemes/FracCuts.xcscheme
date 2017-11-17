@@ -67,15 +67,19 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "0 justcompile.obj 0.025 0 0 testtest"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/closed/bunny.obj 0.025 6 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "100 /Users/mincli/Downloads/meshes/needMoreTime/rgb_dragon_o_f8000.obj 0.025 4 0 test"
+            argument = "0 /Users/mincli/Downloads/meshes/needMoreTime/rgb_dragon_o_f8000.obj 0.025 4 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/needSmallerTol/hand_1_i_f5000.obj 0.025 1 0 testtest"
+            argument = "0 /Users/mincli/Downloads/meshes/needSmallerTol/hand_1_i_f5000.obj 0.025 1 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -87,7 +91,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/needMoreTime/dilo_o_f10000.obj 0.025 4 0 test"
+            argument = "0 /Users/mincli/Downloads/meshes/needMoreTime/dilo_o_f10000.obj 0.025 0 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -108,7 +112,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 cone2.0.obj 0.025 0 0 testtest"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 cone2.0_f1500.obj 0.025 1 0 testtest"
