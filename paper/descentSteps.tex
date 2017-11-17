@@ -7,8 +7,12 @@
 \KwData{Input model, UV coordinates $U$, UV topology $v_T$}
 \KwResult{$\arg\!\min_U E_{SD}$}
 \For{each descent step inner iteration $j$}{
-	compute $E_{SD}$ Hessian proxy $P^j$ using projected Newton\;
 	compute $E_{SD}$ gradient $g^j$\;
+	\If{$||g^j||^2 < tol$}{
+		break\;
+	}
+
+	compute $E_{SD}$ Hessian proxy $P^j$ using projected Newton\;
 	solve for search direction $p^j$ ($P^j p^j = -g^j$) using PARDISO symmetric indefinite solver\;
 	compute initial step size $\alpha^j_0$ by avoiding element inversion\;
 	backtracking line search with Armijo rule\;
@@ -23,6 +27,7 @@
 }
 \caption{Descent Steps}
 \end{algorithm}
+By applying projected Newton method~\cite{Teran2005Robust}, our linear system in each iteration is symmetric and semi-definite, so we use symmetric indefinte solver on it.
 
 \subsection{Potential Accelerations for Practical Use}
 
