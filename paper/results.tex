@@ -4,9 +4,11 @@
 
 \textcolor{red}{
 \begin{itemize}
-\item quality and timing comparison with previous methods, deal with closed surfaces by either starting from random rectangle embedding, basic heuristics like farthest points, or some learned prior
+\item quality and timing comparison with previous methods, deal with closed surfaces by either starting from random rectangle embedding, basic heuristics like farthest points, or some learned prior (do figure out a best we for our algorithm to treat closed surfaces, potentially also higher genus surfaces?)
 \item show improvements starting from results given by previous methods
 \item how does triangulation affect our result? try same shape with different triangulation.
 \item given a symmetric shape, whether symmetrically triangulated or not, does our method preserve symmetry in UV space?
+\item there are seams being placed close to highly curved paths but not exactly aligning it, is it because our consideration is purely local or the placement is just better than human prefered results?
+\item do we encounter cases like there are several edges with almost equal estimated energy decrease and we pick from them by random factor?
 \end{itemize}
 }
