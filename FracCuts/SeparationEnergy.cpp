@@ -65,6 +65,91 @@ namespace FracCuts {
         computeHessian(data, precondMtr);
     }
     
+    void SeparationEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::VectorXd* V,
+                                             Eigen::VectorXi* I, Eigen::VectorXi* J) const
+    {
+        const double normalizer_div = data.virtualPerimeter;
+        
+        Eigen::Matrix4d dt2dd2x;
+        dt2dd2x <<
+            2.0, 0.0, -2.0, 0.0,
+            0.0, 2.0, 0.0, -2.0,
+            -2.0, 0.0, 2.0, 0.0,
+            0.0, -2.0, 0.0, 2.0;
+        
+        for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
+        {
+            if(!data.boundaryEdge[cohI]) {
+                const Eigen::Vector2d xamc = data.V.row(data.cohE(cohI, 0)) - data.V.row(data.cohE(cohI, 2));
+                const Eigen::Vector2d xbmd = data.V.row(data.cohE(cohI, 1)) - data.V.row(data.cohE(cohI, 3));
+                
+                //                Eigen::VectorXd dtddx_ac;
+                //                dtddx_ac.resize(4);
+                //                dtddx_ac << 2 * xamc, -2 * xamc;
+                //                Eigen::VectorXd dtddx_bd;
+                //                dtddx_bd.resize(4);
+                //                dtddx_bd << 2 * xbmd, -2 * xbmd;
+                
+                const double w = data.edgeLen[cohI] / normalizer_div;
+                
+                const double sqn_xamc = xamc.squaredNorm();
+                const Eigen::Matrix4d hessian_ac = (w * kernelGradient(sqn_xamc)) * dt2dd2x;
+                //                const Eigen::Matrix4d hessian_ac = w * (kernelHessian(sqn_xamc) * dtddx_ac * dtddx_ac.transpose() +
+                //                                                    kernelGradient(sqn_xamc) * dt2dd2x);
+                const double sqn_xbmd = xbmd.squaredNorm();
+                const Eigen::Matrix4d hessian_bd = (w * kernelGradient(sqn_xbmd)) * dt2dd2x;
+                //                const Eigen::Matrix4d hessian_bd = w * (kernelHessian(sqn_xbmd) * dtddx_bd * dtddx_bd.transpose() +
+                //                                                    kernelGradient(sqn_xbmd) * dt2dd2x);
+                
+                bool fixed[4];
+                for(int vI = 0; vI < 4; vI++) {
+                    fixed[vI] = (data.fixedVert.find(data.cohE(cohI, vI)) != data.fixedVert.end());
+                }
+                Eigen::VectorXi vInd;
+                vInd.resize(1);
+                if(fixed[0]) {
+                    if(!fixed[2]) {
+                        vInd[0] = data.cohE(cohI, 2);
+                        IglUtils::addBlockToMatrix(hessian_ac.block(2, 2, 2, 2), vInd, 2, V, I, J);
+                    }
+                }
+                else {
+                    if(fixed[2]) {
+                        vInd[0] = data.cohE(cohI, 0);
+                        IglUtils::addBlockToMatrix(hessian_ac.block(0, 0, 2, 2), vInd, 2, V, I, J);
+                    }
+                    else {
+                        IglUtils::addBlockToMatrix(hessian_ac, Eigen::Vector2i(data.cohE(cohI, 0), data.cohE(cohI, 2)), 2, V, I, J);
+                    }
+                }
+                
+                if(fixed[1]) {
+                    if(!fixed[3]) {
+                        vInd[0] = data.cohE(cohI, 3);
+                        IglUtils::addBlockToMatrix(hessian_bd.block(2, 2, 2, 2), vInd, 2, V, I, J);
+                    }
+                }
+                else {
+                    if(fixed[3]) {
+                        vInd[0] = data.cohE(cohI, 1);
+                        IglUtils::addBlockToMatrix(hessian_bd.block(0, 0, 2, 2), vInd, 2, V, I, J);
+                    }
+                    else {
+                        IglUtils::addBlockToMatrix(hessian_bd, Eigen::Vector2i(data.cohE(cohI, 1), data.cohE(cohI, 3)), 2, V, I, J);
+                    }
+                }
+            }
+        }
+        Eigen::VectorXi fixedVertInd;
+        fixedVertInd.resize(data.fixedVert.size());
+        int fVI = 0;
+        for(const auto fixedVI : data.fixedVert) {
+            fixedVertInd[fVI++] = fixedVI;
+        }
+        IglUtils::addDiagonalToMatrix(Eigen::VectorXd::Ones(data.fixedVert.size() * 2),
+                                      fixedVertInd, 2, V, I, J);
+    }
+    
     void SeparationEnergy::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const
     {
         //TODO: use the sparsity structure from last compute
@@ -166,7 +251,7 @@ namespace FracCuts {
     }
     
     SeparationEnergy::SeparationEnergy(double p_sigma_base, double p_sigma_param) :
-        sigma_base(p_sigma_base), sigma_param(p_sigma_param), Energy(false)
+        sigma_base(p_sigma_base), sigma_param(p_sigma_param), Energy(true)
     {
         sigma = sigma_param * sigma_base;
         assert(sigma > 0);

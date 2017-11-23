@@ -20,7 +20,8 @@
 #include <string>
 #include <numeric>
 
-extern std::string outputFolderPath;
+extern const std::string outputFolderPath;
+extern const bool fractureMode;
 extern std::ofstream logFile;
 extern clock_t ticksPast_frac;
 
@@ -130,12 +131,18 @@ namespace FracCuts {
         updateTargetGRes();
         computeEnergyVal(result, lastEnergyVal);
         if(!mute) {
-            file_energyValPerIter << lastEnergyVal;
+            double seamSparsity;
+            result.computeSeamSparsity(seamSparsity, !fractureMode);
+            seamSparsity /= result.virtualPerimeter;
+            if(fractureMode) {
+                file_energyValPerIter << lastEnergyVal + (1.0 - energyParams[0]) * seamSparsity;
+            }
+            else {
+                file_energyValPerIter << lastEnergyVal;
+            }
             for(int eI = 0; eI < energyTerms.size(); eI++) {
                 file_energyValPerIter << " " << energyVal_ET[eI];
             }
-            double seamSparsity;
-            result.computeSeamSparsity(seamSparsity);
             file_energyValPerIter << " " << seamSparsity << std::endl;
             std::cout << "E_initial = " << lastEnergyVal << std::endl;
         }
@@ -165,12 +172,18 @@ namespace FracCuts {
                 // converged
                 lastEDec = 0.0;
                 if(!mute) {
-                    file_energyValPerIter << lastEnergyVal;
+                    double seamSparsity;
+                    result.computeSeamSparsity(seamSparsity, !fractureMode);
+                    seamSparsity /= result.virtualPerimeter;
+                    if(fractureMode) {
+                        file_energyValPerIter << lastEnergyVal + (1.0 - energyParams[0]) * seamSparsity;
+                    }
+                    else {
+                        file_energyValPerIter << lastEnergyVal;
+                    }
                     for(int eI = 0; eI < energyTerms.size(); eI++) {
                         file_energyValPerIter << " " << energyVal_ET[eI];
                     }
-                    double seamSparsity;
-                    result.computeSeamSparsity(seamSparsity);
                     file_energyValPerIter << " " << seamSparsity << std::endl;
                 }
                 globalIterNum++;
@@ -508,20 +521,27 @@ namespace FracCuts {
         if(lastEDec / lastEnergyVal / stepSize < 1.0e-6) {
             // no prominent energy decrease, stop for accelerating the process
             stopped = true;
+            std::cout << "no prominant energy decrease, optimization stops" << std::endl;
         }
         lastEnergyVal = testingE;
         
         if(!mute) {
             std::cout << stepSize << std::endl;
             std::cout << "stepLen = " << (stepSize * searchDir).squaredNorm() << std::endl;
-            std::cout << "E_cur = " << testingE << std::endl;
+            std::cout << "E_cur_smooth = " << testingE << std::endl;
             
-            file_energyValPerIter << lastEnergyVal;
+            double seamSparsity;
+            result.computeSeamSparsity(seamSparsity, !fractureMode);
+            seamSparsity /= result.virtualPerimeter;
+            if(fractureMode) {
+                file_energyValPerIter << lastEnergyVal + (1.0 - energyParams[0]) * seamSparsity;
+            }
+            else {
+                file_energyValPerIter << lastEnergyVal;
+            }
             for(int eI = 0; eI < energyTerms.size(); eI++) {
                 file_energyValPerIter << " " << energyVal_ET[eI];
             }
-            double seamSparsity;
-            result.computeSeamSparsity(seamSparsity);
             file_energyValPerIter << " " << seamSparsity << std::endl;
         }
         
@@ -567,37 +587,40 @@ namespace FracCuts {
     void Optimizer::computeEnergyVal(const TriangleSoup& data, double& energyVal)
     {
         energyTerms[0]->computeEnergyVal(data, energyVal_ET[0]);
-        energyVal_ET[0] *= energyParams[0];
-        energyVal = energyVal_ET[0];
+        energyVal = energyParams[0] * energyVal_ET[0];
         for(int eI = 1; eI < energyTerms.size(); eI++) {
             energyTerms[eI]->computeEnergyVal(data, energyVal_ET[eI]);
-            energyVal_ET[eI] *= energyParams[eI];
-            energyVal += energyVal_ET[eI];
+            energyVal += energyParams[eI] * energyVal_ET[eI];
         }
     }
     void Optimizer::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient)
     {
         energyTerms[0]->computeGradient(data, gradient_ET[0]);
-        gradient_ET[0] *= energyParams[0];
-        gradient = gradient_ET[0];
+        gradient = energyParams[0] * gradient_ET[0];
         for(int eI = 1; eI < energyTerms.size(); eI++) {
             energyTerms[eI]->computeGradient(data, gradient_ET[eI]);
-            gradient_ET[eI] *= energyParams[eI];
-            gradient += gradient_ET[eI];
+            gradient += energyParams[eI] * gradient_ET[eI];
         }
     }
     void Optimizer::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr)
     {
-        //TODO: Augment matrix with new information, use the previous sparse structure, for eI>=1, especially separation energy
-        
         if(pardisoThreadAmt) {
             I_mtr.resize(0);
             J_mtr.resize(0);
             V_mtr.resize(0);
-            energyTerms[0]->computePrecondMtr(data, &V_mtr, &I_mtr, &J_mtr);
-            V_mtr *= energyParams[0];
+            for(int eI = 0; eI < energyTerms.size(); eI++) {
+                Eigen::VectorXi I, J;
+                Eigen::VectorXd V;
+                energyTerms[eI]->computePrecondMtr(data, &V, &I, &J);
+                V *= energyParams[eI];
+                I_mtr.conservativeResize(I_mtr.size() + I.size());
+                I_mtr.bottomRows(I.size()) = I;
+                J_mtr.conservativeResize(J_mtr.size() + J.size());
+                J_mtr.bottomRows(J.size()) = J;
+                V_mtr.conservativeResize(V_mtr.size() + V.size());
+                V_mtr.bottomRows(V.size()) = V;
+            }
 //            IglUtils::writeSparseMatrixToFile("/Users/mincli/Desktop/FracCuts/mtr", I_mtr, J_mtr, V_mtr, true);
-            //TODO: eI >= 1
         }
         else {
             //TODO: triplet representation for eigen matrices

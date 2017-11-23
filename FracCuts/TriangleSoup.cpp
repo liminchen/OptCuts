@@ -1209,20 +1209,19 @@ namespace FracCuts {
             }
         }
     }
-    void TriangleSoup::computeSeamSparsity(double& sparsity) const
+    void TriangleSoup::computeSeamSparsity(double& sparsity, bool triSoup) const
     {
-//        const double thres = 1.0e-2;
+        const double thres = 1.0e-2;
         sparsity = 0.0;
         for(int cohI = 0; cohI < cohE.rows(); cohI++)
         {
             if(!boundaryEdge[cohI]) {
-                const double w = edgeLen[cohI];
-//                if((V.row(cohE(cohI, 0)) - V.row(cohE(cohI, 2))).norm() / avgEdgeLen > thres) {
-                    sparsity += w;
-//                }
-//                if((V.row(cohE(cohI, 1)) - V.row(cohE(cohI, 3))).norm() / avgEdgeLen > thres) {
-                    sparsity += w;
-//                }
+                if((!triSoup) ||
+                   ((V.row(cohE(cohI, 0)) - V.row(cohE(cohI, 2))).norm() / avgEdgeLen > thres) ||
+                   ((V.row(cohE(cohI, 1)) - V.row(cohE(cohI, 3))).norm() / avgEdgeLen > thres))
+                {
+                    sparsity += 2.0 * edgeLen[cohI];
+                }
             }
         }
         sparsity += initSeamLen;

@@ -24,6 +24,7 @@
 
 // optimization
 std::vector<const FracCuts::TriangleSoup*> triSoup;
+int vertAmt_input;
 FracCuts::TriangleSoup triSoup_backup;
 FracCuts::Optimizer* optimizer;
 std::vector<FracCuts::Energy*> energyTerms;
@@ -235,7 +236,7 @@ void saveInfoForPresent(void)
     file.open(outputFolderPath + "info.txt");
     assert(file.is_open());
     
-    file << triSoup[channel_initial]->V_rest.rows() << " " <<
+    file << vertAmt_input << " " <<
         triSoup[channel_initial]->F.rows() << std::endl;
     
     file << iterNum << " " << optimizer->getTopoIter() << std::endl;
@@ -249,13 +250,15 @@ void saveInfoForPresent(void)
         triSoup[channel_result]->computeBoundaryLen(seamLen);
     }
     else {
-        triSoup[channel_result]->computeSeamSparsity(seamLen);
+        triSoup[channel_result]->computeSeamSparsity(seamLen, !fractureMode);
 //        // for models with initial cuts also reflected on the surface as boundary edges...
 //        double boundaryLen;
 //        triSoup[channel_result]->computeBoundaryLen(boundaryLen);
 //        seamLen += boundaryLen;
     }
-    file << optimizer->getLastEnergyVal() / energyParams[0] << " " <<
+    double distortion;
+    energyTerms[0]->computeEnergyVal(*triSoup[channel_result], distortion);
+    file << distortion << " " <<
         seamLen / triSoup[channel_result]->virtualPerimeter << std::endl;
     
     triSoup[channel_result]->outputStandardStretch(file);
@@ -499,14 +502,13 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
             if(autoHomotopy && sepE && sepE->decreaseSigma())
             {
                 homoTransFile << iterNum << std::endl;
-                lastStart = clock();
+//                lastStart = clock();
                 optimizer->computeLastEnergyVal();
                 converged = false;
-                optimizer->updatePrecondMtrAndFactorize();
-                if(fractureMode) {
-                    optimizer->createFracture(fracThres, true, !altBase);
-                }
-                ticksPast += clock() - lastStart;
+//                if(fractureMode) {
+//                    optimizer->createFracture(fracThres, true, !altBase);
+//                }
+//                ticksPast += clock() - lastStart;
             }
             else {
                 if(fractureMode) {
@@ -615,7 +617,6 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     
                     // perform exact solve
                     optimizer->setRelGL2Tol(1.0e-8);
-                    optimizer->updatePrecondMtrAndFactorize();
                     converged = false;
                     while(!converged) {
                         proceedOptimization(1000);
@@ -836,6 +837,7 @@ int main(int argc, char *argv[])
         std::cout << "failed to load mesh!" << std::endl;
         return -1;
     }
+    vertAmt_input = V.rows();
 //    //DEBUG
 //    FracCuts::TriangleSoup squareMesh(FracCuts::P_SQUARE, 1.0, 0.1, false);
 //    V = squareMesh.V_rest;
