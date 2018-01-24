@@ -1,4 +1,4 @@
-\documentclass[acmtog, review, anonymous]{acmart}
+\documentclass[acmtog,  review,  anonymous]{acmart}
 
 \usepackage{booktabs} % For formal tables
 
@@ -114,15 +114,24 @@
 
 \renewcommand\shortauthors{Li, M. et al}
 
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{green}{rgb}{0, 0.6, 0}
+\definecolor{orange}{rgb}{1, 0.5, 0}
+\definecolor{mahogany}{rgb}{0.75, 0.25, 0.0}
+\definecolor{purple}{rgb}{0.6, 0, 0.6}
+\definecolor{darkgreen}{rgb}{0, 0.3, 0}
+\definecolor{orange}{rgb}{1, 0.5, 0.}
+\newcommand{\minchen}[1]{\textcolor{blue}{\textbf{Minchen: #1}}}
+
 \begin{abstract}
 Parameterizing 3D surfaces to the 2D plane is a fundamental problem with applications in texture mapping, remeshing, and detail transfer, etc.
 For most surfaces, one has to introduce discontinuities (seams) and distortion while producing a map. Existing techniques typically decide between the two independently: first placing seams and then minimizing distortion, and thus produce sub-optimal results.
-In this paper, we propose a joint discrete-continuous optimization framework that optimally and progressively introduce \textcolor{red}{or remove} seams (in topology steps) in between distortion minimizations (in descent steps). We use a linear combination of symmetric Dirichlet energy and seam length as objective, of which the stationary w.r.t. both UV topology and coordinates are guaranteed to be reached within a bounded number of alternating iterations per balancing factor, input model, and initial embedding. \textcolor{red}{(NOTE: Here stationary w.r.t. UV topology is only in the approximation sense, because there might still be basic topological operations that could decrease the objective but end up not chosen because it's local evaluated energy decrease is not the largest one.)}
+We propose a joint discrete-continuous optimization framework that optimally and progressively introduce \minchen{[TODO] or remove} seams (in topology steps) in between distortion minimizations (in descent steps). We use a linear combination of symmetric Dirichlet energy and seam length as objective, of which the stationary w.r.t. both UV topology and coordinates are guaranteed to be reached within a bounded number of alternating iterations per balancing factor, input model, and initial embedding. \minchen{[NOTE] (Here stationary w.r.t. UV topology is only in the approximation sense, because there might still be basic topological operations that could decrease the objective but end up not chosen because it's local evaluated energy decrease is not the largest one.)}
 
-Specifically, in descent steps, we minimize symmetric Dirichlet energy using projected Newton method given the current UV topology. In topology steps, we search for a nearby UV topology that locally decrease the objective the most by querying a filtered set of basic topological operations. To be appropriately aggressive on searching in the topological space, \textcolor{red}{we develop an analogous line search method as in continuous settings and allow multiple fracture initiation}.
-\textcolor{red}{Since in application scenarios, an upper bound for distortion or seam length is more intuitive than picking a balancing factor, we also provide a constrained optimization view of this broader problem that seeks stationary w.r.t. both primal (distortion and seams) and dual (balancing factor) variables subject to user specified distortion or seam length upper bounds.}
+Specifically, in descent steps, we minimize symmetric Dirichlet energy using projected Newton method given the current UV topology. In topology steps, we search for a nearby UV topology that locally decrease the objective the most by querying a filtered set of basic topological operations. To be appropriately aggressive on searching in the topological space, \minchen{[TODO] we develop an analogous line search method as in continuous settings and allow multiple fracture initiation.
+Since in application scenarios, an upper bound for distortion or seam length is more intuitive than picking a balancing factor, we also provide a constrained optimization view of this broader problem that seeks stationary w.r.t. both primal (distortion and seams) and dual (balancing factor) variables subject to user specified distortion or seam length upper bounds.}
 
-Our method automatically produces high quality UV maps without any user assistance. \textcolor{red}{We also show that given a UV configuration by other methods, our method can improve the distortion and seam placement}, and that our framework has the potential to handle bijectivity, seamlessness, and user preferences jointly within it as well.
+Our method automatically produces high quality UV maps without any user assistance. \minchen{[TODO] We also show that given a UV configuration by other methods, our method can improve the distortion and seam placement}, and that our framework has the potential to handle bijectivity, seamlessness, and user preferences jointly within it as well.
 \end{abstract}
 
 

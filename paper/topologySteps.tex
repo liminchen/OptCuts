@@ -42,19 +42,19 @@ split the vertex with largest $|\Delta E_{w,l}|$
 \end{algorithm}
 For boundary vertex that connects to another boundary, we free both the 2 boundary vertices while evaluating the local energy decrease.
 
-\textcolor{red}{
+\minchen{[NOTE]
 Do we need to treat compressed region and stretched region differently in order to have less overlap?
 }
 
-\textcolor{red}{
+\minchen{[TODO]
 Since we are using the local estimation to approximate true global energy decrease, it would be necessary to find a balance between accuracy and efficiency by weighing between size of local stencils and number of optimization iterations to run.
 }
 
-\textcolor{red}{
+\minchen{[NOTE]
 Seamster's selected high curvature vertices are set to be the leaf of the seam tree while necessary, while our interior splitting scheme seems to always allow fracture to be extended on both the 2 sides of a picked vertex, which seems suboptimal. However, instead of just trying to connect interior vertex to the boundary like geometry images, we still have the reason to preserve our current interior splits because we've seen results that holes in UV map will be needed as a better solution for resolving some interior distortion. What we need to do is to take Seamster's inspiration and improve our interior splitting scheme.
 }
 
-\textcolor{red}{
+\minchen{[TODO]
 Enable merge operation.
 }
 
@@ -83,13 +83,13 @@ After the fracture has been initiated, we first go to descent step to run an inn
 \caption{Fracture Propagation Line Search}
 \end{algorithm}
 
-\textcolor{red}{Improve current propagation scheme by developing analogous line search method}
+\minchen{[TODO] Improve current propagation scheme by developing analogous line search method}
 
-\textcolor{red}{Besides fracture propagation line search, increase the depth of querying fracture initiation did the same thing but with more computational cost. However, it could improve the results because it's more global! (Inspired by Seamster)}
+\minchen{[NOTE] Besides fracture propagation line search, increase the depth of querying fracture initiation did the same thing but with more computational cost. However, it could improve the results because it's more global! (Inspired by Seamster)}
 
-\textcolor{red}{
 \subsection{Multiple Fracture Initiation}
-}
-Multiple fracture initiation would be redundant on a single cone-like region since only one fracture would be enough to release the distortion. However, initiating one fracture for each cone-like region within a single topology step would certainly accelerate the whole process. 
+\minchen{[TODO]}
+
+Multiple fracture initiation would be redundant on a single cone-like region since only one fracture would be enough to release the distortion. However, initiating one fracture for each cone-like region within a single topology step would certainly accelerate the whole process.
 
 This could be done by partitioning the UV space according to distortion or filtering measurement and initiate a valid fracture (if any) in each region in every topology step. The partition criteria could be separating the domain so that on each subdomain, the function is convex (has exactly one stationary).
