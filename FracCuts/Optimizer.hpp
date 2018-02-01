@@ -67,7 +67,6 @@ namespace FracCuts {
         
         void updatePrecondMtrAndFactorize(void);
         
-        void separateTriangles(double energyThres);
         bool createFracture(double stressThres, bool initiation,
                             bool allowPropagate = true, bool allowInSplit = false);
         void setConfig(const TriangleSoup& config);

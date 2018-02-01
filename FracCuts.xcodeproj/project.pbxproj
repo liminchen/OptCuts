@@ -40,6 +40,8 @@
 		980180B81F552CDA00C64B43 /* FracCuts */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = FracCuts; sourceTree = BUILT_PRODUCTS_DIR; };
 		980180BB1F552CDA00C64B43 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		982CE6121F5DB358004176A8 /* Energy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Energy.cpp; sourceTree = "<group>"; };
+		983E7DB3202240D900412128 /* Diagnostic.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Diagnostic.hpp; sourceTree = "<group>"; };
+		983E7DB62022421400412128 /* MeshProcessing.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MeshProcessing.hpp; sourceTree = "<group>"; };
 		988ED1271F57211500B21181 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		988ED1291F57212300B21181 /* lib */ = {isa = PBXFileReference; lastKnownFileType = folder; name = lib; path = ../../../../usr/local/lib; sourceTree = "<group>"; };
 		988ED12B1F57237F00B21181 /* libglfw.3.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.2.dylib; path = ../../../../usr/local/lib/libglfw.3.2.dylib; sourceTree = "<group>"; };
@@ -123,6 +125,8 @@
 				98C2D8F21F6348820048B18A /* SeparationEnergy.cpp */,
 				98C2D8F31F6348820048B18A /* SeparationEnergy.hpp */,
 				98FD37F51F98806B00C83AAC /* GIF.hpp */,
+				983E7DB3202240D900412128 /* Diagnostic.hpp */,
+				983E7DB62022421400412128 /* MeshProcessing.hpp */,
 			);
 			path = FracCuts;
 			sourceTree = "<group>";

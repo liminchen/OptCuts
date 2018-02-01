@@ -53,7 +53,7 @@ namespace FracCuts {
         }
         
         globalIterNum = 0;
-        relGL2Tol = 1.0e-6;
+        relGL2Tol = 1.0e-8;
         topoIter = 0;
         
         needRefactorize = false;
@@ -65,7 +65,7 @@ namespace FracCuts {
         }
         
 //        pardisoThreadAmt = 0;
-        pardisoThreadAmt = 1;
+        pardisoThreadAmt = 1; //TODO: use more threads!
     }
     
     Optimizer::~Optimizer(void)
@@ -153,7 +153,6 @@ namespace FracCuts {
         for(int iterI = 0; iterI < maxIter; iterI++)
         {
             if(withTopologyStep) {
-//                if(!createFracture(lastEDec + 1.0e-6 * lastEnergyVal, false)) {
                 if(!createFracture(lastEDec, false)) {
                     withTopologyStep = false;
                 }//DEBUG
@@ -221,48 +220,6 @@ namespace FracCuts {
         else {
             pardisoSolver.update_a(V_mtr);
             pardisoSolver.factorize();
-        }
-    }
-    
-    void Optimizer::separateTriangles(double energyThres)
-    {
-        Eigen::VectorXd distortionPerElem;
-        energyTerms[0]->getEnergyValPerElem(result, distortionPerElem, true);
-        bool changed = result.separateTriangle(distortionPerElem, energyThres);
-//        logFile << result.cohE; //DEBUG
-        if(changed) {
-            updateTargetGRes();
-            
-            // compute energy and output
-            computeEnergyVal(result, lastEnergyVal);
-            
-            // compute gradient and output
-            computeGradient(result, gradient);
-            
-            // for the changing hessian
-            if(!mute) {
-                std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
-            }
-            computePrecondMtr(result, precondMtr);
-            if(!pardisoThreadAmt) {
-                cholSolver.analyzePattern(precondMtr);
-                if(!needRefactorize) {
-                    cholSolver.factorize(precondMtr);
-                    if(cholSolver.info() != Eigen::Success) {
-                        IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_decomposeFailed", precondMtr);
-                        assert(0 && "Cholesky decomposition failed!");
-                    }
-                }
-            }
-            else {
-                pardisoSolver = PardisoSolver<Eigen::VectorXi, Eigen::VectorXd>(); //TODO: make it cheaper!
-                pardisoSolver.set_type(pardisoThreadAmt, -2);
-                pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
-                pardisoSolver.analyze_pattern();
-                if(!needRefactorize) {
-                    pardisoSolver.factorize();
-                }
-            }
         }
     }
     
@@ -521,7 +478,7 @@ namespace FracCuts {
         if(lastEDec / lastEnergyVal / stepSize < 1.0e-6) {
             // no prominent energy decrease, stop for accelerating the process
             stopped = true;
-            std::cout << "no prominant energy decrease, optimization stops" << std::endl;
+//            std::cout << "no prominant energy decrease, optimization stops" << std::endl;
         }
         lastEnergyVal = testingE;
         

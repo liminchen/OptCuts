@@ -154,7 +154,7 @@ namespace FracCuts {
                         }
                     }
                 }
-                bool makeCoh = false;
+                bool makeCoh = true;
                 if(makeCoh) {
                     igl::list_to_matrix(cohEdges, cohE);
                 }
@@ -178,6 +178,9 @@ namespace FracCuts {
                     for(const auto& cohI : cohEdges) {
                         initSeamLen += 2.0 * (V_rest.row(cohI[0]) - V_rest.row(cohI[1])).norm();
                     }
+                }
+                else {
+                    initSeams = cohE;
                 }
             }
             else {
@@ -709,8 +712,7 @@ namespace FracCuts {
     
     void TriangleSoup::resetSubOptInfo(void)
     {
-        //TODO: allow multiple propagation?
-        fracTail.clear();
+        curFracTail = -1;
     }
     
     bool TriangleSoup::splitEdge(double lambda_t, double thres, bool propagate, bool splitInterior)
@@ -773,6 +775,7 @@ namespace FracCuts {
             resetSubOptInfo();
         }
         else {
+            // see whether fracture could be propagated from each fracture tail
             if(fracTail.empty()) {
                 return false;
             }
@@ -968,11 +971,18 @@ namespace FracCuts {
         path[1] = vI;
         path.resize(3);
         
-        for(int pI = 0; pI + 1 < path.size(); pI++) {
-            initSeamLen += 2.0 * (V_rest.row(path[pI]) - V_rest.row(path[pI + 1])).norm();
+        bool makeCoh = true;
+        if(!makeCoh) {
+            for(int pI = 0; pI + 1 < path.size(); pI++) {
+                initSeamLen += 2.0 * (V_rest.row(path[pI]) - V_rest.row(path[pI + 1])).norm();
+            }
         }
         
-        cutPath(path);
+        cutPath(path, makeCoh);
+        
+        if(makeCoh) {
+            initSeams = cohE;
+        }
     }
     
     void TriangleSoup::highCurvOnePointCut(void)
@@ -1096,13 +1106,20 @@ namespace FracCuts {
         dijkstra(graph, 0, path);
         dijkstra(graph, path.back(), path);
         
-        for(int pI = 0; pI + 1 < path.size(); pI++) {
-            initSeamLen += 2.0 * (V_rest.row(path[pI]) - V_rest.row(path[pI + 1])).norm();
+        bool makeCoh = true;
+        if(!makeCoh) {
+            for(int pI = 0; pI + 1 < path.size(); pI++) {
+                initSeamLen += 2.0 * (V_rest.row(path[pI]) - V_rest.row(path[pI + 1])).norm();
+            }
         }
         
-        cutPath(path);
+        cutPath(path, makeCoh);
 //        save("/Users/mincli/Downloads/meshes/test_triSoup.obj");
 //        saveAsMesh("/Users/mincli/Downloads/meshes/test_mesh.obj");
+        
+        if(makeCoh) {
+            initSeams = cohE;
+        }
     }
     
     void TriangleSoup::cutPath(const std::vector<int>& path, bool makeCoh, int changePos, const Eigen::MatrixXd& newVertPos)
@@ -1170,7 +1187,7 @@ namespace FracCuts {
                 cohE.row(nCoh + 1) << path[2], nV, path[2], path[1];
             }
             
-            computeFeatures();
+            computeFeatures(); //TODO: only update locally
             
             for(int vI = 2; vI + 1 < path.size(); vI++) {
                 //TODO: enable change pos!
@@ -1586,6 +1603,7 @@ namespace FracCuts {
         std::vector<int> umbrella;
         std::pair<int, int> boundaryEdge;
         if(isBoundaryVert(edge2Tri, vI, *(vNeighbor[vI].begin()), umbrella, boundaryEdge, false)) {
+            // boundary split
             double maxEwDec = -__DBL_MAX__;
             path_max.resize(2);
             for(const auto& nbVI : vNeighbor[vI]) {
@@ -1593,6 +1611,7 @@ namespace FracCuts {
                 if((edge2Tri.find(edge) != edge2Tri.end()) &&
                    (edge2Tri.find(std::pair<int, int>(nbVI, vI)) != edge2Tri.end()))
                 {
+                    // interior edge
                     Eigen::MatrixXd newVertPosI;
                     const double seInc = (V_rest.row(vI) - V_rest.row(nbVI)).norm() * 2.0 / virtualPerimeter;
                     const double SDDec = computeLocalEDec(edge, edge2Tri, vNeighbor, cohEIndex, newVertPosI);
@@ -1608,6 +1627,7 @@ namespace FracCuts {
             return maxEwDec;
         }
         else {
+            // interior split
             for(const auto& nbVI : vNeighbor[vI]) {
                 if(isBoundaryVert(edge2Tri, vNeighbor, nbVI)) {
                     return -__DBL_MAX__; // don't split vertices connected to boundary here
@@ -1836,6 +1856,10 @@ namespace FracCuts {
         fracTail.erase(vI_boundary);
         if(!duplicateBoth) {
             fracTail.insert(vI_interior);
+            curFracTail = vI_interior;
+        }
+        else {
+            curFracTail = -1;
         }
         
         // duplicate vI_boundary

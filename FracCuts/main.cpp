@@ -6,6 +6,9 @@
 #include "CohesiveEnergy.hpp"
 #include "GIF.hpp"
 
+#include "Diagnostic.hpp"
+#include "MeshProcessing.hpp"
+
 #include <igl/readOFF.h>
 #include <igl/boundary_loop.h>
 #include <igl/map_vertices_to_circle.h>
@@ -14,6 +17,7 @@
 #include <igl/avg_edge_length.h>
 #include <igl/viewer/Viewer.h>
 #include <igl/png/writePNG.h>
+#include <igl/euler_characteristic.h>
 
 #include <sys/stat.h> // for mkdir
 
@@ -45,7 +49,6 @@ double lastE_w = 0.0;
 std::ofstream logFile;
 std::string outputFolderPath = "/Users/mincli/Desktop/output_FracCuts/";
 const std::string meshFolder = "/Users/mincli/Desktop/meshes/";
-//const std::string meshFolder = "/Users/mincli/Downloads/meshes/";
 
 // visualization
 igl::viewer::Viewer viewer;
@@ -59,6 +62,7 @@ bool showBoundary = false;
 bool showDistortion = true;
 bool showTexture = true; // show checkerboard
 bool isLighting = false;
+bool showFracTail = true;
 clock_t ticksPast = 0, ticksPast_frac = 0, lastStart;
 double secPast = 0.0;
 time_t lastStart_world;
@@ -142,13 +146,19 @@ void updateViewerData(void)
             viewer.data.clear();
         }
         viewer.data.set_mesh(UV_vis, triSoup[viewChannel]->F);
-//        viewer.core.align_camera_center(UV[0], F[0]);
         viewer.core.align_camera_center(UV_vis, triSoup[viewChannel]->F);
         
         viewer.core.show_texture = false;
         viewer.core.lighting_factor = 0.0;
 
         updateViewerData_seam(UV_vis);
+        
+        viewer.data.set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 1.0));
+        if(showFracTail && (viewChannel == channel_result)) {
+            for(const auto& tailVI : triSoup[channel_result]->fracTail) {
+                viewer.data.add_points(UV_vis.row(tailVI), Eigen::RowVector3d(0.0, 0.0, 1.0));
+            }
+        }
     }
     else {
         if((triSoup[viewChannel]->V_rest.rows() != viewer.data.V.rows()) ||
@@ -158,7 +168,6 @@ void updateViewerData(void)
             viewer.data.clear();
         }
         viewer.data.set_mesh(triSoup[viewChannel]->V_rest, triSoup[viewChannel]->F);
-//        viewer.core.align_camera_center(V[0], F[0]);
         viewer.core.align_camera_center(triSoup[viewChannel]->V_rest, triSoup[viewChannel]->F);
         
         if(showTexture) {
@@ -177,6 +186,13 @@ void updateViewerData(void)
         }
         
         updateViewerData_seam(triSoup[viewChannel]->V_rest);
+        
+        viewer.data.set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 1.0));
+        if(showFracTail && (viewChannel == channel_result)) {
+            for(const auto& tailVI : triSoup[channel_result]->fracTail) {
+                viewer.data.add_points(triSoup[channel_result]->V_rest.row(tailVI), Eigen::RowVector3d(0.0, 0.0, 1.0));
+            }
+        }
     }
     updateViewerData_distortion();
     
@@ -246,7 +262,8 @@ void saveInfoForPresent(void)
         secPast << std::endl;
     
     double seamLen;
-    if(energyParams[0] == 1.0) { // pure distortion minimization mode for models with initial cuts also reflected on the surface as boundary edges...
+    if(energyParams[0] == 1.0) {
+        // pure distortion minimization mode for models with initial cuts also reflected on the surface as boundary edges...
         triSoup[channel_result]->computeBoundaryLen(seamLen);
     }
     else {
@@ -262,6 +279,9 @@ void saveInfoForPresent(void)
         seamLen / triSoup[channel_result]->virtualPerimeter << std::endl;
     
     triSoup[channel_result]->outputStandardStretch(file);
+    
+    file << "initialSeams " << triSoup[channel_result]->initSeams.rows() << std::endl;
+    file << triSoup[channel_result]->initSeams << std::endl;
     
     file.close();
 }
@@ -405,6 +425,12 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                 break;
             }
                 
+            case 'p':
+            case 'P': {
+                showFracTail = !showFracTail;
+                break;
+            }
+                
             default:
                 break;
         }
@@ -502,13 +528,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
             if(autoHomotopy && sepE && sepE->decreaseSigma())
             {
                 homoTransFile << iterNum << std::endl;
-//                lastStart = clock();
                 optimizer->computeLastEnergyVal();
                 converged = false;
-//                if(fractureMode) {
-//                    optimizer->createFracture(fracThres, true, !altBase);
-//                }
-//                ticksPast += clock() - lastStart;
             }
             else {
                 if(fractureMode) {
@@ -680,119 +701,13 @@ int main(int argc, char *argv[])
             
         case 1: {
             // diagnostic mode
-            if(argc > 2) {
-                int diagMode = 0;
-                diagMode = std::stoi(argv[2]);
-                switch(diagMode) {
-                    case 0: {
-                        // compute SVD to a sparse matrix
-                        if(argc > 3) {
-                            Eigen::SparseMatrix<double> mtr;
-                            FracCuts::IglUtils::loadSparseMatrixFromFile(argv[3], mtr);
-                            Eigen::MatrixXd mtr_dense(mtr);
-                            Eigen::BDCSVD<Eigen::MatrixXd> svd(mtr_dense);
-                            std::cout << "singular values of mtr:" << std::endl << svd.singularValues() << std::endl;
-                            std::cout << "det(mtr) = " << mtr_dense.determinant() << std::endl;
-                        }
-                        else {
-                            std::cout << "Please enter matrix file path!" << std::endl;
-                        }
-                        break;
-                    }
-                        
-                    default:
-                        std::cout << "No diagMode " << diagMode << std::endl;
-                        break;
-                }
-            }
-            else {
-                std::cout << "Please enter diagMode!" << std::endl;
-            }
+            FracCuts::Diagnostic::run(argc, argv);
             return 0;
         }
             
         case 2: {
             // mesh processing mode
-            if(argc > 2) {
-                Eigen::MatrixXd V, UV, N;
-                Eigen::MatrixXi F, FUV, FN;
-                std::string meshPath = meshFolder + std::string(argv[2]);
-                const std::string suffix = meshPath.substr(meshPath.find_last_of('.'));
-                if(suffix == ".off") {
-                    igl::readOFF(meshPath, V, F);
-                }
-                else if(suffix == ".obj") {
-                    igl::readOBJ(meshPath, V, UV, N, F, FUV, FN);
-                }
-                else {
-                    std::cout << "unkown mesh file format!" << std::endl;
-                    return -1;
-                }
-                
-                if(argc > 3) {
-                    int procMode = 0;
-                    procMode = std::stoi(argv[3]);
-                    switch(procMode) {
-                        case 0: {
-                            // invert normal of a mesh
-                            for(int triI = 0; triI < F.rows(); triI++) {
-                                const Eigen::RowVector3i temp = F.row(triI);
-                                F(triI, 1) = temp[2];
-                                F(triI, 2) = temp[1];
-                            }
-                            igl::writeOBJ(meshFolder + "processedMesh.obj", V, F);
-                            break;
-                        }
-                            
-                        case 1: {
-                            // turn a triangle soup into a mesh
-                            if(V.rows() != F.rows() * 3) {
-                                std::cout << "Input model is not a triangle soup!" << std::endl;
-                                return -1;
-                            }
-                            
-                            if(UV.rows() != V.rows()) {
-                                std::cout << "UV coordinates not valid, will generate separate rigid mapping UV!" << std::endl;
-                            }
-                            
-                            FracCuts::TriangleSoup inputTriSoup(V, F, UV, Eigen::MatrixXi(), false);
-                            if(argc > 4) {
-                                // input original model to get cohesive edge information
-                                Eigen::MatrixXd V0;
-                                Eigen::MatrixXi F0;
-                                std::string meshPath = meshFolder + std::string(argv[4]);
-                                const std::string suffix = meshPath.substr(meshPath.find_last_of('.'));
-                                if(suffix == ".off") {
-                                    igl::readOFF(meshPath, V0, F0);
-                                }
-                                else if(suffix == ".obj") {
-                                    igl::readOBJ(meshPath, V0, F0);
-                                }
-                                else {
-                                    std::cout << "unkown mesh file format!" << std::endl;
-                                    return -1;
-                                }
-
-                                inputTriSoup.cohE = FracCuts::TriangleSoup(V0, F0, Eigen::MatrixXd()).cohE;
-                                inputTriSoup.computeFeatures();
-                            }
-                            inputTriSoup.saveAsMesh(meshFolder + "processedMesh.obj", true);
-                            break;
-                        }
-                            
-                        default:
-                            std::cout << "No procMode " << procMode << std::endl;
-                            break;
-                    }
-                }
-                else {
-                    std::cout << "Please enter procMode!" << std::endl;
-                }
-            }
-            else {
-                std::cout << "Please enter mesh file path!" << std::endl;
-            }
-            
+            FracCuts::MeshProcessing::run(argc, argv);
             return 0;
         }
             
@@ -861,7 +776,7 @@ int main(int argc, char *argv[])
     if(argc > 4) {
         delta = std::stod(argv[4]);
         if((delta != delta) || (delta < 0.0)) {
-            std::cout << "Overwrite invalid delta " << delta << " to 16" << std::endl;
+            std::cout << "Overwrite invalid delta " << delta << " to 4" << std::endl;
             delta = 4.0;
         }
     }
@@ -890,19 +805,19 @@ int main(int argc, char *argv[])
     }
     
     if(UV.rows() != 0) {
+        // with input UV
         triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV, FUV, startWithTriSoup));
-//        FracCuts::TriangleSoup temp(V, F, UV, FUV, false);
-//        Eigen::VectorXd tempVec = Eigen::VectorXd::Zero(F.rows());
-//        temp.separateTriangle(tempVec, -1.0);
-//        triSoup.emplace_back(new FracCuts::TriangleSoup(temp));
         outputFolderPath += meshName + "_input_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +
             "_" +startDS + folderTail;
     }
     else {
+        // no input UV
         // * Harmonic map for initialization
         Eigen::VectorXi bnd;
         igl::boundary_loop(F, bnd); // Find the open boundary
         if(bnd.size()) {
+            // disk-topology
+            //TODO: what if it has multiple boundaries?
             // Map the boundary to a circle, preserving edge proportions
             Eigen::MatrixXd bnd_uv;
 //            igl::map_vertices_to_circle(V, bnd, bnd_uv);
@@ -923,30 +838,39 @@ int main(int argc, char *argv[])
                 "_" + startDS + folderTail;
         }
         else {
-//            // rigid initialization for UV
-//            assert((lambda > 0.0) && startWithTriSoup);
-//            triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, Eigen::MatrixXd()));
-//            outputFolderPath += meshName + "_rigid_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +
-//                "_" + startDS + folderTail;
+            // closed surface
+            if(igl::euler_characteristic(V, F) != 2) {
+                std::cout << "Input surface genus > 0 or has multiple connected components!" << std::endl;
+                return -1;
+            }
             
-            FracCuts::TriangleSoup *temp = new FracCuts::TriangleSoup(V, F, Eigen::MatrixXd(), Eigen::MatrixXi(), false);
-//            temp->farthestPointCut(); // open up a boundary for Tutte embedding
-//            temp->highCurvOnePointCut();
-            temp->onePointCut();
-            
-            igl::boundary_loop(temp->F, bnd);
-            assert(bnd.size());
-            Eigen::MatrixXd bnd_uv;
-            FracCuts::IglUtils::map_vertices_to_circle(temp->V_rest, bnd, bnd_uv);
-            Eigen::SparseMatrix<double> A, M;
-            FracCuts::IglUtils::computeUniformLaplacian(temp->F, A);
-            Eigen::MatrixXd UV_Tutte;
-            igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
-            triSoup.emplace_back(new FracCuts::TriangleSoup(temp->V_rest, temp->F, UV_Tutte, Eigen::MatrixXi(), false, temp->initSeamLen));
-            
-            delete temp;
-            outputFolderPath += meshName + "_Tutte_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +
-                            "_" + startDS + folderTail;
+            if(startWithTriSoup) {
+                // rigid initialization, the most stable initialization for AutoCuts...
+                assert((lambda > 0.0) && startWithTriSoup);
+                triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, Eigen::MatrixXd()));
+                outputFolderPath += meshName + "_rigid_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +
+                    "_" + startDS + folderTail;
+            }
+            else {
+                FracCuts::TriangleSoup *temp = new FracCuts::TriangleSoup(V, F, Eigen::MatrixXd(), Eigen::MatrixXi(), false);
+    //            temp->farthestPointCut(); // open up a boundary for Tutte embedding
+    //            temp->highCurvOnePointCut();
+                temp->onePointCut();
+                
+                igl::boundary_loop(temp->F, bnd);
+                assert(bnd.size());
+                Eigen::MatrixXd bnd_uv;
+                FracCuts::IglUtils::map_vertices_to_circle(temp->V_rest, bnd, bnd_uv);
+                Eigen::SparseMatrix<double> A, M;
+                FracCuts::IglUtils::computeUniformLaplacian(temp->F, A);
+                Eigen::MatrixXd UV_Tutte;
+                igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
+                triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV_Tutte, temp->F, startWithTriSoup, temp->initSeamLen));
+                
+                delete temp;
+                outputFolderPath += meshName + "_Tutte_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +
+                                "_" + startDS + folderTail;
+            }
         }
     }
     
@@ -992,7 +916,7 @@ int main(int argc, char *argv[])
 //        energyTerms.back()->checkGradient(*triSoup[0]);
 //        energyTerms.back()->checkHessian(*triSoup[0]);
     }
-    optimizer = new FracCuts::Optimizer(*triSoup[0], energyTerms, energyParams, false); //DEBUG alternating framework
+    optimizer = new FracCuts::Optimizer(*triSoup[0], energyTerms, energyParams, false);
     lastStart = clock();
     optimizer->precompute();
     ticksPast += clock() - lastStart;
@@ -1008,15 +932,8 @@ int main(int argc, char *argv[])
         
         if(delta == 0.0) {
             altBase = true;
-//            optimizer->setRelGL2Tol(1.0e-8);
         }
-//        else {
-//            optimizer->setRelGL2Tol(1.0e-4); //!!! different model can succeed with different tolerance, is it a matter of curvature or because sometimes the optimal split is inside?
-//        }
     }
-//    else if((lambda > 0.0) && startWithTriSoup) {
-//        optimizer->setRelGL2Tol(1.0e-4);
-//    }
     
     // Setup viewer and launch
     viewer.core.background_color << 1.0f, 1.0f, 1.0f, 0.0f;
@@ -1027,6 +944,8 @@ int main(int argc, char *argv[])
     viewer.core.orthographic = true;
     viewer.core.camera_zoom *= 1.9;
     viewer.core.animation_max_fps = 60.0;
+    viewer.core.point_size = 16.0f;
+    viewer.core.show_overlay = true;
     updateViewerData();
     viewer.launch();
     

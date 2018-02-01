@@ -31,6 +31,7 @@ namespace FracCuts{
         Eigen::MatrixXd V; // duplicated vertex coordinates, the dimension depends on the search space
         Eigen::MatrixXi F; // reordered triangle draw list (0, 1, 2, ...), indices based on V
         Eigen::MatrixXi cohE; // cohesive edge pairs with the 4 end vertex indices based on V
+        Eigen::MatrixXi initSeams; // initial cohesive edge pairs actually
         
     public: // owned features
         Eigen::VectorXi boundaryEdge; // 1: boundary edge, 0: interior edge
@@ -57,6 +58,7 @@ namespace FracCuts{
         std::map<std::pair<int, int>, int> cohEIndex;
         
         std::set<int> fracTail;
+        int curFracTail;
         double initSeamLen;
         
     public: // constructor
@@ -122,10 +124,13 @@ namespace FracCuts{
             std::map<std::pair<int, int>, int>& edge2Tri, std::vector<std::set<int>>& vNeighbor,
             std::map<std::pair<int, int>, int>& cohEIndex);
         
+        // query vertex candidate
         double computeLocalEwDec(int vI, double lambda_t, std::vector<int>& path, Eigen::MatrixXd& newVertPos) const;
+        // query incident edge of a vertex candidate
         double computeLocalEDec(const std::pair<int, int>& edge,
             const std::map<std::pair<int, int>, int>& edge2Tri, const std::vector<std::set<int>>& vNeighbor,
             const std::map<std::pair<int, int>, int>& cohEIndex, Eigen::MatrixXd& newVertPos) const; //TODO: write this in a new class
+        // minimize SD on the local stencil
         double computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
                                 std::map<int, Eigen::RowVector2d>& newVertPos, int maxIter = 100) const;
     };
