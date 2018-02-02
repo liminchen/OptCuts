@@ -3,8 +3,8 @@ import subprocess
 from os import listdir
 from os.path import isfile, join
 
-meshFolderPath = '/Users/mincli/Downloads/meshes/'
-# meshFolderPath = '/Users/mincli/Downloads/meshes/needSmallerTol/'
+# meshFolderPath = '/Users/mincli/Downloads/meshes/'
+meshFolderPath = '/Users/mincli/Downloads/meshes/test_/'
 onlyfiles = [f for f in listdir(meshFolderPath) if isfile(join(meshFolderPath, f))]
 
 priority = 'nice -n -10 '

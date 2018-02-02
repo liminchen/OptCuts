@@ -64,4 +64,5 @@ while in real-time optimization mode, optimization needs to be started by the us
 * 's': toggle seam visualization, default is on
 * 'e': toggle boundary visualization, default is off
 * 'b': toggle lighting, default is off
+* 'p': toggle viewing fracture tails (drawn as blue dots)
 * 'o': take a screenshot and save the model with current UV
