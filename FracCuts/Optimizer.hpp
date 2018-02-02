@@ -26,7 +26,7 @@ namespace FracCuts {
         // E = \Sigma_i a_i E_i
         
     protected: // owned data
-        bool withTopologyStep;
+        bool propagateFracture;
         bool mute;
         bool pardisoThreadAmt;
         bool needRefactorize;

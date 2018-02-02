@@ -400,6 +400,8 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                         converged = false;
                         optimizer->updatePrecondMtrAndFactorize();
                         if(fractureMode) {
+                            // won't be called now since we are using standard AutoCuts
+                            assert(0);
                             optimizer->createFracture(fracThres, true, !altBase);
                         }
                     }
@@ -503,19 +505,22 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
         viewChannel = channel_result;
         updateViewerData();
         
-//        if((iterNum < 10) || (iterNum % 10 == 0)) {
-//            saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
-//        }
+        FracCuts::SeparationEnergy *sepE = NULL;
+        for(const auto eTermI : energyTerms) {
+            sepE = dynamic_cast<FracCuts::SeparationEnergy*>(eTermI);
+            if(sepE != NULL) {
+                break;
+            }
+        }
+        
+        if(sepE != NULL) {
+            if((iterNum < 10) || (iterNum % 10 == 0)) {
+//                saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
+                saveInfo_postDraw = true;
+            }
+        }
         
         if(converged) {
-            FracCuts::SeparationEnergy *sepE = NULL;
-            for(const auto eTermI : energyTerms) {
-                sepE = dynamic_cast<FracCuts::SeparationEnergy*>(eTermI);
-                if(sepE != NULL) {
-                    break;
-                }
-            }
-            
             if(sepE != NULL) {
                 saveInfo_postDraw = true;
                 infoName = "homotopy_" + std::to_string(sepE->getSigmaParam());
@@ -525,14 +530,15 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                 infoName = std::to_string(iterNum);
             }
             
-            if(autoHomotopy && sepE && sepE->decreaseSigma())
-            {
+            if(autoHomotopy && sepE && sepE->decreaseSigma()) {
+                // AutoCuts
                 homoTransFile << iterNum << std::endl;
                 optimizer->computeLastEnergyVal();
                 converged = false;
             }
             else {
                 if(fractureMode) {
+                    // our method
                     double E_se;
                     triSoup[channel_result]->computeSeamSparsity(E_se);
                     const double E_w = optimizer->getLastEnergyVal() +
@@ -544,8 +550,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         // roll back
                         optimizer->setConfig(triSoup_backup);
                         
-//                    if(false) {
                         if(lastFractureIn) {
+                            // if the last topology operation is interior split
                             logFile << "E_w is not decreased, end process." << std::endl;
                             
                             infoName = "finalResult";
@@ -571,21 +577,19 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                             outerLoopFinished = true;
                         }
                         else {
-//                            lastE_w = E_w; // commented out because of rolling back
-                            
+                            // last topology operation is boundary split,
+                            // roll back and try interior split
                             homoTransFile << iterNum << std::endl;
                             lastStart = clock();
 
-//                            altBase = true; // no propagation for now after interior splits
-                            //TODO: no need to also query boundary vertices here
                             optimizer->createFracture(fracThres, true, !altBase, true);
-                            //TODO: what if gradient is still < tol after opening the fracture?
                             lastFractureIn = true;
                             ticksPast += clock() - lastStart;
                             converged = false;
                         }
                     }
                     else {
+                        // continue to split boundary
                         triSoup_backup = optimizer->getResult();
                         lastE_w = E_w;
                     
@@ -597,10 +601,9 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                             converged = false;
                         }
                         else {
-//                            altBase = true; // no propagation for now after interior splits
-                            //TODO: no need to also query boundary vertices here
+                            // actually won't happen now since we are splitting anyway
+                            assert(0);
                             if(optimizer->createFracture(fracThres, true, !altBase, true)) {
-                                //TODO: what if gradient is still < tol after opening the fracture?
                                 lastFractureIn = true;
                                 ticksPast += clock() - lastStart;
                                 converged = false;
@@ -634,6 +637,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     }
                 }
                 else {
+                    // pure distortion minimization
                     infoName = "finalResult";
                     
                     // perform exact solve

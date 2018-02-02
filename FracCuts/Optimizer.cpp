@@ -28,7 +28,7 @@ extern clock_t ticksPast_frac;
 namespace FracCuts {
     
     Optimizer::Optimizer(const TriangleSoup& p_data0, const std::vector<Energy*>& p_energyTerms, const std::vector<double>& p_energyParams,
-        bool p_withTopologyStep, bool p_mute) : data0(p_data0), energyTerms(p_energyTerms), energyParams(p_energyParams)
+        bool p_propagateFracture, bool p_mute) : data0(p_data0), energyTerms(p_energyTerms), energyParams(p_energyParams)
     {
         assert(energyTerms.size() == energyParams.size());
         
@@ -40,7 +40,7 @@ namespace FracCuts {
         gradient_ET.resize(energyTerms.size());
         energyVal_ET.resize(energyTerms.size());
         
-        withTopologyStep = p_withTopologyStep;
+        propagateFracture = p_propagateFracture;
         mute = p_mute;
         
         if(!mute) {
@@ -152,11 +152,6 @@ namespace FracCuts {
     {
         for(int iterI = 0; iterI < maxIter; iterI++)
         {
-            if(withTopologyStep) {
-                if(!createFracture(lastEDec, false)) {
-                    withTopologyStep = false;
-                }//DEBUG
-            }
             computeGradient(result, gradient);
             const double sqn_g = gradient.squaredNorm();
             if(!mute) {
@@ -195,6 +190,12 @@ namespace FracCuts {
                 }
             }
             globalIterNum++;
+            
+            if(propagateFracture) {
+                if(!createFracture(lastEDec, false)) {
+                    propagateFracture = false;
+                }
+            }
         }
         return false;
     }
@@ -314,8 +315,8 @@ namespace FracCuts {
             }
             
             if(allowPropagate && initiation) {
-                solve(1);
-                withTopologyStep = true;
+//                solve(1);
+                propagateFracture = true;
             }
         }
         ticksPast_frac += clock() - tickStart;

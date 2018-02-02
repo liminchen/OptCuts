@@ -728,21 +728,34 @@ namespace FracCuts {
             SD.computeDivGradPerVert(*this, divGradPerVert);
             
             std::map<double, int> sortedCandVerts_b, sortedCandVerts_in;
-            for(int vI = 0; vI < V_rest.rows(); vI++) {
-                if(vNeighbor[vI].size() <= 2) {
-                    // this vertex is impossible to be splitted further
-                    continue;
+            if(splitInterior) {
+                for(int vI = 0; vI < V_rest.rows(); vI++) {
+                    if(vNeighbor[vI].size() <= 2) {
+                        // this vertex is impossible to be splitted further
+                        continue;
+                    }
+                    
+                    if(!isBoundaryVert(edge2Tri, vNeighbor, vI)) {
+                        sortedCandVerts_in[-divGradPerVert[vI]] = vI;
+                    }
                 }
-                
-                if(isBoundaryVert(edge2Tri, vNeighbor, vI)) {
-                    sortedCandVerts_b[-divGradPerVert[vI]] = vI;
-                }
-                else if(splitInterior) {
-                    sortedCandVerts_in[-divGradPerVert[vI]] = vI;
+            }
+            else {
+                for(int vI = 0; vI < V_rest.rows(); vI++) {
+                    if(vNeighbor[vI].size() <= 2) {
+                        // this vertex is impossible to be splitted further
+                        continue;
+                    }
+                    
+                    if(isBoundaryVert(edge2Tri, vNeighbor, vI)) {
+                        sortedCandVerts_b[-divGradPerVert[vI]] = vI;
+                    }
                 }
             }
             
+            if(!splitInterior)
             {
+                assert(!sortedCandVerts_b.empty());
                 bestCandAmt_b = static_cast<int>(std::pow(sortedCandVerts_b.size(), filterExp_b));
                 if(bestCandAmt_b < 2) {
                     bestCandAmt_b = 2;
@@ -755,7 +768,7 @@ namespace FracCuts {
                     }
                 }
             }
-            if(splitInterior)
+            else
             {
                 assert(!sortedCandVerts_in.empty());
                 int bestCandAmt_in = static_cast<int>(std::pow(sortedCandVerts_in.size(), filterExp_in));
@@ -786,10 +799,7 @@ namespace FracCuts {
             }
         }
         
-        if(bestCandVerts.empty() || (bestCandAmt_b > bestCandVerts.size())) {
-            std::cout << bestCandAmt_b << " " << bestCandVerts.size() << std::endl;
-            assert(0);
-        }
+        assert(!bestCandVerts.empty());
         
         // evaluate local energy decrease
         std::cout << "evaluate vertex splits, " << bestCandVerts.size() << " candidate verts" << std::endl;
@@ -798,12 +808,13 @@ namespace FracCuts {
         std::vector<std::vector<int>> paths(bestCandVerts.size());
         std::vector<Eigen::MatrixXd> newVertPoses(bestCandVerts.size());
         // query boundary splits
-        tbb::parallel_for(0, bestCandAmt_b, 1, [&](int candI) {
-            EwDecs[candI] = computeLocalEwDec(bestCandVerts[candI], lambda_t, paths[candI], newVertPoses[candI]);
-        });
-        if(splitInterior) {
+        if(!splitInterior) {
+            tbb::parallel_for(0, bestCandAmt_b, 1, [&](int candI) {
+                EwDecs[candI] = computeLocalEwDec(bestCandVerts[candI], lambda_t, paths[candI], newVertPoses[candI]);
+            });
+        }
+        else {
             assert(!propagate);
-            assert(bestCandAmt_b < bestCandVerts.size());
             // query interior splits
             tbb::parallel_for(bestCandAmt_b, (int)bestCandVerts.size(), 1, [&](int candI) {
                 EwDecs[candI] = 0.5 * computeLocalEwDec(bestCandVerts[candI], lambda_t, paths[candI], newVertPoses[candI]);
@@ -817,7 +828,7 @@ namespace FracCuts {
         }
         std::cout << "E_dec threshold = " << thres << std::endl;
         if(EwDecs[candI_max] > thres) {
-            if(candI_max < bestCandAmt_b) {
+            if(!splitInterior) {
                 // boundary split
                 std::cout << "boundary split E_dec = " << EwDecs[candI_max] << std::endl;
                 splitEdgeOnBoundary(std::pair<int, int>(paths[candI_max][0], paths[candI_max][1]),
@@ -826,12 +837,11 @@ namespace FracCuts {
                 updateFeatures();
             }
             else {
-                assert(splitInterior && (!propagate));
                 // interior split
                 std::cout << "interior split E_dec = " << EwDecs[candI_max] << std::endl;
                 cutPath(paths[candI_max], true, 1, newVertPoses[candI_max]);
-                //                fracTail.insert(path_in[0]);
-                //                fracTail.insert(path_in[2]);
+                fracTail.insert(paths[candI_max][0]);
+                fracTail.insert(paths[candI_max][2]);
             }
             return true;
         }
