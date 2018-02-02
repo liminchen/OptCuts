@@ -721,11 +721,14 @@ namespace FracCuts {
         const double filterExp_in = 0.8;
         
         std::vector<int> bestCandVerts;
-        int bestCandAmt_b = 0; // number of boundary vertices to query
         if(!propagate) {
-            Eigen::VectorXd divGradPerVert;
             SymStretchEnergy SD;
+//            double energyVal;
+//            SD.computeEnergyVal(*this, energyVal);
+            Eigen::VectorXd divGradPerVert;
             SD.computeDivGradPerVert(*this, divGradPerVert);
+//            Eigen::VectorXd maxUnweightedEnergyValPerVert;
+//            SD.getMaxUnweightedEnergyValPerVert(*this, maxUnweightedEnergyValPerVert);
             
             std::map<double, int> sortedCandVerts_b, sortedCandVerts_in;
             if(splitInterior) {
@@ -736,7 +739,9 @@ namespace FracCuts {
                     }
                     
                     if(!isBoundaryVert(edge2Tri, vNeighbor, vI)) {
-                        sortedCandVerts_in[-divGradPerVert[vI]] = vI;
+//                        if(maxUnweightedEnergyValPerVert[vI] > energyVal) {
+                            sortedCandVerts_in[-divGradPerVert[vI]] = vI;
+//                        }
                     }
                 }
             }
@@ -748,7 +753,9 @@ namespace FracCuts {
                     }
                     
                     if(isBoundaryVert(edge2Tri, vNeighbor, vI)) {
-                        sortedCandVerts_b[-divGradPerVert[vI]] = vI;
+//                        if(maxUnweightedEnergyValPerVert[vI] > energyVal) {
+                            sortedCandVerts_b[-divGradPerVert[vI]] = vI;
+//                        }
                     }
                 }
             }
@@ -756,7 +763,7 @@ namespace FracCuts {
             if(!splitInterior)
             {
                 assert(!sortedCandVerts_b.empty());
-                bestCandAmt_b = static_cast<int>(std::pow(sortedCandVerts_b.size(), filterExp_b));
+                int bestCandAmt_b = static_cast<int>(std::pow(sortedCandVerts_b.size(), filterExp_b));
                 if(bestCandAmt_b < 2) {
                     bestCandAmt_b = 2;
                 }
@@ -776,10 +783,9 @@ namespace FracCuts {
                     bestCandAmt_in = 2;
                 }
                 bestCandVerts.reserve(bestCandVerts.size() + bestCandAmt_in);
-                int counter = 0;
                 for(const auto& candI : sortedCandVerts_in) {
                     bestCandVerts.emplace_back(candI.second);
-                    if(++counter >= bestCandAmt_in) {
+                    if(bestCandVerts.size() >= bestCandAmt_in) {
                         break;
                     }
                 }
@@ -795,11 +801,10 @@ namespace FracCuts {
             else {
                 splitInterior = false;
                 bestCandVerts.insert(bestCandVerts.end(), fracTail.begin(), fracTail.end());
-                bestCandAmt_b = static_cast<int>(bestCandVerts.size());
             }
         }
         
-        assert(!bestCandVerts.empty());
+        assert(!bestCandVerts.empty()); //TODO: extra filter might cause this!!!
         
         // evaluate local energy decrease
         std::cout << "evaluate vertex splits, " << bestCandVerts.size() << " candidate verts" << std::endl;
@@ -809,14 +814,14 @@ namespace FracCuts {
         std::vector<Eigen::MatrixXd> newVertPoses(bestCandVerts.size());
         // query boundary splits
         if(!splitInterior) {
-            tbb::parallel_for(0, bestCandAmt_b, 1, [&](int candI) {
+            tbb::parallel_for(0, (int)bestCandVerts.size(), 1, [&](int candI) {
                 EwDecs[candI] = computeLocalEwDec(bestCandVerts[candI], lambda_t, paths[candI], newVertPoses[candI]);
             });
         }
         else {
             assert(!propagate);
             // query interior splits
-            tbb::parallel_for(bestCandAmt_b, (int)bestCandVerts.size(), 1, [&](int candI) {
+            tbb::parallel_for(0, (int)bestCandVerts.size(), 1, [&](int candI) {
                 EwDecs[candI] = 0.5 * computeLocalEwDec(bestCandVerts[candI], lambda_t, paths[candI], newVertPoses[candI]);
             });
         }

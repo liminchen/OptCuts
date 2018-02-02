@@ -96,8 +96,6 @@ void PardisoSolver<vectorTypeI,vectorTypeS>::init(int threadAmt)
     //  {
     //    pt[i] = 0;
     //  }
-    
-    
 }
 
 template <typename vectorTypeI, typename vectorTypeS>
@@ -106,7 +104,7 @@ void PardisoSolver<vectorTypeI,vectorTypeS>::update_a(const vectorTypeS &SS_)
     if (mtype ==-1)
         throw std::runtime_error("Pardiso mtype not set.");
     vectorTypeS SS;
-    int numel = SS_.size();
+    int numel = static_cast<int>(SS_.size());
     int ntotal = numel +numRows;
     SS.resize(ntotal);
     for (int k = 0; k < numel; ++k)

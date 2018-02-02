@@ -46,25 +46,41 @@ namespace FracCuts {
         }
     }
     
-    void SymStretchEnergy::getEnergyValPerVert(const TriangleSoup& data, Eigen::VectorXd& energyValPerVert) const
+//    void SymStretchEnergy::getEnergyValPerVert(const TriangleSoup& data, Eigen::VectorXd& energyValPerVert) const
+//    {
+//        Eigen::VectorXd energyValPerElem;
+//        getEnergyValPerElem(data, energyValPerElem);
+//        
+//        Eigen::VectorXd totalWeight;
+//        totalWeight.resize(data.V_rest.rows());
+//        totalWeight.setZero();
+//        energyValPerVert.resize(data.V_rest.rows());
+//        energyValPerVert.setZero();
+//        for(int triI = 0; triI < data.F.rows(); triI++) {
+//            for(int i = 0; i < 3; i++) {
+//                energyValPerVert[data.F(triI, i)] += energyValPerElem[triI];
+//                totalWeight[data.F(triI, i)] += data.triArea[triI];
+//                //TODO: verify the scale if the value will be used rather than the rank!
+//            }
+//        }
+//        for(int vI = 0; vI < data.V_rest.rows(); vI++) {
+//            energyValPerVert[vI] /= totalWeight[vI]; //!!! is normalization needed?
+//        }
+//    }
+    
+    void SymStretchEnergy::getMaxUnweightedEnergyValPerVert(const TriangleSoup& data, Eigen::VectorXd& MaxUnweightedEnergyValPerVert) const
     {
         Eigen::VectorXd energyValPerElem;
-        getEnergyValPerElem(data, energyValPerElem);
-        
-        Eigen::VectorXd totalWeight;
-        totalWeight.resize(data.V_rest.rows());
-        totalWeight.setZero();
-        energyValPerVert.resize(data.V_rest.rows());
-        energyValPerVert.setZero();
+        getEnergyValPerElem(data, energyValPerElem, true);
+
+        MaxUnweightedEnergyValPerVert.resize(data.V_rest.rows());
+        MaxUnweightedEnergyValPerVert.setZero();
         for(int triI = 0; triI < data.F.rows(); triI++) {
             for(int i = 0; i < 3; i++) {
-                energyValPerVert[data.F(triI, i)] += energyValPerElem[triI];
-                totalWeight[data.F(triI, i)] += data.triArea[triI];
-                //TODO: verify the scale if the value will be used rather than the rank!
+                if(MaxUnweightedEnergyValPerVert[data.F(triI, i)] < energyValPerElem[triI]) {
+                    MaxUnweightedEnergyValPerVert[data.F(triI, i)] = energyValPerElem[triI];
+                }
             }
-        }
-        for(int vI = 0; vI < data.V_rest.rows(); vI++) {
-            energyValPerVert[vI] /= totalWeight[vI]; //!!! is normalization needed?
         }
     }
     
