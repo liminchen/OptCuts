@@ -821,7 +821,7 @@ int main(int argc, char *argv[])
         igl::boundary_loop(F, bnd); // Find the open boundary
         if(bnd.size()) {
             // disk-topology
-            //TODO: what if it has multiple boundaries?
+            //TODO: what if it has multiple boundaries? or multi-components?
             // Map the boundary to a circle, preserving edge proportions
             Eigen::MatrixXd bnd_uv;
 //            igl::map_vertices_to_circle(V, bnd, bnd_uv);
@@ -858,7 +858,7 @@ int main(int argc, char *argv[])
             else {
                 FracCuts::TriangleSoup *temp = new FracCuts::TriangleSoup(V, F, Eigen::MatrixXd(), Eigen::MatrixXi(), false);
     //            temp->farthestPointCut(); // open up a boundary for Tutte embedding
-    //            temp->highCurvOnePointCut();
+//                temp->highCurvOnePointCut();
                 temp->onePointCut();
                 
                 igl::boundary_loop(temp->F, bnd);

@@ -1019,15 +1019,56 @@ namespace FracCuts {
             }
         }
         
-        double maxGC = 0.0;
-        int vI_maxGC = -1;
-        for(int vI = 0; vI < gaussianCurv.size(); vI++) {
-            if(gaussianCurv[vI] > maxGC) {
-                maxGC = gaussianCurv[vI];
+        for(auto& gcI : gaussianCurv) {
+            if(gcI < 0) {
+                gcI = -gcI;
+            }
+        }
+        int vI_maxGC = 0;
+        for(int vI = 1; vI < gaussianCurv.size(); vI++) {
+            if(gaussianCurv[vI] > gaussianCurv[vI_maxGC]) {
                 vI_maxGC = vI;
             }
         }
-        onePointCut(vI_maxGC);
+        
+        assert(vNeighbor[vI_maxGC].size() >= 3);
+        int vJ_maxGC = *vNeighbor[vI_maxGC].begin();
+        for(const auto& vINb : vNeighbor[vI_maxGC]) {
+            if(gaussianCurv[vINb] > gaussianCurv[vJ_maxGC]) {
+                vJ_maxGC = vINb;
+            }
+        }
+        
+        //!!! use smoothest cut as initial?
+        assert(vNeighbor[vJ_maxGC].size() >= 3);
+        int vK_maxGC = -1;
+        double gc_vK = -__DBL_MAX__;
+        for(const auto& vJNb : vNeighbor[vJ_maxGC]) {
+            if((gaussianCurv[vJNb] > gc_vK) &&
+               (vJNb != vI_maxGC))
+            {
+                vK_maxGC = vJNb;
+                gc_vK = gaussianCurv[vJNb];
+            }
+        }
+            
+        std::vector<int> path(3);
+        path[0] = vI_maxGC;
+        path[1] = vJ_maxGC;
+        path[2] = vK_maxGC;
+        
+        bool makeCoh = true;
+        if(!makeCoh) {
+            for(int pI = 0; pI + 1 < path.size(); pI++) {
+                initSeamLen += 2.0 * (V_rest.row(path[pI]) - V_rest.row(path[pI + 1])).norm();
+            }
+        }
+        
+        cutPath(path, makeCoh);
+        
+        if(makeCoh) {
+            initSeams = cohE;
+        }
     }
     
     // A utility function to find the vertex with minimum distance value, from
