@@ -40,6 +40,7 @@ namespace FracCuts {
         gradient_ET.resize(energyTerms.size());
         energyVal_ET.resize(energyTerms.size());
         
+        allowEDecRelTol = true;
         propagateFracture = p_propagateFracture;
         mute = p_mute;
         
@@ -100,6 +101,11 @@ namespace FracCuts {
         assert(p_relTol > 0.0);
         relGL2Tol = p_relTol;
         updateTargetGRes();
+    }
+    
+    void Optimizer::setAllowEDecRelTol(bool p_allowEDecRelTol)
+    {
+        allowEDecRelTol = p_allowEDecRelTol;
     }
     
     void Optimizer::precompute(void)
@@ -476,7 +482,7 @@ namespace FracCuts {
         }
         result.V = testingData.V;
         lastEDec = lastEnergyVal - testingE;
-        if(lastEDec / lastEnergyVal / stepSize < 1.0e-6) {
+        if(allowEDecRelTol && (lastEDec / lastEnergyVal / stepSize < 1.0e-6)) {
             // no prominent energy decrease, stop for accelerating the process
             stopped = true;
 //            std::cout << "no prominant energy decrease, optimization stops" << std::endl;

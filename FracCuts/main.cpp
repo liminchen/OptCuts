@@ -126,7 +126,7 @@ void updateViewerData_distortion(void)
         energyTerms[0]->getEnergyValPerElem(*triSoup[viewChannel], distortionPerElem, true);
 //        dynamic_cast<FracCuts::SymStretchEnergy*>(energyTerms[0])->getDivGradPerElem(*triSoup[viewChannel], distortionPerElem);
         Eigen::MatrixXd color_distortionVis;
-        FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 6.0);
+        FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 6.25);
 //        FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis,
 //            distortionPerElem.minCoeff(), distortionPerElem.maxCoeff());
         viewer.data.set_colors(color_distortionVis);
@@ -556,7 +556,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                             
                             infoName = "finalResult";
                             // perform exact solve
-                            optimizer->setRelGL2Tol(1.0e-8);
+//                            optimizer->setRelGL2Tol(1.0e-10);
+                            optimizer->setAllowEDecRelTol(false);
                             //!! can recompute precondmtr if needed
                             converged = false;
                             while(!converged) {
@@ -601,47 +602,18 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                             converged = false;
                         }
                         else {
-                            // actually won't happen now since we are splitting anyway
+                            // won't happen now since we are splitting anyway
                             assert(0);
-                            if(optimizer->createFracture(fracThres, true, !altBase, true)) {
-                                lastFractureIn = true;
-                                ticksPast += clock() - lastStart;
-                                converged = false;
-                            }
-                            else {
-                                ticksPast += clock() - lastStart;
-                                
-                                infoName = "finalResult";
-                                // perform exact solve
-                                optimizer->setRelGL2Tol(1.0e-8);
-                                //!! can recompute precondmtr if needed
-                                converged = false;
-                                while(!converged) {
-                                    proceedOptimization(1000);
-                                }
-                                secPast += difftime(time(NULL), lastStart_world);
-                                updateViewerData();
-
-                                optimization_on = false;
-                                viewer.core.is_animating = false;
-                                const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
-                                const double timeUsed_frac = static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC;
-                                std::cout << "optimization converged, with " << timeUsed << "s, where " <<
-                                    timeUsed_frac << "s is for fracture computation." << std::endl;
-                                logFile << "optimization converged, with " << timeUsed << "s, where " <<
-                                    timeUsed_frac << "s is for fracture computation." << std::endl;
-                                homoTransFile.close();
-                                outerLoopFinished = true;
-                            }
                         }
                     }
                 }
                 else {
-                    // pure distortion minimization
+                    // AutoCuts or pure distortion minimization
                     infoName = "finalResult";
                     
                     // perform exact solve
-                    optimizer->setRelGL2Tol(1.0e-8);
+//                    optimizer->setRelGL2Tol(1.0e-8);
+                    optimizer->setAllowEDecRelTol(false);
                     converged = false;
                     while(!converged) {
                         proceedOptimization(1000);

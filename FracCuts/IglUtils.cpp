@@ -75,7 +75,7 @@ namespace FracCuts {
     
         Eigen::Matrix2d U; U << u01Len, u01.dot(u02) / u01Len, 0.0, (u01[0] * u02[1] - u01[1] * u02[0]) / u01Len;
         Eigen::Matrix2d V; V << x[1], x[2];
-        F = U * V.inverse();
+        F = V * U.inverse();
     }
     
     void IglUtils::map_vertices_to_circle(

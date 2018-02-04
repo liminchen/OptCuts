@@ -92,7 +92,7 @@ namespace FracCuts{
         void computeSeamScore(Eigen::VectorXd& seamScore) const;
         void computeBoundaryLen(double& boundaryLen) const;
         void computeSeamSparsity(double& sparsity, bool triSoup = false) const;
-        void computeStandardStretch(double& stretch_l2, double& stretch_inf, double& stretch_shear) const;
+        void computeStandardStretch(double& stretch_l2, double& stretch_inf, double& stretch_shear, double& compress_inf) const;
         void outputStandardStretch(std::ofstream& file) const;
         
         void initRigidUV(void);

@@ -1299,11 +1299,12 @@ namespace FracCuts {
         }
         sparsity += initSeamLen;
     }
-    void TriangleSoup::computeStandardStretch(double& stretch_l2, double& stretch_inf, double& stretch_shear) const
+    void TriangleSoup::computeStandardStretch(double& stretch_l2, double& stretch_inf, double& stretch_shear, double& compress_inf) const
     {
         stretch_l2 = 0.0;
-        stretch_inf = 0.0;
+        stretch_inf = -__DBL_MAX__;
         stretch_shear = 0.0;
+        compress_inf = __DBL_MAX__;
         for(int triI = 0; triI < F.rows(); triI++)
         {
             const Eigen::Vector3i& triVInd = F.row(triI);
@@ -1320,12 +1321,13 @@ namespace FracCuts {
             Eigen::Matrix2d dg;
             IglUtils::computeDeformationGradient(x_3D, uv, dg);
             
-            const double a = Eigen::RowVector2d(dg.block(0, 0, 1, 2)).squaredNorm();
-            const double b = Eigen::RowVector2d(dg.block(0, 0, 1, 2)).dot(Eigen::RowVector2d(dg.block(1, 0, 1, 2)));
-            const double c = Eigen::RowVector2d(dg.block(1, 0, 1, 2)).squaredNorm();
+            const double a = Eigen::Vector2d(dg.block(0, 0, 2, 1)).squaredNorm();
+            const double b = Eigen::Vector2d(dg.block(0, 0, 2, 1)).dot(Eigen::Vector2d(dg.block(0, 1, 2, 1)));
+            const double c = Eigen::Vector2d(dg.block(0, 1, 2, 1)).squaredNorm();
             const double t0 = a + c;
             const double t1 = std::sqrt((a - c) * (a - c) + 4. * b * b);
             const double tau = std::sqrt((t0 + t1) / 2.);
+            const double gamma = std::sqrt((t0 - t1) / 2.);
             
             stretch_l2 += t0 / 2.0 * triArea[triI];
             
@@ -1334,6 +1336,10 @@ namespace FracCuts {
             }
             
             stretch_shear += b * b / a / c * triArea[triI];
+            
+            if(gamma < compress_inf) {
+                compress_inf = gamma;
+            }
         }
         stretch_l2 /= surfaceArea;
         stretch_l2 = std::sqrt(stretch_l2);
@@ -1342,9 +1348,9 @@ namespace FracCuts {
     }
     void TriangleSoup::outputStandardStretch(std::ofstream& file) const
     {
-        double stretch_l2, stretch_inf, stretch_shear;
-        computeStandardStretch(stretch_l2, stretch_inf, stretch_shear);
-        file << stretch_l2 << " " << stretch_inf << " " << stretch_shear << std::endl;
+        double stretch_l2, stretch_inf, stretch_shear, compress_inf;
+        computeStandardStretch(stretch_l2, stretch_inf, stretch_shear, compress_inf);
+        file << stretch_l2 << " " << stretch_inf << " " << stretch_shear << " " << compress_inf << std::endl;
     }
 
     void TriangleSoup::initRigidUV(void)

@@ -27,6 +27,7 @@ namespace FracCuts {
         
     protected: // owned data
         bool propagateFracture;
+        bool allowEDecRelTol;
         bool mute;
         bool pardisoThreadAmt;
         bool needRefactorize;
@@ -78,6 +79,7 @@ namespace FracCuts {
         int getIterNum(void) const;
         int getTopoIter(void) const;
         void setRelGL2Tol(double p_relTol);
+        void setAllowEDecRelTol(bool p_allowEDecRelTol);
         
     protected: // helper functions
         // solve for new configuration in the next iteration
