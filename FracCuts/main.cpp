@@ -793,6 +793,7 @@ int main(int argc, char *argv[])
         igl::boundary_loop(F, bnd); // Find the open boundary
         if(bnd.size()) {
             // disk-topology
+            
             //TODO: what if it has multiple boundaries? or multi-components?
             // Map the boundary to a circle, preserving edge proportions
             Eigen::MatrixXd bnd_uv;

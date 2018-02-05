@@ -1090,17 +1090,20 @@ namespace FracCuts {
     
     // Funtion that implements Dijkstra's single source shortest path algorithm
     // for a graph represented using adjacency matrix representation
-    void dijkstra(const std::vector<std::map<int, double>>& graph, int src, std::vector<int>& path)
+    void dijkstra(const std::vector<std::map<int, double>>& graph, int src, std::vector<double>& dist, std::vector<int>& parent)
     {
         int nV = static_cast<int>(graph.size());
         
-        std::vector<double> dist(nV, __DBL_MAX__);     // The output array.  dist[i] will hold the shortest
+        dist.resize(0);
+        dist.resize(nV, __DBL_MAX__);
+        // The output array.  dist[i] will hold the shortest
         // distance from src to i
         
         std::vector<bool> sptSet(nV, false); // sptSet[i] will true if vertex i is included in shortest
         // path tree or shortest distance from src to i is finalized
         
-        std::vector<int> parent(nV, -1);
+        parent.resize(0);
+        parent.resize(nV, -1);
         
         // Distance of source vertex from itself is always 0
         dist[src] = 0.0;
@@ -1127,6 +1130,33 @@ namespace FracCuts {
                 }
             }
         }
+    }
+    
+    int getFarthestPoint(const std::vector<std::map<int, double>>& graph, int src)
+    {
+        int nV = static_cast<int>(graph.size());
+        std::vector<double> dist;
+        std::vector<int> parent;
+        dijkstra(graph, src, dist, parent);
+        
+        double maxDist = 0.0;
+        int vI_maxDist = -1;
+        for(int vI = 0; vI < nV; vI++) {
+            if(dist[vI] > maxDist) {
+                maxDist = dist[vI];
+                vI_maxDist = vI;
+            }
+        }
+        assert(vI_maxDist >= 0);
+        return vI_maxDist;
+    }
+    
+    void getFarthestPointPath(const std::vector<std::map<int, double>>& graph, int src, std::vector<int>& path)
+    {
+        int nV = static_cast<int>(graph.size());
+        std::vector<double> dist;
+        std::vector<int> parent;
+        dijkstra(graph, src, dist, parent);
         
         double maxDist = 0.0;
         int vI_maxDist = -1;
@@ -1159,8 +1189,7 @@ namespace FracCuts {
         }
         
         std::vector<int> path;
-        dijkstra(graph, 0, path);
-        dijkstra(graph, path.back(), path);
+        getFarthestPointPath(graph, getFarthestPoint(graph, 0), path);
         
         bool makeCoh = true;
         if(!makeCoh) {
@@ -1170,30 +1199,108 @@ namespace FracCuts {
         }
         
         cutPath(path, makeCoh);
-//        save("/Users/mincli/Downloads/meshes/test_triSoup.obj");
-//        saveAsMesh("/Users/mincli/Downloads/meshes/test_mesh.obj");
+//        save("/Users/mincli/Desktop/meshes/test_triSoup.obj");
+//        saveAsMesh("/Users/mincli/Desktop/meshes/test_mesh.obj");
         
         if(makeCoh) {
             initSeams = cohE;
         }
     }
     
-    void TriangleSoup::cutPath(const std::vector<int>& path, bool makeCoh, int changePos, const Eigen::MatrixXd& newVertPos)
+    void TriangleSoup::geomImgCut(int vI_extremal)
     {
-        assert(path.size() >= 3);
+        assert((vI_extremal >= 0) && (vI_extremal < V_rest.rows()));
+        assert(!isBoundaryVert(edge2Tri, vNeighbor, vI_extremal));
+        assert(vNeighbor.size() == V_rest.rows());
+        
+        // construct mesh graph
+        std::vector<std::map<int, double>> graph(vNeighbor.size());
+        for(int vI = 0; vI < vNeighbor.size(); vI++) {
+            for(const auto nbI : vNeighbor[vI]) {
+                if(nbI > vI) {
+                    graph[nbI][vI] = graph[vI][nbI] = (V_rest.row(vI) - V_rest.row(nbI)).norm();
+                }
+            }
+        }
+        
+        // find closest point on boundary
+        int nV = static_cast<int>(graph.size());
+        std::vector<double> dist;
+        std::vector<int> parent;
+        dijkstra(graph, vI_extremal, dist, parent);
+        double minDistToBound = __DBL_MAX__;
+        int vI_minDistToBound = -1;
+        for(int vI = 0; vI < nV; vI++) {
+            if(isBoundaryVert(edge2Tri, vNeighbor, vI)) {
+                if(dist[vI] < minDistToBound) {
+                    minDistToBound = dist[vI];
+                    vI_minDistToBound = vI;
+                }
+            }
+        }
+        assert((vI_minDistToBound >= 0) && "No boundary on the mesh!");
+        
+        // find shortest path to closest point on boundary
+        std::vector<int> path;
+        while(vI_minDistToBound >= 0) {
+            path.emplace_back(vI_minDistToBound);
+            vI_minDistToBound = parent[vI_minDistToBound];
+        }
+        std::reverse(path.begin(), path.end());
+        
+        cutPath(path, true);
+//        save("/Users/mincli/Desktop/meshes/test_triSoup.obj");
+//        saveAsMesh("/Users/mincli/Desktop/meshes/test_mesh.obj");
+    }
+    
+    void TriangleSoup::cutPath(std::vector<int> path, bool makeCoh, int changePos, const Eigen::MatrixXd& newVertPos)
+    {
+        assert(path.size() >= 2);
         if(changePos) {
-            assert((changePos == 1) && "right now only support change 1");
+            assert((changePos == 1) && "right now only support change 1"); //!!! still only allow 1?
             assert(newVertPos.cols() == 2);
             assert(changePos * 2 == newVertPos.rows());
         }
         
-        if(isBoundaryVert(edge2Tri, vNeighbor, path[0])) {
-            assert(0 && "forbiddened for preventing redundant cut");
+        for(int pI = 1; pI + 1 < path.size(); pI++) {
+            assert(!isBoundaryVert(edge2Tri, vNeighbor, path[pI]) &&
+                   "Boundary vertices detected on split path, please split multiple times!");
         }
-        else if(isBoundaryVert(edge2Tri, vNeighbor, path[2])) {
-            assert(0 && "forbiddened for preventing redundant cut");
+        
+        bool isFromBound = isBoundaryVert(edge2Tri, vNeighbor, path[0]);
+        bool isToBound = isBoundaryVert(edge2Tri, vNeighbor, path.back());
+        if(isFromBound || isToBound) {
+            bool cutThrough = false;
+            if(isFromBound && isToBound) {
+                cutThrough = true;
+            }
+            else if(isToBound) {
+                std::reverse(path.begin(), path.end());
+            }
+            
+            for(int vI = 0; vI + 1 < path.size(); vI++) {
+                //TODO: enable change pos!
+                int vInd_s = path[vI];
+                int vInd_e = path[vI + 1];
+                assert(edge2Tri.find(std::pair<int, int>(vInd_s, vInd_e)) != edge2Tri.end());
+                assert(edge2Tri.find(std::pair<int, int>(vInd_e, vInd_s)) != edge2Tri.end());
+                Eigen::MatrixXd newVertPos;
+                if(cutThrough) {
+                    newVertPos.resize(4, 2);
+                    newVertPos << V.row(vInd_s), V.row(vInd_s), V.row(vInd_e), V.row(vInd_e);
+                }
+                else {
+                    newVertPos.resize(2, 2);
+                    newVertPos << V.row(vInd_s), V.row(vInd_s);
+                }
+                splitEdgeOnBoundary(std::pair<int, int>(vInd_s, vInd_e), newVertPos, edge2Tri, vNeighbor, cohEIndex); //!!! make coh?
+                updateFeatures();
+            }
         }
         else {
+            // path is connecting interior vertex to boundary
+            assert(path.size() >= 3);
+            
             std::vector<int> tri_left;
             int vI = path[1];
             int vI_new = path[0];
