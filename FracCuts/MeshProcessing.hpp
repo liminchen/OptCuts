@@ -90,6 +90,29 @@ namespace FracCuts {
                             break;
                         }
                             
+                        case 2: {
+                            // save texture as mesh
+                            if(UV.rows() == 0) {
+                                std::cout << "no input UV coordinates!" << std::endl;
+                                return;
+                            }
+                            
+                            Eigen::MatrixXd V_uv;
+                            V_uv.resize(UV.rows(), 3);
+                            V_uv << UV, Eigen::VectorXd::Zero(UV.rows(), 1);
+                            if(FUV.rows() == 0) {
+                                assert(F.rows() > 0);
+                                igl::writeOBJ(meshFolder + "texture.obj", V_uv, F);
+                            }
+                            else {
+                                igl::writeOBJ(meshFolder + "texture.obj", V_uv, FUV);
+                            }
+                            
+                            std::cout << "texture saved as mesh into " << meshFolder << "texture.obj" << std::endl;
+                            
+                            break;
+                        }
+                            
                         default:
                             std::cout << "No procMode " << procMode << std::endl;
                             break;
