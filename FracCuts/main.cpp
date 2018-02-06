@@ -278,7 +278,7 @@ void saveInfoForPresent(void)
     double distortion;
     energyTerms[0]->computeEnergyVal(*triSoup[channel_result], distortion);
     file << distortion << " " <<
-        seamLen / triSoup[channel_result]->virtualPerimeter << std::endl;
+        seamLen / triSoup[channel_result]->virtualRadius << std::endl;
     
     triSoup[channel_result]->outputStandardStretch(file);
     
@@ -544,7 +544,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     double E_se;
                     triSoup[channel_result]->computeSeamSparsity(E_se);
                     const double E_w = optimizer->getLastEnergyVal() +
-                        (1.0 - energyParams[0]) * E_se / triSoup[channel_result]->virtualPerimeter;
+                        (1.0 - energyParams[0]) * E_se / triSoup[channel_result]->virtualRadius;
                     std::cout << "E_w from " << lastE_w << " to " << E_w << std::endl;
                     if(E_w > lastE_w) {
                         assert(fracThres < 0.0);
@@ -918,7 +918,7 @@ int main(int argc, char *argv[])
         
         double E_se;
         triSoup[channel_result]->computeSeamSparsity(E_se);
-        lastE_w = optimizer->getLastEnergyVal() + (1.0 - energyParams[0]) * E_se / triSoup[channel_result]->virtualPerimeter;
+        lastE_w = optimizer->getLastEnergyVal() + (1.0 - energyParams[0]) * E_se / triSoup[channel_result]->virtualRadius;
         
         if(delta == 0.0) {
             altBase = true;

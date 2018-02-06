@@ -67,7 +67,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/closed/bunny.obj 0.025 6 0 test"
+            argument = "0 /Users/mincli/Downloads/meshes/closed/bunny.obj 0.025 6 2 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -75,7 +75,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "100 /Users/mincli/Downloads/meshes/needMoreTime/lucy_o_f8000.obj 0.025 4 0 test"
+            argument = "0 /Users/mincli/Downloads/meshes/needMoreTime/lucy_o_f8000.obj 0.025 4 2 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -91,7 +91,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/needSmallerTol_/hand_1_i_f5000.obj 0.025 20 0 test"
+            argument = "0 /Users/mincli/Downloads/meshes/needSmallerTol_/hand_1_i_f5000.obj 0.025 1 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -104,7 +104,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/caesar1.obj 0.025 6 0 test"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/chinese_lion_i_f10000.obj 0.025 1 0 test"
@@ -123,7 +123,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 bishop_part_f1500.obj 0.025 8 1 test"
+            argument = "0 bishop_part_f1000.obj 0.025 8 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -136,6 +136,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "1 0 /Users/mincli/Desktop/output_FracCuts/cmH1000_tutte_0.2_8.0_modifiedSH/precondMtr_140"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "1 1 /Applications/XAMPP/xamppfiles/htdocs/expResults/results11"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument

@@ -46,7 +46,7 @@ namespace FracCuts{
         Eigen::VectorXd e1SqLen_div_dbAreaSq;
         Eigen::VectorXd e0dote1_div_dbAreaSq;
         double avgEdgeLen;
-        double virtualPerimeter;
+        double virtualRadius;
         std::vector<std::set<std::pair<int, int>>> validSplit;
         std::set<int> fixedVert; // for linear solve
         Eigen::Matrix<double, 2, 3> bbox;
@@ -96,6 +96,7 @@ namespace FracCuts{
         void computeStandardStretch(double& stretch_l2, double& stretch_inf, double& stretch_shear, double& compress_inf) const;
         void computeL2StretchPerElem(Eigen::VectorXd& L2StretchPerElem) const;
         void outputStandardStretch(std::ofstream& file) const;
+        void computeAbsGaussianCurv(double& absGaussianCurv) const;
         
         void initRigidUV(void);
         

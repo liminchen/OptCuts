@@ -140,7 +140,7 @@ namespace FracCuts {
         if(!mute) {
             double seamSparsity;
             result.computeSeamSparsity(seamSparsity, !fractureMode);
-            seamSparsity /= result.virtualPerimeter;
+            seamSparsity /= result.virtualRadius;
             if(fractureMode) {
                 file_energyValPerIter << lastEnergyVal + (1.0 - energyParams[0]) * seamSparsity;
             }
@@ -175,7 +175,7 @@ namespace FracCuts {
                 if(!mute) {
                     double seamSparsity;
                     result.computeSeamSparsity(seamSparsity, !fractureMode);
-                    seamSparsity /= result.virtualPerimeter;
+                    seamSparsity /= result.virtualRadius;
                     if(fractureMode) {
                         file_energyValPerIter << lastEnergyVal + (1.0 - energyParams[0]) * seamSparsity;
                     }
@@ -428,7 +428,7 @@ namespace FracCuts {
         bool stopped = lineSearch();
         if(stopped) {
 //            IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_stopped_" + std::to_string(globalIterNum), precondMtr);
-            logFile << "descent step stopped at overallIter" << globalIterNum << " for no prominent energy decrease." << std::endl;
+//            logFile << "descent step stopped at overallIter" << globalIterNum << " for no prominent energy decrease." << std::endl;
         }
         return stopped;
     }
@@ -510,7 +510,7 @@ namespace FracCuts {
             
             double seamSparsity;
             result.computeSeamSparsity(seamSparsity, !fractureMode);
-            seamSparsity /= result.virtualPerimeter;
+            seamSparsity /= result.virtualRadius;
             if(fractureMode) {
                 file_energyValPerIter << lastEnergyVal + (1.0 - energyParams[0]) * seamSparsity;
             }

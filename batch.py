@@ -5,8 +5,8 @@ from os.path import isfile, join
 
 # meshFolderPath = '/Users/mincli/Downloads/meshes/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/needMoreTime/'
-meshFolderPath = '/Users/mincli/Downloads/meshes/closed/'
-# meshFolderPath = '/Users/mincli/Downloads/meshes/test_/'
+# meshFolderPath = '/Users/mincli/Downloads/meshes/closed/'
+meshFolderPath = '/Users/mincli/Downloads/meshes/test_/'
 onlyfiles = [f for f in listdir(meshFolderPath) if isfile(join(meshFolderPath, f))]
 
 priority = 'nice -n -10 '
@@ -29,6 +29,11 @@ for inputModelNameI in onlyfiles:
 	# runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.025 0 0'
 	# if subprocess.call([runCommand], shell=True):
 	# 	continue
+
+	# prop, no filter
+	runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.025 20 0'
+	if subprocess.call([runCommand], shell=True):
+		continue
 
 	# prop, no filter
 	runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.025 21 2'

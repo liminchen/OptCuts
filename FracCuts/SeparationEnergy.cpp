@@ -18,7 +18,7 @@ namespace FracCuts {
     
     void SeparationEnergy::getEnergyValPerElem(const TriangleSoup& data, Eigen::VectorXd& energyValPerElem, bool uniformWeight) const
     {
-        const double normalizer_div = data.virtualPerimeter;
+        const double normalizer_div = data.virtualRadius;
         
         energyValPerElem.resize(data.cohE.rows());
         for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
@@ -36,7 +36,7 @@ namespace FracCuts {
     
     void SeparationEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const
     {
-        const double normalizer_div = data.virtualPerimeter;
+        const double normalizer_div = data.virtualRadius;
         
         gradient.resize(data.V.rows() * 2);
         gradient.setZero();
@@ -68,7 +68,7 @@ namespace FracCuts {
     void SeparationEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::VectorXd* V,
                                              Eigen::VectorXi* I, Eigen::VectorXi* J) const
     {
-        const double normalizer_div = data.virtualPerimeter;
+        const double normalizer_div = data.virtualRadius;
         
         Eigen::Matrix4d dt2dd2x;
         dt2dd2x <<
@@ -154,7 +154,7 @@ namespace FracCuts {
     {
         //TODO: use the sparsity structure from last compute
         
-        const double normalizer_div = data.virtualPerimeter;
+        const double normalizer_div = data.virtualRadius;
         
         hessian.resize(data.V.rows() * 2, data.V.rows() * 2);
         hessian.reserve(data.V.rows() * 3 * 4);

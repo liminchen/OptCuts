@@ -178,7 +178,7 @@ namespace FracCuts {
                 
                 if(!makeCoh) {
                     for(const auto& cohI : cohEdges) {
-                        initSeamLen += 2.0 * (V_rest.row(cohI[0]) - V_rest.row(cohI[1])).norm();
+                        initSeamLen += (V_rest.row(cohI[0]) - V_rest.row(cohI[1])).norm();
                     }
                 }
                 else {
@@ -379,7 +379,7 @@ namespace FracCuts {
             vertNormals[triVInd[2]] += normalVec;
         }
         avgEdgeLen = igl::avg_edge_length(V_rest, F);
-        virtualPerimeter = avgEdgeLen * std::sqrt(F.rows());
+        virtualRadius = std::sqrt(surfaceArea / M_PI);
         for(auto& vNI : vertNormals) {
             vNI.normalize();
         }
@@ -991,7 +991,7 @@ namespace FracCuts {
         bool makeCoh = true;
         if(!makeCoh) {
             for(int pI = 0; pI + 1 < path.size(); pI++) {
-                initSeamLen += 2.0 * (V_rest.row(path[pI]) - V_rest.row(path[pI + 1])).norm();
+                initSeamLen += (V_rest.row(path[pI]) - V_rest.row(path[pI + 1])).norm();
             }
         }
         
@@ -1062,7 +1062,7 @@ namespace FracCuts {
         bool makeCoh = true;
         if(!makeCoh) {
             for(int pI = 0; pI + 1 < path.size(); pI++) {
-                initSeamLen += 2.0 * (V_rest.row(path[pI]) - V_rest.row(path[pI + 1])).norm();
+                initSeamLen += (V_rest.row(path[pI]) - V_rest.row(path[pI + 1])).norm();
             }
         }
         
@@ -1196,7 +1196,7 @@ namespace FracCuts {
         bool makeCoh = true;
         if(!makeCoh) {
             for(int pI = 0; pI + 1 < path.size(); pI++) {
-                initSeamLen += 2.0 * (V_rest.row(path[pI]) - V_rest.row(path[pI + 1])).norm();
+                initSeamLen += (V_rest.row(path[pI]) - V_rest.row(path[pI + 1])).norm();
             }
         }
         
@@ -1358,7 +1358,7 @@ namespace FracCuts {
             }
         }
         else {
-            // path is connecting interior vertex to boundary
+            // path is interior
             assert(path.size() >= 3);
             
             std::vector<int> tri_left;
@@ -1460,7 +1460,7 @@ namespace FracCuts {
                    ((V.row(cohE(cohI, 0)) - V.row(cohE(cohI, 2))).norm() / avgEdgeLen > thres) ||
                    ((V.row(cohE(cohI, 1)) - V.row(cohE(cohI, 3))).norm() / avgEdgeLen > thres))
                 {
-                    sparsity += 2.0 * edgeLen[cohI];
+                    sparsity += edgeLen[cohI];
                 }
             }
         }
@@ -1544,6 +1544,36 @@ namespace FracCuts {
         double stretch_l2, stretch_inf, stretch_shear, compress_inf;
         computeStandardStretch(stretch_l2, stretch_inf, stretch_shear, compress_inf);
         file << stretch_l2 << " " << stretch_inf << " " << stretch_shear << " " << compress_inf << std::endl;
+    }
+    void TriangleSoup::computeAbsGaussianCurv(double& absGaussianCurv) const
+    {
+        //!!! it's easy to optimize this way actually...
+        std::vector<double> weights(V.rows(), 0.0);
+        std::vector<double> gaussianCurv(V.rows(), 2.0 * M_PI);
+        for(int triI = 0; triI < F.rows(); triI++) {
+            const Eigen::RowVector3i& triVInd = F.row(triI);
+            const Eigen::RowVector3d v[3] = {
+                V_rest.row(triVInd[0]),
+                V_rest.row(triVInd[1]),
+                V_rest.row(triVInd[2])
+            };
+            for(int vI = 0; vI < 3; vI++) {
+                int vI_post = (vI + 1) % 3;
+                int vI_pre = (vI + 2) % 3;
+                const Eigen::RowVector3d e0 = v[vI_pre] - v[vI];
+                const Eigen::RowVector3d e1 = v[vI_post] - v[vI];
+                gaussianCurv[triVInd[vI]] -= std::acos(std::max(-1.0, std::min(1.0, e0.dot(e1) / e0.norm() / e1.norm())));
+                weights[triVInd[vI]] += triArea[triI];
+            }
+        }
+        
+        absGaussianCurv = 0.0;
+        for(int vI = 0; vI < V.rows(); vI++) {
+            if(!isBoundaryVert(edge2Tri, vNeighbor, vI)) {
+                absGaussianCurv += std::abs(gaussianCurv[vI]) * weights[vI];
+            }
+        }
+        absGaussianCurv /= surfaceArea * 3.0;
     }
 
     void TriangleSoup::initRigidUV(void)
@@ -1868,7 +1898,7 @@ namespace FracCuts {
                 {
                     // interior edge
                     Eigen::MatrixXd newVertPosI;
-                    const double seInc = (V_rest.row(vI) - V_rest.row(nbVI)).norm() * 2.0 / virtualPerimeter;
+                    const double seInc = (V_rest.row(vI) - V_rest.row(nbVI)).norm() / virtualRadius;
                     const double SDDec = computeLocalEDec(edge, edge2Tri, vNeighbor, cohEIndex, newVertPosI);
                     const double curEwDec = (1.0 - lambda_t) * SDDec - lambda_t * seInc;
                     if(curEwDec > maxEwDec) {
@@ -1936,8 +1966,8 @@ namespace FracCuts {
                     SDDec += computeLocalEDec(triangles, freeVert, newVertPosMap);
                     newVertPos.block(1, 0, 1, 2) = newVertPosMap[vI];
                     
-                    const double seInc = 2.0 * ((V_rest.row(path[0]) - V_rest.row(path[1])).norm() +
-                                                (V_rest.row(path[1]) - V_rest.row(path[2])).norm()) / virtualPerimeter;
+                    const double seInc = ((V_rest.row(path[0]) - V_rest.row(path[1])).norm() +
+                                          (V_rest.row(path[1]) - V_rest.row(path[2])).norm()) / virtualRadius;
                     const double EwDec = (1.0 - lambda_t) * SDDec - lambda_t * seInc;
                     if(EwDec > EwDec_max) {
                         EwDec_max = EwDec;
