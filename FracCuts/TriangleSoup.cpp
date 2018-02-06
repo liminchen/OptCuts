@@ -15,6 +15,8 @@
 #include <igl/avg_edge_length.h>
 #include <igl/writeOBJ.h>
 #include <igl/list_to_matrix.h>
+#include <igl/boundary_loop.h>
+#include <igl/harmonic.h>
 
 #include <tbb/tbb.h>
 
@@ -1207,13 +1209,71 @@ namespace FracCuts {
         }
     }
     
-    void TriangleSoup::geomImgCut(int vI_extremal)
+    void TriangleSoup::geomImgCut(void)
     {
-        assert((vI_extremal >= 0) && (vI_extremal < V_rest.rows()));
-        assert(!isBoundaryVert(edge2Tri, vNeighbor, vI_extremal));
-        assert(vNeighbor.size() == V_rest.rows());
+        // find extremal point (interior)
+        
+        Eigen::VectorXi bnd;
+        igl::boundary_loop(this->F, bnd); // Find the open boundary
+        assert(bnd.size());
+        //TODO: ensure it doesn't have multiple boundaries? or multi-components?
+        
+        // Map the boundary to a circle, preserving edge proportions
+        Eigen::MatrixXd bnd_uv;
+        //            igl::map_vertices_to_circle(V, bnd, bnd_uv);
+        FracCuts::IglUtils::map_vertices_to_circle(this->V_rest, bnd, bnd_uv);
+        
+        //    // Harmonic parametrization
+        //    UV.resize(UV.size() + 1);
+        //    igl::harmonic(V[0], F[0], bnd, bnd_uv, 1, UV[0]);
+        
+        // Harmonic map with uniform weights
+        Eigen::SparseMatrix<double> A, M;
+        FracCuts::IglUtils::computeUniformLaplacian(this->F, A);
+        Eigen::MatrixXd UV_Tutte;
+        igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
+        
+        Eigen::VectorXd L2stretchPerElem, vertScores;
+        TriangleSoup(this->V_rest, this->F, UV_Tutte, this->F, 0, 0.0).computeL2StretchPerElem(L2stretchPerElem);
+        vertScores.resize(V_rest.rows());
+        vertScores.setZero();
+        for(int triI = 0; triI < F.rows(); triI++) {
+            for(int i = 0; i < 3; i++) {
+                if(vertScores[F(triI, i)] < L2stretchPerElem[triI]) {
+                    vertScores[F(triI, i)] = L2stretchPerElem[triI];
+                }
+            }
+        }
+        int vI_extremal = -1;
+        double extremal = 0.0;
+        for(int vI = 0; vI < vertScores.size(); vI++) {
+            if(!isBoundaryVert(edge2Tri, vNeighbor, vI)) {
+                if(extremal < vertScores[vI]) {
+                    extremal = vertScores[vI];
+                    vI_extremal = vI;
+                }
+            }
+        }
+        assert(vI_extremal >= 0);
+        
+//        // use SD energy
+//        Eigen::VectorXd energyValPerVert;
+//        SymStretchEnergy SD;
+//        SD.getMaxUnweightedEnergyValPerVert(*this, energyValPerVert);
+//        int vI_extremal = -1;
+//        double maxE_vert = 0.0;
+//        for(int vI = 0; vI < energyValPerVert.size(); vI++) {
+//            if(!isBoundaryVert(edge2Tri, vNeighbor, vI)) {
+//                if(energyValPerVert[vI] > maxE_vert) {
+//                    vI_extremal = vI;
+//                    maxE_vert = energyValPerVert[vI];
+//                }
+//            }
+//        }
+//        assert(vI_extremal >= 0);
         
         // construct mesh graph
+        assert(vNeighbor.size() == V_rest.rows());
         std::vector<std::map<int, double>> graph(vNeighbor.size());
         for(int vI = 0; vI < vNeighbor.size(); vI++) {
             for(const auto nbI : vNeighbor[vI]) {
@@ -1405,6 +1465,32 @@ namespace FracCuts {
             }
         }
         sparsity += initSeamLen;
+    }
+    void TriangleSoup::computeL2StretchPerElem(Eigen::VectorXd& L2StretchPerElem) const
+    {
+        L2StretchPerElem.resize(F.rows());
+        for(int triI = 0; triI < F.rows(); triI++)
+        {
+            const Eigen::Vector3i& triVInd = F.row(triI);
+            const Eigen::Vector3d x_3D[3] = {
+                V_rest.row(triVInd[0]),
+                V_rest.row(triVInd[1]),
+                V_rest.row(triVInd[2])
+            };
+            const Eigen::Vector2d uv[3] = {
+                V.row(triVInd[0]),
+                V.row(triVInd[1]),
+                V.row(triVInd[2])
+            };
+            Eigen::Matrix2d dg;
+            IglUtils::computeDeformationGradient(x_3D, uv, dg);
+            
+            const double a = Eigen::Vector2d(dg.block(0, 0, 2, 1)).squaredNorm();
+            const double c = Eigen::Vector2d(dg.block(0, 1, 2, 1)).squaredNorm();
+            const double t0 = a + c;
+            
+            L2StretchPerElem[triI] = std::sqrt(t0 / 2.0);
+        }
     }
     void TriangleSoup::computeStandardStretch(double& stretch_l2, double& stretch_inf, double& stretch_shear, double& compress_inf) const
     {

@@ -20,6 +20,7 @@
 #include <string>
 #include <numeric>
 
+extern FracCuts::MethodType methodType;
 extern const std::string outputFolderPath;
 extern const bool fractureMode;
 extern std::ofstream logFile;
@@ -275,10 +276,23 @@ namespace FracCuts {
         }
         
         clock_t tickStart = clock();
-//        bool changed = result.splitVertex(Eigen::VectorXd::Zero(result.V.rows()), stressThres); //DEBUG
-        bool changed = result.splitEdge(1.0 - energyParams[0], stressThres, !initiation, allowInSplit); //DEBUG
+        bool changed = false;
+        switch(methodType) {
+            case MT_OURS:
+                changed = result.splitEdge(1.0 - energyParams[0], stressThres, !initiation, allowInSplit);
+                break;
+                
+            case MT_GEOMIMG:
+                result.geomImgCut();
+                allowPropagate = false;
+                changed = true;
+                break;
+                
+            default:
+                assert(0 && "Fracture forbiddened for current method type!");
+                break;
+        }
 //        logFile << result.V.rows() << std::endl;
-//        bool changed = (result.mergeEdge() | result.splitEdge()); //DEBUG
         if(changed) {
 //            logFile << result.F << std::endl; //DEBUG
 //            logFile << result.cohE << std::endl; //DEBUG

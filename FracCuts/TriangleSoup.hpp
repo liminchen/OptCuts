@@ -87,13 +87,14 @@ namespace FracCuts{
         void onePointCut(int vI = 0);
         void highCurvOnePointCut(void);
         void farthestPointCut(void);
-        void geomImgCut(int vI_extremal);
+        void geomImgCut(void);
         void cutPath(std::vector<int> path, bool makeCoh = false, int changePos = 0, const Eigen::MatrixXd& newVertPos = Eigen::MatrixXd());
         
         void computeSeamScore(Eigen::VectorXd& seamScore) const;
         void computeBoundaryLen(double& boundaryLen) const;
         void computeSeamSparsity(double& sparsity, bool triSoup = false) const;
         void computeStandardStretch(double& stretch_l2, double& stretch_inf, double& stretch_shear, double& compress_inf) const;
+        void computeL2StretchPerElem(Eigen::VectorXd& L2StretchPerElem) const;
         void outputStandardStretch(std::ofstream& file) const;
         
         void initRigidUV(void);

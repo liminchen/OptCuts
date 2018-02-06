@@ -9,6 +9,7 @@
 #ifndef Optimizer_hpp
 #define Optimizer_hpp
 
+#include "Types.hpp"
 #include "Energy.hpp"
 
 #include "PardisoSolver.hpp"

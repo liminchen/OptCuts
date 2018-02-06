@@ -42,6 +42,7 @@
 		982CE6121F5DB358004176A8 /* Energy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Energy.cpp; sourceTree = "<group>"; };
 		983E7DB3202240D900412128 /* Diagnostic.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Diagnostic.hpp; sourceTree = "<group>"; };
 		983E7DB62022421400412128 /* MeshProcessing.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MeshProcessing.hpp; sourceTree = "<group>"; };
+		987382CB202902590040BBCE /* Types.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Types.hpp; sourceTree = "<group>"; };
 		988ED1271F57211500B21181 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		988ED1291F57212300B21181 /* lib */ = {isa = PBXFileReference; lastKnownFileType = folder; name = lib; path = ../../../../usr/local/lib; sourceTree = "<group>"; };
 		988ED12B1F57237F00B21181 /* libglfw.3.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.2.dylib; path = ../../../../usr/local/lib/libglfw.3.2.dylib; sourceTree = "<group>"; };
@@ -127,6 +128,7 @@
 				98FD37F51F98806B00C83AAC /* GIF.hpp */,
 				983E7DB3202240D900412128 /* Diagnostic.hpp */,
 				983E7DB62022421400412128 /* MeshProcessing.hpp */,
+				987382CB202902590040BBCE /* Types.hpp */,
 			);
 			path = FracCuts;
 			sourceTree = "<group>";

@@ -1,3 +1,4 @@
+#include "Types.hpp"
 #include "IglUtils.hpp"
 #include "Optimizer.hpp"
 #include "SymStretchEnergy.hpp"
@@ -27,6 +28,7 @@
 
 
 // optimization
+FracCuts::MethodType methodType;
 std::vector<const FracCuts::TriangleSoup*> triSoup;
 int vertAmt_input;
 FracCuts::TriangleSoup triSoup_backup;
@@ -760,15 +762,26 @@ int main(int argc, char *argv[])
         std::cout << "Use default delta = " << delta << std::endl;
     }
     
-    bool startWithTriSoup = ((lambda == 0.0) ? false : true);
     if(argc > 5) {
-        startWithTriSoup = !!std::stoi(argv[5]);
+        methodType = FracCuts::MethodType(std::stoi(argv[5]));
     }
     else {
-        std::cout << "Use default, start from " << (startWithTriSoup ? "triangle soup": "full mesh") << std::endl;
+        std::cout << "Use default method: ours." << std::endl;
     }
-    if(startWithTriSoup) {
-        assert((lambda > 0.0) && "must have edge energy to start from triangle soup!");
+    bool startWithTriSoup = (methodType == FracCuts::MT_AUTOCUTS);
+    switch (methodType) {
+        case FracCuts::MT_OURS:
+        case FracCuts::MT_GEOMIMG:
+            assert(lambda < 1.0);
+            break;
+            
+        case FracCuts::MT_AUTOCUTS:
+            assert(lambda > 0.0);
+            assert(delta > 0.0);
+            break;
+            
+        default:
+            break;
     }
     const std::string startDS = (startWithTriSoup ? "soup" : ((lambda == 0.0) ? "SD": "frac"));
     

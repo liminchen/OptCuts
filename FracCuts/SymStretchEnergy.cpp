@@ -46,27 +46,27 @@ namespace FracCuts {
         }
     }
     
-//    void SymStretchEnergy::getEnergyValPerVert(const TriangleSoup& data, Eigen::VectorXd& energyValPerVert) const
-//    {
-//        Eigen::VectorXd energyValPerElem;
-//        getEnergyValPerElem(data, energyValPerElem);
-//        
-//        Eigen::VectorXd totalWeight;
-//        totalWeight.resize(data.V_rest.rows());
-//        totalWeight.setZero();
-//        energyValPerVert.resize(data.V_rest.rows());
-//        energyValPerVert.setZero();
-//        for(int triI = 0; triI < data.F.rows(); triI++) {
-//            for(int i = 0; i < 3; i++) {
-//                energyValPerVert[data.F(triI, i)] += energyValPerElem[triI];
-//                totalWeight[data.F(triI, i)] += data.triArea[triI];
-//                //TODO: verify the scale if the value will be used rather than the rank!
-//            }
-//        }
-//        for(int vI = 0; vI < data.V_rest.rows(); vI++) {
-//            energyValPerVert[vI] /= totalWeight[vI]; //!!! is normalization needed?
-//        }
-//    }
+    void SymStretchEnergy::getEnergyValPerVert(const TriangleSoup& data, Eigen::VectorXd& energyValPerVert) const
+    {
+        Eigen::VectorXd energyValPerElem;
+        getEnergyValPerElem(data, energyValPerElem);
+        
+        Eigen::VectorXd totalWeight;
+        totalWeight.resize(data.V_rest.rows());
+        totalWeight.setZero();
+        energyValPerVert.resize(data.V_rest.rows());
+        energyValPerVert.setZero();
+        for(int triI = 0; triI < data.F.rows(); triI++) {
+            for(int i = 0; i < 3; i++) {
+                energyValPerVert[data.F(triI, i)] += energyValPerElem[triI];
+                totalWeight[data.F(triI, i)] += data.triArea[triI];
+                //TODO: verify the scale if the value will be used rather than the rank!
+            }
+        }
+        for(int vI = 0; vI < data.V_rest.rows(); vI++) {
+            energyValPerVert[vI] /= totalWeight[vI]; //!!! is normalization needed?
+        }
+    }
     
     void SymStretchEnergy::getMaxUnweightedEnergyValPerVert(const TriangleSoup& data, Eigen::VectorXd& MaxUnweightedEnergyValPerVert) const
     {
