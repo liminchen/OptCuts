@@ -54,6 +54,116 @@ namespace FracCuts {
         }
     }
     
+    double getHETan(const std::map<std::pair<int, int>, double>& HETan, int v0, int v1) {
+        auto finder = HETan.find(std::pair<int, int>(v0, v1));
+        if(finder == HETan.end()) {
+            return 0.0;
+        }
+        else {
+            return finder->second;
+        }
+    }
+    
+    void IglUtils::computeMVCMtr(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::SparseMatrix<double>& MVCMtr)
+    {
+        std::map<std::pair<int, int>, double> HETan;
+        std::map<std::pair<int, int>, int> thirdPoint;
+        std::vector<std::set<int>> vvNeighbor(V.rows());
+        for (int triI = 0; triI < F.rows(); triI++)
+        {
+            int v0I = F(triI, 0);
+            int v1I = F(triI, 1);
+            int v2I = F(triI, 2);
+            
+            Eigen::Vector3d e01 = V.row(v1I) - V.row(v0I);
+            Eigen::Vector3d e12 = V.row(v2I) - V.row(v1I);
+            Eigen::Vector3d e20 = V.row(v0I) - V.row(v2I);
+            double dot0102 = -e01.dot(e20);
+            double dot1210 = -e12.dot(e01);
+            double dot2021 = -e20.dot(e12);
+            double cos0102 = dot0102/(e01.norm()*e20.norm());
+            double cos1210 = dot1210/(e01.norm()*e12.norm());
+            double cos2021 = dot2021/(e12.norm()*e20.norm());
+            
+            HETan[std::pair<int, int>(v0I, v1I)] = sqrt(1.0 - cos0102*cos0102) / (1.0 + cos0102);
+            HETan[std::pair<int, int>(v1I, v2I)] = sqrt(1.0 - cos1210*cos1210) / (1.0 + cos1210);
+            HETan[std::pair<int, int>(v2I, v0I)] = sqrt(1.0 - cos2021*cos2021) / (1.0 + cos2021);
+            
+            thirdPoint[std::pair<int, int>(v0I, v1I)] = v2I;
+            thirdPoint[std::pair<int, int>(v1I, v2I)] = v0I;
+            thirdPoint[std::pair<int, int>(v2I, v0I)] = v1I;
+            
+            vvNeighbor[v0I].insert(v1I);
+            vvNeighbor[v0I].insert(v2I);
+            vvNeighbor[v1I].insert(v0I);
+            vvNeighbor[v1I].insert(v2I);
+            vvNeighbor[v2I].insert(v0I);
+            vvNeighbor[v2I].insert(v1I);
+        }
+        
+        MVCMtr.resize(V.rows(), V.rows());
+        MVCMtr.setZero();
+        MVCMtr.reserve(V.rows() * 7);
+        for(int rowI = 0; rowI < V.rows(); rowI++)
+        {
+            for(const auto& nbVI : vvNeighbor[rowI]) {
+                double weight = getHETan(HETan, rowI, nbVI);
+                auto finder = thirdPoint.find(std::pair<int, int>(nbVI, rowI));
+                if(finder != thirdPoint.end()) {
+                    weight += getHETan(HETan, rowI, finder->second);
+                }
+                weight /= (V.row(rowI) - V.row(nbVI)).norm();
+                
+                MVCMtr.coeffRef(rowI, rowI) -= weight;
+                MVCMtr.insert(rowI, nbVI) = weight;
+                
+//                // symmetrized version
+//                MVCMtr.coeffRef(rowI, rowI) -= weight;
+//                MVCMtr.coeffRef(rowI, nbVI) += weight;
+//                MVCMtr.coeffRef(nbVI, nbVI) -= weight;
+//                MVCMtr.coeffRef(nbVI, rowI) += weight;
+            }
+        }
+//        writeSparseMatrixToFile("/Users/mincli/Desktop/meshes/mtr", MVCMtr);
+    }
+    
+    void IglUtils::fixedBoundaryParam_MVC(Eigen::SparseMatrix<double> A, const Eigen::VectorXi& bnd,
+                                       const Eigen::MatrixXd& bnd_uv, Eigen::MatrixXd& UV_Tutte)
+    {
+        assert(bnd.size() == bnd_uv.rows());
+        assert(bnd.maxCoeff() < A.rows());
+        assert(A.rows() == A.cols());
+        
+        int vN = static_cast<int>(A.rows());
+        A.conservativeResize(vN + bnd.size(), vN + bnd.size());
+        A.reserve(A.nonZeros() + bnd.size() * 2);
+        for(int pcI = 0; pcI < bnd.size(); pcI++) {
+            A.insert(vN + pcI, bnd[pcI]) = 1.0;
+            A.insert(bnd[pcI], vN + pcI) = 1.0;
+        }
+        
+        Eigen::SparseLU<Eigen::SparseMatrix<double>> spLUSolver;
+        spLUSolver.compute(A);
+        if(spLUSolver.info() == Eigen::Success) {
+            UV_Tutte.resize(A.rows(), 2);
+            Eigen::VectorXd rhs;
+            rhs.resize(A.rows());
+            
+            for(int dimI = 0; dimI < 2; dimI++) {
+                rhs << Eigen::VectorXd::Zero(vN), bnd_uv.col(dimI);
+                UV_Tutte.col(dimI) = spLUSolver.solve(rhs);
+                if(spLUSolver.info() != Eigen::Success) {
+                    assert("LU back solve failed!");
+                }
+            }
+            
+            UV_Tutte.conservativeResize(vN, 2);
+        }
+        else {
+            assert("LU decomposition on MVC matrix (with Langrange Multiplier) failed!");
+        }
+    }
+    
     void IglUtils::mapTriangleTo2D(const Eigen::Vector3d v[3], Eigen::Vector2d u[3])
     {
         const Eigen::Vector3d e[2] = {

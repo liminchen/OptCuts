@@ -813,15 +813,17 @@ int main(int argc, char *argv[])
 //            igl::map_vertices_to_circle(V, bnd, bnd_uv);
             FracCuts::IglUtils::map_vertices_to_circle(V, bnd, bnd_uv);
             
-        //    // Harmonic parametrization
-        //    UV.resize(UV.size() + 1);
-        //    igl::harmonic(V[0], F[0], bnd, bnd_uv, 1, UV[0]);
+            Eigen::MatrixXd UV_Tutte;
+            
+//            // Harmonic parametrization
+//            igl::harmonic(V, F, bnd, bnd_uv, 1, UV_Tutte);
             
             // Harmonic map with uniform weights
             Eigen::SparseMatrix<double> A, M;
             FracCuts::IglUtils::computeUniformLaplacian(F, A);
-            Eigen::MatrixXd UV_Tutte;
             igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
+//            FracCuts::IglUtils::computeMVCMtr(V, F, A);
+//            FracCuts::IglUtils::fixedBoundaryParam_MVC(A, bnd, bnd_uv, UV_Tutte);
             
             triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV_Tutte, Eigen::MatrixXi(), startWithTriSoup));
             outputFolderPath += meshName + "_Tutte_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +

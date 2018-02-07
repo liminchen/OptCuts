@@ -24,6 +24,11 @@ namespace FracCuts {
         // graph laplacian with half-weighted boundary edge, the computation is also faster
         static void computeUniformLaplacian(const Eigen::MatrixXi& F, Eigen::SparseMatrix<double>& graphL);
         
+        static void computeMVCMtr(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::SparseMatrix<double>& MVCMtr);
+        
+        static void fixedBoundaryParam_MVC(Eigen::SparseMatrix<double> A, const Eigen::VectorXi& bnd,
+                                           const Eigen::MatrixXd& bnd_uv, Eigen::MatrixXd& UV_Tutte);
+        
         static void mapTriangleTo2D(const Eigen::Vector3d v[3], Eigen::Vector2d u[3]);
         static void computeDeformationGradient(const Eigen::Vector3d v[3], const Eigen::Vector2d u[3], Eigen::Matrix2d& F);
         

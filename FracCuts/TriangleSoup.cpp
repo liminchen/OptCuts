@@ -1223,15 +1223,17 @@ namespace FracCuts {
         //            igl::map_vertices_to_circle(V, bnd, bnd_uv);
         FracCuts::IglUtils::map_vertices_to_circle(this->V_rest, bnd, bnd_uv);
         
-        //    // Harmonic parametrization
-        //    UV.resize(UV.size() + 1);
-        //    igl::harmonic(V[0], F[0], bnd, bnd_uv, 1, UV[0]);
+        Eigen::MatrixXd UV_Tutte;
+        
+//        // Harmonic parametrization
+//        igl::harmonic(V, F, bnd, bnd_uv, 1, UV_Tutte);
         
         // Harmonic map with uniform weights
         Eigen::SparseMatrix<double> A, M;
-        FracCuts::IglUtils::computeUniformLaplacian(this->F, A);
-        Eigen::MatrixXd UV_Tutte;
-        igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
+//        FracCuts::IglUtils::computeUniformLaplacian(this->F, A);
+//        igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
+        FracCuts::IglUtils::computeMVCMtr(this->V_rest, this->F, A);
+        FracCuts::IglUtils::fixedBoundaryParam_MVC(A, bnd, bnd_uv, UV_Tutte);
         
         Eigen::VectorXd L2stretchPerElem, vertScores;
         TriangleSoup(this->V_rest, this->F, UV_Tutte, this->F, 0, 0.0).computeL2StretchPerElem(L2stretchPerElem);
