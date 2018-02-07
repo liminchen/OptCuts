@@ -63,7 +63,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/closed/cow_head.obj 0.025 16 0 test"
+            argument = "0 /Users/mincli/Downloads/meshes/closed/cow_head.obj 0.025 16 2 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -133,6 +133,14 @@
          <CommandLineArgument
             argument = "0 face_f10000.obj 0.025 16 1 test"
             isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 bishop_part_f1000_ours.obj 0.975 1 0 test"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 wooden_fish_o_f10000_ours.obj 0.975 1 0 test"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "1 0 /Users/mincli/Desktop/output_FracCuts/cmH1000_tutte_0.2_8.0_modifiedSH/precondMtr_140"

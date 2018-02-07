@@ -35,10 +35,10 @@ for inputModelNameI in onlyfiles:
 	if subprocess.call([runCommand], shell=True):
 		continue
 
-	# prop, no filter
-	runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.025 21 2'
-	if subprocess.call([runCommand], shell=True):
-		continue
+	# # prop, no filter
+	# runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.025 21 2'
+	# if subprocess.call([runCommand], shell=True):
+	# 	continue
 
 	# # standard alt
 	# runCommand = FracCutsPath + ' 100 ' + inputModelNameI + ' 0.2 0 0'

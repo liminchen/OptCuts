@@ -546,7 +546,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     const double E_w = optimizer->getLastEnergyVal() +
                         (1.0 - energyParams[0]) * E_se / triSoup[channel_result]->virtualRadius;
                     std::cout << "E_w from " << lastE_w << " to " << E_w << std::endl;
-                    if(E_w > lastE_w) {
+                    if((E_w > lastE_w) || ((triSoup[channel_result]->F == triSoup_backup.F) && optimizer->getTopoIter())) { //!!! if propagation is allowed independently for each type of operation, equality condition won't be useful
                         assert(fracThres < 0.0);
                         
                         // roll back
@@ -582,6 +582,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         else {
                             // last topology operation is boundary split,
                             // roll back and try interior split
+                            saveInfo_postDraw = false;
                             homoTransFile << iterNum << std::endl;
                             lastStart = clock();
 

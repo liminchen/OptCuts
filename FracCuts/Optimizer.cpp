@@ -278,9 +278,11 @@ namespace FracCuts {
         clock_t tickStart = clock();
         bool changed = false;
         switch(methodType) {
-            case MT_OURS:
-                changed = result.splitEdge(1.0 - energyParams[0], stressThres, !initiation, allowInSplit);
+            case MT_OURS: {
+//                changed = result.splitEdge(1.0 - energyParams[0], stressThres, !initiation, allowInSplit);
+                changed = result.splitOrMerge(1.0 - energyParams[0], stressThres, !initiation, allowInSplit);
                 break;
+            }
                 
             case MT_GEOMIMG:
                 result.geomImgCut();

@@ -449,6 +449,17 @@ namespace FracCuts {
                 }
             }
         }
+        
+        // init fracture tail record
+        fracTail.clear();
+        for(int cohI = 0; cohI < cohE.rows(); cohI++) {
+            if(cohE(cohI, 0) == cohE(cohI, 2)) {
+                fracTail.insert(cohE(cohI, 0));
+            }
+            else if(cohE(cohI, 1) == cohE(cohI, 3)) {
+                fracTail.insert(cohE(cohI, 1));
+            }
+        }
     }
     
     void TriangleSoup::updateFeatures(void)
@@ -717,7 +728,8 @@ namespace FracCuts {
         curFracTail = -1;
     }
     
-    bool TriangleSoup::splitEdge(double lambda_t, double thres, bool propagate, bool splitInterior)
+    void TriangleSoup::querySplit(double lambda_t, bool propagate, bool splitInterior,
+                                  double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max)
     {
         const double filterExp_b = 0.8;
         const double filterExp_in = 0.8;
@@ -725,12 +737,12 @@ namespace FracCuts {
         std::vector<int> bestCandVerts;
         if(!propagate) {
             SymStretchEnergy SD;
-//            double energyVal;
-//            SD.computeEnergyVal(*this, energyVal);
+            //            double energyVal;
+            //            SD.computeEnergyVal(*this, energyVal);
             Eigen::VectorXd divGradPerVert;
             SD.computeDivGradPerVert(*this, divGradPerVert);
-//            Eigen::VectorXd maxUnweightedEnergyValPerVert;
-//            SD.getMaxUnweightedEnergyValPerVert(*this, maxUnweightedEnergyValPerVert);
+            //            Eigen::VectorXd maxUnweightedEnergyValPerVert;
+            //            SD.getMaxUnweightedEnergyValPerVert(*this, maxUnweightedEnergyValPerVert);
             
             std::map<double, int> sortedCandVerts_b, sortedCandVerts_in;
             if(splitInterior) {
@@ -741,9 +753,9 @@ namespace FracCuts {
                     }
                     
                     if(!isBoundaryVert(edge2Tri, vNeighbor, vI)) {
-//                        if(maxUnweightedEnergyValPerVert[vI] > energyVal) {
-                            sortedCandVerts_in[-divGradPerVert[vI]] = vI;
-//                        }
+                        //                        if(maxUnweightedEnergyValPerVert[vI] > energyVal) {
+                        sortedCandVerts_in[-divGradPerVert[vI]] = vI;
+                        //                        }
                     }
                 }
             }
@@ -755,9 +767,9 @@ namespace FracCuts {
                     }
                     
                     if(isBoundaryVert(edge2Tri, vNeighbor, vI)) {
-//                        if(maxUnweightedEnergyValPerVert[vI] > energyVal) {
-                            sortedCandVerts_b[-divGradPerVert[vI]] = vI;
-//                        }
+                        //                        if(maxUnweightedEnergyValPerVert[vI] > energyVal) {
+                        sortedCandVerts_b[-divGradPerVert[vI]] = vI;
+                        //                        }
                     }
                 }
             }
@@ -798,7 +810,10 @@ namespace FracCuts {
         else {
             // see whether fracture could be propagated from each fracture tail
             if(fracTail.empty()) {
-                return false;
+                EwDec_max = -__DBL_MAX__;
+                path_max.resize(0);
+                newVertPos_max.resize(0, 2);
+                return;
             }
             else {
                 splitInterior = false;
@@ -833,149 +848,189 @@ namespace FracCuts {
                 candI_max = candI;
             }
         }
+        
+        EwDec_max = EwDecs[candI_max];
+        path_max = paths[candI_max];
+        newVertPos_max = newVertPoses[candI_max];
+    }
+    
+    bool TriangleSoup::splitEdge(double lambda_t, double thres, bool propagate, bool splitInterior)
+    {
+        double EwDec_max;
+        std::vector<int> path_max;
+        Eigen::MatrixXd newVertPos_max;
+        querySplit(lambda_t, propagate, splitInterior,
+                   EwDec_max, path_max, newVertPos_max);
+        
         std::cout << "E_dec threshold = " << thres << std::endl;
-        if(EwDecs[candI_max] > thres) {
+        if(EwDec_max > thres) {
             if(!splitInterior) {
                 // boundary split
-                std::cout << "boundary split E_dec = " << EwDecs[candI_max] << std::endl;
-                splitEdgeOnBoundary(std::pair<int, int>(paths[candI_max][0], paths[candI_max][1]),
-                                    newVertPoses[candI_max], edge2Tri, vNeighbor, cohEIndex);
+                std::cout << "boundary split E_dec = " << EwDec_max << std::endl;
+                splitEdgeOnBoundary(std::pair<int, int>(path_max[0], path_max[1]),
+                                    newVertPos_max, edge2Tri, vNeighbor, cohEIndex);
                 //TODO: process fractail here!
                 updateFeatures();
             }
             else {
                 // interior split
-                std::cout << "interior split E_dec = " << EwDecs[candI_max] << std::endl;
-                cutPath(paths[candI_max], true, 1, newVertPoses[candI_max]);
-                fracTail.insert(paths[candI_max][0]);
-                fracTail.insert(paths[candI_max][2]);
+                assert(!propagate);
+                std::cout << "interior split E_dec = " << EwDec_max << std::endl;
+                cutPath(path_max, true, 1, newVertPos_max);
+                fracTail.insert(path_max[0]);
+                fracTail.insert(path_max[2]);
             }
             return true;
         }
         else {
-            std::cout << "max E_dec = " << EwDecs[candI_max] << " < thres" << std::endl;
+            std::cout << "max E_dec = " << EwDec_max << " < thres" << std::endl;
             return false;
         }
     }
     
-    bool TriangleSoup::mergeEdge(void)
+    void TriangleSoup::queryMerge(double lambda,
+                                  double& localEwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max)
     {
-        //TODO: check for element inversion only locally right now
-        //TODO: share the precomputation with split
+        //TODO: check for element inversion only locally
+        //TODO: local index updates in mergeBoundaryEdge()
+        //TODO: parallelize the query
         
-        // compute stress tensor and do SVD
-        std::vector<Eigen::JacobiSVD<Eigen::Matrix2d>> dg(F.rows());
-        for(int triI = 0; triI < F.rows(); triI++) {
-            const Eigen::RowVector3i& triVInd = F.row(triI);
-            
-            const Eigen::Vector3d x_3D[3] = {
-                V_rest.row(triVInd[0]),
-                V_rest.row(triVInd[1]),
-                V_rest.row(triVInd[2])
-            };
-            
-            const Eigen::Vector2d u[3] = {
-                V.row(triVInd[0]),
-                V.row(triVInd[1]),
-                V.row(triVInd[2])
-            };
-
-            Eigen::Matrix2d stressTensor;
-            SymStretchEnergy::computeStressTensor(x_3D, u, stressTensor);
-            dg[triI].compute(stressTensor, Eigen::ComputeFullU | Eigen::ComputeFullV);
-        }
-        
-        int minI = -1, minForkVI = 0;
-        double minStretch = 0.25; // the initial value is the stretch strength threshold
+        std::cout << "evaluate edge merge, " << cohE.rows() << " cohesive edge pairs." << std::endl;
+        localEwDec_max = -__DBL_MAX__;
         for(int cohI = 0; cohI < cohE.rows(); cohI++) {
             int forkVI = 0;
-            if(cohE(cohI, 0) == cohE(cohI, 2))
-            {
+            if(cohE(cohI, 0) == cohE(cohI, 2)) {
                 forkVI = 0;
             }
-            else if(cohE(cohI, 1) == cohE(cohI, 3))
-            {
+            else if(cohE(cohI, 1) == cohE(cohI, 3)) {
                 forkVI = 1;
             }
             else {
-                // only consider "zipper bottom" edge pairs
+                //!!! only consider "zipper bottom" edge pairs for now
                 continue;
             }
             
-            const double dist = (V.row(cohE(cohI, 1 - forkVI)) - V.row(cohE(cohI, 3 - forkVI))).norm() / avgEdgeLen;
-            if(dist < 0.25) { // when they are close enough
-                const Eigen::Vector2d mergedPos = (V.row(cohE(cohI, 1 - forkVI)) + V.row(cohE(cohI, 3 - forkVI))) / 2.0;
-                
-                const Eigen::RowVector2d backup0 = V.row(cohE(cohI, 1 - forkVI));
-                const Eigen::RowVector2d backup1 = V.row(cohE(cohI, 3 - forkVI));
-                V.row(cohE(cohI, 1 - forkVI)) = mergedPos;
-                V.row(cohE(cohI, 3 - forkVI)) = mergedPos;
-                bool noInversion = checkInversion();
-                V.row(cohE(cohI, 1 - forkVI)) = backup0;
-                V.row(cohE(cohI, 3 - forkVI)) = backup1;
-                if(!noInversion) {
-                    continue;
-                }
-                
-                const Eigen::Vector2d mergedEdgeDir = (V.row(cohE(cohI, 0 + forkVI)).transpose() - mergedPos).normalized();
-                Eigen::JacobiSVD<Eigen::Matrix2d> svd_stressTensor[2];
-                for(int eI = 0; eI < 2; eI++) {
-                    auto eIFinder = edge2Tri.find(std::pair<int, int>(cohE(cohI, eI * 3), cohE(cohI, 1 + eI)));
-                    assert(eIFinder != edge2Tri.end());
-                    Eigen::Vector3d x3D[3];
-                    Eigen::Vector2d uv[3];
-                    for(int vI = 0; vI < 3; vI++) {
-                        if(F(eIFinder->second, vI) == cohE(cohI, eI * 2 + 1 - forkVI)) {
-                            uv[vI] = mergedPos;
-                        }
-                        else {
-                            uv[vI] = V.row(F(eIFinder->second, vI));
-                        }
-                        x3D[vI] = V_rest.row(F(eIFinder->second, vI));
-                    }
-                    Eigen::Matrix2d stressTensor;
-                    SymStretchEnergy::computeStressTensor(x3D, uv, stressTensor);
-                    svd_stressTensor[eI].compute(stressTensor, Eigen::ComputeFullU | Eigen::ComputeFullV);
-                }
-                const Eigen::Vector2d& stretchDir0 = svd_stressTensor[0].matrixU().block(0, 0, 2, 1);
-                const Eigen::Vector2d& stretchDir1 = svd_stressTensor[1].matrixU().block(0, 0, 2, 1);
-                const double cosine0 = std::abs(mergedEdgeDir.dot(stretchDir0));
-                const double cosine1 = std::abs(mergedEdgeDir.dot(stretchDir1));
-                const double stretchStrength = svd_stressTensor[0].singularValues()[0] * (1.0 - cosine0) +
-                    svd_stressTensor[1].singularValues()[0] * (1.0 - cosine1);
-                
-                if(stretchStrength < minStretch) {
-                    minStretch = stretchStrength;
-                    minI = cohI;
-                    minForkVI = forkVI;
-                }
+            const Eigen::Vector2d mergedPos = (V.row(cohE(cohI, 1 - forkVI)) + V.row(cohE(cohI, 3 - forkVI))) / 2.0;
+            
+            const Eigen::RowVector2d backup0 = V.row(cohE(cohI, 1 - forkVI));
+            const Eigen::RowVector2d backup1 = V.row(cohE(cohI, 3 - forkVI));
+            V.row(cohE(cohI, 1 - forkVI)) = mergedPos;
+            V.row(cohE(cohI, 3 - forkVI)) = mergedPos;
+            bool noInversion = checkInversion(true); //TODO: check locally!!!
+            V.row(cohE(cohI, 1 - forkVI)) = backup0;
+            V.row(cohE(cohI, 3 - forkVI)) = backup1;
+            if(!noInversion) {
+                continue;
             }
-        }
-        
-        if(minI >= 0) {
-            if(minForkVI == 0) {
-                mergeBoundaryEdges(std::pair<int, int>(cohE(minI, 3), cohE(minI, 2)),
-                               std::pair<int, int>(cohE(minI, 0), cohE(minI, 1)),
-                               edge2Tri, vNeighbor, cohEIndex);
-            }
-            else if(minForkVI == 1) {
-                mergeBoundaryEdges(std::pair<int, int>(cohE(minI, 0), cohE(minI, 1)),
-                                   std::pair<int, int>(cohE(minI, 3), cohE(minI, 2)),
-                                   edge2Tri, vNeighbor, cohEIndex);
+            
+            // optimize local distortion
+            std::vector<int> path;
+            if(forkVI) {
+                path.emplace_back(cohE(cohI, 0));
+                path.emplace_back(cohE(cohI, 1));
+                path.emplace_back(cohE(cohI, 2));
             }
             else {
-                assert(0 && "Invalid fork vertex index!");
+                path.emplace_back(cohE(cohI, 3));
+                path.emplace_back(cohE(cohI, 2));
+                path.emplace_back(cohE(cohI, 1));
             }
-            std::cout << "edge merged" << std::endl;
+            Eigen::MatrixXd newVertPos;
+            double localEwDec = computeLocalEwDec(0, lambda, path, newVertPos);
             
-            if(!checkInversion()) {
-                
+            if(localEwDec > localEwDec_max) {
+                localEwDec_max = localEwDec;
+                newVertPos_max = newVertPos;
+                path_max = path;
             }
+        }
+    }
+    
+    bool TriangleSoup::mergeEdge(double lambda, double EDecThres)
+    {
+        double localEwDec_max;
+        std::vector<int> path_max;
+        Eigen::MatrixXd newVertPos_max;
+        queryMerge(lambda, localEwDec_max, path_max, newVertPos_max);
+        
+        std::cout << "E_dec threshold = " << EDecThres << std::endl;
+        if(localEwDec_max > EDecThres) {
+            std::cout << "merge edge E_dec = " << localEwDec_max << std::endl;
+            mergeBoundaryEdges(std::pair<int, int>(path_max[0], path_max[1]),
+                               std::pair<int, int>(path_max[1], path_max[2]), newVertPos_max.row(0));
+            logFile << "edge merged" << std::endl;
 
             computeFeatures(); //TODO: only update locally
             return true;
         }
         else {
+            std::cout << "max E_dec = " << localEwDec_max << " < thres" << std::endl;
+            return false;
+        }
+    }
+    
+    bool TriangleSoup::splitOrMerge(double lambda_t, double EDecThres, bool propagate, bool splitInterior)
+    {
+        double EwDec_max;
+        std::vector<int> path_max;
+        Eigen::MatrixXd newVertPos_max;
+        bool isMerge = false;
+        if(splitInterior) {
+            assert(!propagate);
+            querySplit(lambda_t, propagate, splitInterior,
+                       EwDec_max, path_max, newVertPos_max);
+        }
+        else {
+            double EwDec_max_split, EwDec_max_merge;
+            std::vector<int> path_max_split, path_max_merge;
+            Eigen::MatrixXd newVertPos_max_split, newVertPos_max_merge;
+            querySplit(lambda_t, propagate, splitInterior,
+                       EwDec_max_split, path_max_split, newVertPos_max_split);
+            queryMerge(lambda_t, EwDec_max_merge, path_max_merge, newVertPos_max_merge);
+            
+            if(EwDec_max_merge > EwDec_max_split) {
+                isMerge = true;
+                EwDec_max = EwDec_max_merge;
+                path_max = path_max_merge;
+                newVertPos_max = newVertPos_max_merge;
+            }
+            else {
+                isMerge = false;
+                EwDec_max = EwDec_max_split;
+                path_max = path_max_split;
+                newVertPos_max = newVertPos_max_split;
+            }
+        }
+        
+        if(EwDec_max > EDecThres) {
+            if(isMerge) {
+                std::cout << "merge edge E_dec = " << EwDec_max << std::endl;
+                mergeBoundaryEdges(std::pair<int, int>(path_max[0], path_max[1]),
+                                   std::pair<int, int>(path_max[1], path_max[2]), newVertPos_max.row(0));
+                logFile << "edge merged" << std::endl;
+                computeFeatures(); //TODO: only update locally
+            }
+            else {
+                if(!splitInterior) {
+                    // boundary split
+                    std::cout << "boundary split E_dec = " << EwDec_max << std::endl;
+                    splitEdgeOnBoundary(std::pair<int, int>(path_max[0], path_max[1]),
+                                        newVertPos_max, edge2Tri, vNeighbor, cohEIndex);
+                    //TODO: process fractail here!
+                    updateFeatures();
+                }
+                else {
+                    // interior split
+                    std::cout << "interior split E_dec = " << EwDec_max << std::endl;
+                    cutPath(path_max, true, 1, newVertPos_max);
+                    fracTail.insert(path_max[0]);
+                    fracTail.insert(path_max[2]);
+                }
+            }
+            return true;
+        }
+        else {
+            std::cout << "max E_dec = " << EwDec_max << " < thres" << std::endl;
             return false;
         }
     }
@@ -1599,7 +1654,7 @@ namespace FracCuts {
         }
     }
     
-    bool TriangleSoup::checkInversion(void) const
+    bool TriangleSoup::checkInversion(bool mute) const
     {
         const double eps = 0.0;//1.0e-20 * avgEdgeLen * avgEdgeLen;
         for(int triI = 0; triI < F.rows(); triI++)
@@ -1614,8 +1669,10 @@ namespace FracCuts {
             const double dbArea = e_u[0][0] * e_u[1][1] - e_u[0][1] * e_u[1][0];
             if(dbArea < eps)
             {
-                std::cout << "***Element inversion detected: " << dbArea << " < " << eps << std::endl;
-                logFile << "***Element inversion detected: " << dbArea << " < " << eps << std::endl;
+                if(!mute) {
+                    std::cout << "***Element inversion detected: " << dbArea << " < " << eps << std::endl;
+                    logFile << "***Element inversion detected: " << dbArea << " < " << eps << std::endl;
+                }
                 return false;
             }
         }
@@ -1887,6 +1944,63 @@ namespace FracCuts {
     
     double TriangleSoup::computeLocalEwDec(int vI, double lambda_t, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max) const
     {
+        if(!path_max.empty()) {
+            // merge query
+            assert(path_max.size() >= 3);
+            for(const auto& pI : path_max) {
+                assert(isBoundaryVert(edge2Tri, vNeighbor, pI));
+            }
+            
+            if(path_max.size() == 3) {
+                // zipper merge
+                double seDec = (V_rest.row(path_max[0]) - V_rest.row(path_max[1])).norm() / virtualRadius;
+                // closing up splitted diamond
+                for(const auto& nbVI : vNeighbor[path_max[0]]) {
+                    if(nbVI != path_max[1]) {
+                        if(isBoundaryVert(edge2Tri, vNeighbor, nbVI)) {
+                            if(vNeighbor[path_max[2]].find(nbVI) != vNeighbor[path_max[2]].end()) {
+                                seDec += (V_rest.row(path_max[0]) - V_rest.row(nbVI)).norm() / virtualRadius;
+                            }
+                            break;
+                        }
+                    }
+                }
+                
+                std::vector<int> triangles;
+                for(const auto& nbVI : vNeighbor[path_max[0]]) {
+                    auto finder = edge2Tri.find(std::pair<int, int>(path_max[0], nbVI));
+                    if(finder != edge2Tri.end()) {
+                        triangles.emplace_back(finder->second);
+                    }
+                }
+                for(const auto& nbVI : vNeighbor[path_max[2]]) {
+                    auto finder = edge2Tri.find(std::pair<int, int>(path_max[2], nbVI));
+                    if(finder != edge2Tri.end()) {
+                        triangles.emplace_back(finder->second);
+                    }
+                }
+                std::set<int> freeVert;
+                freeVert.insert(path_max[0]);
+                freeVert.insert(path_max[2]);
+                std::map<int, int> mergeVert;
+                mergeVert[path_max[0]] = path_max[2];
+                mergeVert[path_max[2]] = path_max[0];
+                std::map<int, Eigen::RowVector2d> newVertPos;
+                const double SDInc = -computeLocalEDec(triangles, freeVert, newVertPos, mergeVert);
+                
+                auto finder = newVertPos.find(path_max[0]);
+                assert(finder != newVertPos.end());
+                newVertPos_max.resize(1, 2);
+                newVertPos_max.row(0) = finder->second;
+                
+                return lambda_t * seDec - (1.0 - lambda_t) * SDInc;
+            }
+            else {
+                assert(0 && "currently not considering \"interior\" merge!");
+            }
+        }
+        
+        // split:
         std::vector<int> umbrella;
         std::pair<int, int> boundaryEdge;
         if(isBoundaryVert(edge2Tri, vI, *(vNeighbor[vI].begin()), umbrella, boundaryEdge, false)) {
@@ -1983,7 +2097,8 @@ namespace FracCuts {
     }
     
     double TriangleSoup::computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
-                                          std::map<int, Eigen::RowVector2d>& newVertPos, int maxIter) const
+                                          std::map<int, Eigen::RowVector2d>& newVertPos,
+                                          const std::map<int, int>& mergeVert, int maxIter) const
     {
         assert(triangles.size() && freeVert.size());
         
@@ -1997,21 +2112,51 @@ namespace FracCuts {
         for(const auto triI : triangles) {
             for(int vI = 0; vI < 3; vI++) {
                 int globalVI = F(triI, vI);
-                auto localVIFinder = globalVI2local.find(globalVI);
-                if(localVIFinder == globalVI2local.end()) {
-                    int localVI = static_cast<int>(localV_rest.rows());
-                    if(freeVert.find(globalVI) == freeVert.end()) {
-                        fixedVert.insert(localVI);
+                auto mergeFinder = mergeVert.find(globalVI);
+                if(mergeFinder == mergeVert.end()) {
+                    // normal vertices
+                    auto localVIFinder = globalVI2local.find(globalVI);
+                    if(localVIFinder == globalVI2local.end()) {
+                        int localVI = static_cast<int>(localV_rest.rows());
+                        if(freeVert.find(globalVI) == freeVert.end()) {
+                            fixedVert.insert(localVI);
+                        }
+                        localV_rest.conservativeResize(localVI + 1, 3);
+                        localV_rest.row(localVI) = V_rest.row(globalVI);
+                        localV.conservativeResize(localVI + 1, 2);
+                        localV.row(localVI) = V.row(globalVI);
+                        localF(localTriI, vI) = localVI;
+                        globalVI2local[globalVI] = localVI;
                     }
-                    localV_rest.conservativeResize(localVI + 1, 3);
-                    localV_rest.row(localVI) = V_rest.row(globalVI);
-                    localV.conservativeResize(localVI + 1, 2);
-                    localV.row(localVI) = V.row(globalVI);
-                    localF(localTriI, vI) = localVI;
-                    globalVI2local[globalVI] = localVI;
+                    else {
+                        localF(localTriI, vI) = localVIFinder->second;
+                    }
                 }
                 else {
-                    localF(localTriI, vI) = localVIFinder->second;
+                    // one of the vertices to be merged
+                    auto localVIFinder = globalVI2local.find(globalVI);
+                    auto localVIFinder_mergePair = globalVI2local.find(mergeFinder->second);
+                    bool selfAdded = (localVIFinder != globalVI2local.end());
+                    bool mergePairAdded = (localVIFinder_mergePair != globalVI2local.end());
+                    if(selfAdded) {
+                        assert(mergePairAdded);
+                        localF(localTriI, vI) = localVIFinder->second;
+                    }
+                    else {
+                        assert(!mergePairAdded);
+                        int localVI = static_cast<int>(localV_rest.rows());
+                        if(freeVert.find(globalVI) == freeVert.end()) {
+                            fixedVert.insert(localVI);
+                        }
+                        localV_rest.conservativeResize(localVI + 1, 3);
+                        localV_rest.row(localVI) = V_rest.row(globalVI);
+                        localV.conservativeResize(localVI + 1, 2);
+                        localV.row(localVI) = (V.row(globalVI) + V.row(mergeFinder->second)) / 2.0;//TODO: get init merged pos from input
+                        localF(localTriI, vI) = localVI;
+                        globalVI2local[globalVI] = localVI;
+                        
+                        globalVI2local[mergeFinder->second] = localVI;
+                    }
                 }
             }
             localTriI++;
@@ -2026,6 +2171,15 @@ namespace FracCuts {
         optimizer.precompute();
         optimizer.setRelGL2Tol(1.0e-4);
         double initE = optimizer.getLastEnergyVal();
+        if(!mergeVert.empty()) {
+            initE = 0.0;
+            for(const auto& triI : triangles) {
+                double energyValI;
+                energyTerms[0]->getEnergyValByElemID(*this, triI, energyValI);
+                initE += energyValI * surfaceArea;
+            }
+            initE /= localMesh.surfaceArea;
+        }
         optimizer.solve(maxIter); //do not output, the other part
         //            std::cout << "local opt " << optimizer.getIterNum() << " iters" << std::endl;
         const double eDec = (initE - optimizer.getLastEnergyVal()) * localMesh.surfaceArea / surfaceArea; //!!! this should be written in a more general way, cause this way it only works for E_SD
@@ -2284,21 +2438,27 @@ namespace FracCuts {
     }
     
     void TriangleSoup::mergeBoundaryEdges(const std::pair<int, int>& edge0, const std::pair<int, int>& edge1,
-        std::map<std::pair<int, int>, int>& edge2Tri, std::vector<std::set<int>>& vNeighbor,
-        std::map<std::pair<int, int>, int>& cohEIndex)
+                                          const Eigen::RowVectorXd& mergedPos)
     {
-        std::cout << edge0.first << " " << edge0.second << std::endl;
-        std::cout << edge1.first << " " << edge1.second << std::endl;
         assert(edge0.second == edge1.first);
         assert(edge2Tri.find(std::pair<int, int>(edge0.second, edge0.first)) == edge2Tri.end());
         assert(edge2Tri.find(std::pair<int, int>(edge1.second, edge1.first)) == edge2Tri.end());
         assert(vNeighbor.size() == V.rows());
         
-        V.row(edge0.first) = (V.row(edge0.first) + V.row(edge1.second)) / 2.0;
+        fracTail.erase(edge0.second);
+        fracTail.insert(edge0.first);
+        
+        V.row(edge0.first) = mergedPos;
         int vBackI = static_cast<int>(V.rows()) - 1;
         if(edge1.second < vBackI) {
             V_rest.row(edge1.second) = V_rest.row(vBackI);
             V.row(edge1.second) = V.row(vBackI);
+            
+            auto finder = fracTail.find(vBackI);
+            if(finder != fracTail.end()) {
+                fracTail.erase(finder);
+                fracTail.insert(edge1.second);
+            }
         }
         else {
             assert(edge1.second == vBackI);
@@ -2306,20 +2466,29 @@ namespace FracCuts {
         V_rest.conservativeResize(vBackI, 3);
         V.conservativeResize(vBackI, 2);
         
-        for(const auto& nbI : vNeighbor[edge1.second]) {
-            std::pair<int, int> edgeToFind[2] = {
-                std::pair<int, int>(edge1.second, nbI),
-                std::pair<int, int>(nbI, edge1.second)
-            };
-            for(int eI = 0; eI < 2; eI++) {
-                auto edgeTri = edge2Tri.find(edgeToFind[eI]);
-                if(edgeTri != edge2Tri.end()) {
-                    for(int vI = 0; vI < 3; vI++) {
-                        if(F(edgeTri->second, vI) == edge1.second) {
-                            F(edgeTri->second, vI) = edge0.first;
-                            break;
-                        }
-                    }
+//        for(const auto& nbI : vNeighbor[edge1.second]) {
+//            std::pair<int, int> edgeToFind[2] = {
+//                std::pair<int, int>(edge1.second, nbI),
+//                std::pair<int, int>(nbI, edge1.second)
+//            };
+//            for(int eI = 0; eI < 2; eI++) {
+//                auto edgeTri = edge2Tri.find(edgeToFind[eI]);
+//                if(edgeTri != edge2Tri.end()) {
+//                    for(int vI = 0; vI < 3; vI++) {
+//                        if(F(edgeTri->second, vI) == edge1.second) {
+//                            F(edgeTri->second, vI) = edge0.first;
+//                            break;
+//                        }
+//                    }
+//                }
+//            }
+//        }
+        
+        for(int triI = 0; triI < F.rows(); triI++) {
+            for(int vI = 0; vI < 3; vI++) {
+                if(F(triI, vI) == edge1.second) {
+                    F(triI, vI) = edge0.first;
+                    break;
                 }
             }
         }
@@ -2388,6 +2557,23 @@ namespace FracCuts {
                     }
                 }
             }
+        }
+        
+        // closeup just interior splitted diamond
+        //TODO: do it faster by knowing the edge in advance and locate using cohIndex
+        for(int cohI = 0; cohI < cohE.rows(); cohI++) {
+            if((cohE(cohI, 0) == cohE(cohI, 2)) &&
+                (cohE(cohI, 1) == cohE(cohI, 3)))
+           {
+               fracTail.erase(cohE(cohI, 0));
+               fracTail.erase(cohE(cohI, 1));
+               
+               if(cohI < cohE.rows() - 1) {
+                   cohE.row(cohI) = cohE.row(cohE.rows() - 1);
+               }
+               cohE.conservativeResize(cohE.rows() - 1, 4);
+               break;
+           }
         }
         
         //TODO: locally update edge2Tri, vNeighbor, cohEIndex

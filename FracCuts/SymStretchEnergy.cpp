@@ -46,6 +46,28 @@ namespace FracCuts {
         }
     }
     
+    void SymStretchEnergy::getEnergyValByElemID(const TriangleSoup& data, int elemI, double& energyVal, bool uniformWeight) const
+    {
+        const double normalizer_div = data.surfaceArea;
+        
+        int triI = elemI;
+        const Eigen::Vector3i& triVInd = data.F.row(triI);
+        
+        const Eigen::Vector2d& U1 = data.V.row(triVInd[0]);
+        const Eigen::Vector2d& U2 = data.V.row(triVInd[1]);
+        const Eigen::Vector2d& U3 = data.V.row(triVInd[2]);
+        
+        const Eigen::Vector2d U2m1 = U2 - U1;
+        const Eigen::Vector2d U3m1 = U3 - U1;
+        
+        const double area_U = 0.5 * (U2m1[0] * U3m1[1] - U2m1[1] * U3m1[0]);
+        
+        const double w = (uniformWeight ? 1.0 : (data.triArea[triI] / normalizer_div));
+        energyVal = w * (1.0 + data.triAreaSq[triI] / area_U / area_U) *
+        ((U3m1.squaredNorm() * data.e0SqLen[triI] + U2m1.squaredNorm() * data.e1SqLen[triI]) / 4 / data.triAreaSq[triI] -
+         U3m1.dot(U2m1) * data.e0dote1[triI] / 2 / data.triAreaSq[triI]);
+    }
+    
     void SymStretchEnergy::getEnergyValPerVert(const TriangleSoup& data, Eigen::VectorXd& energyValPerVert) const
     {
         Eigen::VectorXd energyValPerElem;

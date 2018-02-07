@@ -40,6 +40,11 @@ namespace FracCuts {
         energyVal = energyValPerElem.sum();
     }
     
+    void Energy::getEnergyValByElemID(const TriangleSoup& data, int elemI, double& energyVal, bool uniformWeight) const
+    {
+        assert(0 && "please implement before use!");
+    }
+    
     void Energy::computePrecondMtr(const TriangleSoup& data, Eigen::VectorXd* V,
                                    Eigen::VectorXi* I, Eigen::VectorXi* J) const
     {
