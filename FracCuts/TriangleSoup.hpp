@@ -87,7 +87,7 @@ namespace FracCuts{
         void queryMerge(double lambda,
                         double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max);
         bool mergeEdge(double lambda, double EDecThres);
-        bool splitOrMerge(double lambda_t, double EDecThres = 0.0, bool propagate = false, bool splitInterior = false);
+        bool splitOrMerge(double lambda_t, double EDecThres, bool propagate, bool splitInterior, bool& isMerge);
         
         void onePointCut(int vI = 0);
         void highCurvOnePointCut(void);

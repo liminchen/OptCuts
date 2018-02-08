@@ -29,7 +29,7 @@ extern clock_t ticksPast_frac;
 namespace FracCuts {
     
     Optimizer::Optimizer(const TriangleSoup& p_data0, const std::vector<Energy*>& p_energyTerms, const std::vector<double>& p_energyParams,
-        bool p_propagateFracture, bool p_mute) : data0(p_data0), energyTerms(p_energyTerms), energyParams(p_energyParams)
+        int p_propagateFracture, bool p_mute) : data0(p_data0), energyTerms(p_energyTerms), energyParams(p_energyParams)
     {
         assert(energyTerms.size() == energyParams.size());
         
@@ -198,9 +198,9 @@ namespace FracCuts {
             }
             globalIterNum++;
             
-            if(propagateFracture) {
-                if(!createFracture(lastEDec, false)) {
-                    propagateFracture = false;
+            if(propagateFracture > 0) {
+                if(!createFracture(lastEDec, propagateFracture)) {
+                    propagateFracture = 0;
                 }
             }
         }
@@ -269,18 +269,31 @@ namespace FracCuts {
         }
     }
     
-    bool Optimizer::createFracture(double stressThres, bool initiation, bool allowPropagate, bool allowInSplit)
+    bool Optimizer::createFracture(double stressThres, int propType, bool allowPropagate, bool allowInSplit)
     {
-        if(initiation) {
+        if(propType == 0) {
             topoIter++;
         }
         
         clock_t tickStart = clock();
         bool changed = false;
+        bool isMerge = false;
         switch(methodType) {
             case MT_OURS: {
-//                changed = result.splitEdge(1.0 - energyParams[0], stressThres, !initiation, allowInSplit);
-                changed = result.splitOrMerge(1.0 - energyParams[0], stressThres, !initiation, allowInSplit);
+                switch(propType) {
+                    case 0: // initiation
+                        changed = result.splitOrMerge(1.0 - energyParams[0], stressThres, false, allowInSplit, isMerge);
+                        break;
+                        
+                    case 1: // propagate split
+                        changed = result.splitEdge(1.0 - energyParams[0], stressThres, true, allowInSplit);
+                        break;
+                        
+                    case 2: // propagate merge
+                        changed = result.mergeEdge(1.0 - energyParams[0], stressThres);
+                        isMerge = true;
+                        break;
+                }
                 break;
             }
                 
@@ -336,9 +349,9 @@ namespace FracCuts {
                 }
             }
             
-            if(allowPropagate && initiation) {
+            if(allowPropagate && (propType == 0)) {
 //                solve(1);
-                propagateFracture = true;
+                propagateFracture = 1 + isMerge;
             }
         }
         ticksPast_frac += clock() - tickStart;

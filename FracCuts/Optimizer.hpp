@@ -27,7 +27,7 @@ namespace FracCuts {
         // E = \Sigma_i a_i E_i
         
     protected: // owned data
-        bool propagateFracture;
+        int propagateFracture;
         bool allowEDecRelTol;
         bool mute;
         bool pardisoThreadAmt;
@@ -56,7 +56,7 @@ namespace FracCuts {
         
     public: // constructor and destructor
         Optimizer(const TriangleSoup& p_data0, const std::vector<Energy*>& p_energyTerms, const std::vector<double>& p_energyParams,
-                  bool p_withTopologyStep = true, bool p_mute = false);
+                  int p_propagateFracture = 1, bool p_mute = false);
         ~Optimizer(void);
         
     public: // API
@@ -69,7 +69,7 @@ namespace FracCuts {
         
         void updatePrecondMtrAndFactorize(void);
         
-        bool createFracture(double stressThres, bool initiation,
+        bool createFracture(double stressThres, int propType,
                             bool allowPropagate = true, bool allowInSplit = false);
         void setConfig(const TriangleSoup& config);
         

@@ -404,7 +404,7 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                         if(fractureMode) {
                             // won't be called now since we are using standard AutoCuts
                             assert(0);
-                            optimizer->createFracture(fracThres, true, !altBase);
+                            optimizer->createFracture(fracThres, false, !altBase);
                         }
                     }
                     else {
@@ -546,7 +546,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     const double E_w = optimizer->getLastEnergyVal() +
                         (1.0 - energyParams[0]) * E_se / triSoup[channel_result]->virtualRadius;
                     std::cout << "E_w from " << lastE_w << " to " << E_w << std::endl;
-                    if((E_w > lastE_w) || ((triSoup[channel_result]->F == triSoup_backup.F) && optimizer->getTopoIter())) { //!!! if propagation is allowed independently for each type of operation, equality condition won't be useful
+                    if(E_w > lastE_w) {
                         assert(fracThres < 0.0);
                         
                         // roll back
@@ -586,7 +586,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                             homoTransFile << iterNum << std::endl;
                             lastStart = clock();
 
-                            optimizer->createFracture(fracThres, true, !altBase, true);
+                            optimizer->createFracture(fracThres, false, !altBase, true);
                             lastFractureIn = true;
                             ticksPast += clock() - lastStart;
                             converged = false;
@@ -599,7 +599,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     
                         homoTransFile << iterNum << std::endl;
                         lastStart = clock();
-                        if(optimizer->createFracture(fracThres, true, !altBase)) {
+                        if(optimizer->createFracture(fracThres, false, !altBase)) {
                             lastFractureIn = false;
                             ticksPast += clock() - lastStart;
                             converged = false;

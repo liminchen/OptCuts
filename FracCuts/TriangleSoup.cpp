@@ -969,14 +969,15 @@ namespace FracCuts {
         }
     }
     
-    bool TriangleSoup::splitOrMerge(double lambda_t, double EDecThres, bool propagate, bool splitInterior)
+    bool TriangleSoup::splitOrMerge(double lambda_t, double EDecThres, bool propagate, bool splitInterior, bool& isMerge)
     {
+        assert((!propagate) && "propagation is supported separately for split and merge!");
+        
         double EwDec_max;
         std::vector<int> path_max;
         Eigen::MatrixXd newVertPos_max;
-        bool isMerge = false;
+        isMerge = false;
         if(splitInterior) {
-            assert(!propagate);
             querySplit(lambda_t, propagate, splitInterior,
                        EwDec_max, path_max, newVertPos_max);
         }
@@ -995,7 +996,6 @@ namespace FracCuts {
                 newVertPos_max = newVertPos_max_merge;
             }
             else {
-                isMerge = false;
                 EwDec_max = EwDec_max_split;
                 path_max = path_max_split;
                 newVertPos_max = newVertPos_max_split;
