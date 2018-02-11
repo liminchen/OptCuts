@@ -891,7 +891,6 @@ namespace FracCuts {
     void TriangleSoup::queryMerge(double lambda,
                                   double& localEwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max)
     {
-        //TODO: check for element inversion only locally
         //TODO: local index updates in mergeBoundaryEdge()
         //TODO: parallelize the query
         
@@ -910,17 +909,90 @@ namespace FracCuts {
                 continue;
             }
             
-            const Eigen::Vector2d mergedPos = (V.row(cohE(cohI, 1 - forkVI)) + V.row(cohE(cohI, 3 - forkVI))) / 2.0;
+            // find incident triangles for inversion check and local energy decrease evaluation
+            std::vector<int> triangles;
+            int firstVertIncTriAmt = 0;
+            for(int mergeVI = 1; mergeVI <= 3; mergeVI += 2) {
+                for(const auto& nbVI : vNeighbor[cohE(cohI, mergeVI - forkVI)]) {
+                    auto finder = edge2Tri.find(std::pair<int, int>(cohE(cohI, mergeVI - forkVI), nbVI));
+                    if(finder != edge2Tri.end()) {
+                        triangles.emplace_back(finder->second);
+                    }
+                }
+                if(mergeVI == 1) {
+                    firstVertIncTriAmt = static_cast<int>(triangles.size());
+                    assert(firstVertIncTriAmt >= 1);
+                }
+            }
             
+            Eigen::RowVector2d mergedPos = (V.row(cohE(cohI, 1 - forkVI)) + V.row(cohE(cohI, 3 - forkVI))) / 2.0;
             const Eigen::RowVector2d backup0 = V.row(cohE(cohI, 1 - forkVI));
             const Eigen::RowVector2d backup1 = V.row(cohE(cohI, 3 - forkVI));
             V.row(cohE(cohI, 1 - forkVI)) = mergedPos;
             V.row(cohE(cohI, 3 - forkVI)) = mergedPos;
-            bool noInversion = checkInversion(true); //TODO: check locally!!!
-            V.row(cohE(cohI, 1 - forkVI)) = backup0;
-            V.row(cohE(cohI, 3 - forkVI)) = backup1;
-            if(!noInversion) {
-                continue;
+            if(checkInversion(true, triangles)) {
+                V.row(cohE(cohI, 1 - forkVI)) = backup0;
+                V.row(cohE(cohI, 3 - forkVI)) = backup1;
+            }
+            else {
+                // project mergedPos to feasible set via Relaxation method for linear inequalities
+                
+                // find inequality constraints by opposite edge in incident triangles
+                Eigen::MatrixXd inequalityConsMtr;
+                Eigen::VectorXd inequalityConsVec;
+                for(int triII = 0; triII < triangles.size(); triII++) {
+                    int triI = triangles[triII];
+                    int vI_toMerge = ((triII < firstVertIncTriAmt) ? cohE(cohI, 1 - forkVI) : cohE(cohI, 3 - forkVI));
+                    for(int i = 0; i < 3; i++) {
+                        if(F(triI, i) == vI_toMerge) {
+                            const Eigen::RowVector2d& v1 = V.row(F(triI, (i + 1) % 3));
+                            const Eigen::RowVector2d& v2 = V.row(F(triI, (i + 2) % 3));
+                            Eigen::RowVector2d coef(v2[1] - v1[1], v1[0] - v2[0]);
+                            inequalityConsMtr.conservativeResize(inequalityConsMtr.rows() + 1, 2);
+                            inequalityConsMtr.row(inequalityConsMtr.rows() - 1) = coef / coef.norm();
+                            inequalityConsVec.conservativeResize(inequalityConsVec.size() + 1);
+                            inequalityConsVec[inequalityConsVec.size() - 1] = (v1[0] * v2[1] - v1[1] * v2[0]) / coef.norm();
+                            break;
+                        }
+                    }
+                }
+                assert(inequalityConsMtr.rows() == triangles.size());
+                assert(inequalityConsVec.size() == triangles.size());
+                
+                // Relaxation method for linear inequalities
+//                logFile << "Relaxation method for linear inequalities" << std::endl; //DEBUG
+                int maxIter = 70;
+                const double eps_IC = 1.0e-6 * avgEdgeLen;
+                for(int iterI = 0; iterI < maxIter; iterI++) {
+                    double maxRes = -__DBL_MAX__;
+                    for(int consI = 0; consI < inequalityConsMtr.rows(); consI++) {
+                        double res = inequalityConsMtr.row(consI) * mergedPos.transpose() - inequalityConsVec[consI];
+                        if(res > -eps_IC) {
+                            // project
+                            mergedPos -= (res + eps_IC) * inequalityConsMtr.row(consI).transpose();
+                        }
+                        if(res > maxRes) {
+                            maxRes = res;
+                        }
+                    }
+                    
+//                    logFile << maxRes << std::endl; //DEBUG
+                    if(maxRes < 0.0) {
+                        // converged (non-inversion satisfied)
+                        //NOTE: although this maxRes is 1 iteration behind, it is OK for a convergence check
+                        break;
+                    }
+                }
+                
+                V.row(cohE(cohI, 1 - forkVI)) = mergedPos;
+                V.row(cohE(cohI, 3 - forkVI)) = mergedPos;
+                bool noInversion = checkInversion(true, triangles);
+                V.row(cohE(cohI, 1 - forkVI)) = backup0;
+                V.row(cohE(cohI, 3 - forkVI)) = backup1;
+                if(!noInversion) {
+                    // because propagation is not at E_SD stationary, so it's possible to have no feasible region
+                    continue;
+                }
             }
             
             // optimize local distortion
@@ -936,7 +1008,7 @@ namespace FracCuts {
                 path.emplace_back(cohE(cohI, 1));
             }
             Eigen::MatrixXd newVertPos;
-            double localEwDec = computeLocalEwDec(0, lambda, path, newVertPos);
+            double localEwDec = computeLocalEwDec(0, lambda, path, newVertPos, triangles, mergedPos);
             
             if(localEwDec > localEwDec_max) {
                 localEwDec_max = localEwDec;
@@ -1654,26 +1726,47 @@ namespace FracCuts {
         }
     }
     
-    bool TriangleSoup::checkInversion(bool mute) const
+    bool TriangleSoup::checkInversion(int triI, bool mute) const
     {
+        assert(triI < F.rows());
+        
         const double eps = 0.0;//1.0e-20 * avgEdgeLen * avgEdgeLen;
-        for(int triI = 0; triI < F.rows(); triI++)
-        {
-            const Eigen::Vector3i& triVInd = F.row(triI);
-            
-            const Eigen::Vector2d e_u[2] = {
-                V.row(triVInd[1]) - V.row(triVInd[0]),
-                V.row(triVInd[2]) - V.row(triVInd[0])
-            };
-            
-            const double dbArea = e_u[0][0] * e_u[1][1] - e_u[0][1] * e_u[1][0];
-            if(dbArea < eps)
+
+        const Eigen::Vector3i& triVInd = F.row(triI);
+        
+        const Eigen::Vector2d e_u[2] = {
+            V.row(triVInd[1]) - V.row(triVInd[0]),
+            V.row(triVInd[2]) - V.row(triVInd[0])
+        };
+        
+        const double dbArea = e_u[0][0] * e_u[1][1] - e_u[0][1] * e_u[1][0];
+        if(dbArea < eps) {
+            if(!mute) {
+                std::cout << "***Element inversion detected: " << dbArea << " < " << eps << std::endl;
+                logFile << "***Element inversion detected: " << dbArea << " < " << eps << std::endl;
+            }
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+    bool TriangleSoup::checkInversion(bool mute, const std::vector<int>& triangles) const
+    {
+        if(triangles.empty()) {
+            for(int triI = 0; triI < F.rows(); triI++)
             {
-                if(!mute) {
-                    std::cout << "***Element inversion detected: " << dbArea << " < " << eps << std::endl;
-                    logFile << "***Element inversion detected: " << dbArea << " < " << eps << std::endl;
+                if(!checkInversion(triI, mute)) {
+                    return false;
                 }
-                return false;
+            }
+        }
+        else {
+            for(const auto& triI : triangles)
+            {
+                if(!checkInversion(triI, mute)) {
+                    return false;
+                }
             }
         }
         
@@ -1942,7 +2035,8 @@ namespace FracCuts {
         return false;
     }
     
-    double TriangleSoup::computeLocalEwDec(int vI, double lambda_t, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max) const
+    double TriangleSoup::computeLocalEwDec(int vI, double lambda_t, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max,
+                                           const std::vector<int>& incTris, const Eigen::RowVector2d& initMergedPos) const
     {
         if(!path_max.empty()) {
             // merge query
@@ -1966,19 +2060,7 @@ namespace FracCuts {
                     }
                 }
                 
-                std::vector<int> triangles;
-                for(const auto& nbVI : vNeighbor[path_max[0]]) {
-                    auto finder = edge2Tri.find(std::pair<int, int>(path_max[0], nbVI));
-                    if(finder != edge2Tri.end()) {
-                        triangles.emplace_back(finder->second);
-                    }
-                }
-                for(const auto& nbVI : vNeighbor[path_max[2]]) {
-                    auto finder = edge2Tri.find(std::pair<int, int>(path_max[2], nbVI));
-                    if(finder != edge2Tri.end()) {
-                        triangles.emplace_back(finder->second);
-                    }
-                }
+                assert(incTris.size() >= 2);
                 std::set<int> freeVert;
                 freeVert.insert(path_max[0]);
                 freeVert.insert(path_max[2]);
@@ -1986,7 +2068,7 @@ namespace FracCuts {
                 mergeVert[path_max[0]] = path_max[2];
                 mergeVert[path_max[2]] = path_max[0];
                 std::map<int, Eigen::RowVector2d> newVertPos;
-                const double SDInc = -computeLocalEDec(triangles, freeVert, newVertPos, mergeVert);
+                const double SDInc = -computeLocalEDec(incTris, freeVert, newVertPos, mergeVert, initMergedPos);
                 
                 auto finder = newVertPos.find(path_max[0]);
                 assert(finder != newVertPos.end());
@@ -2098,7 +2180,9 @@ namespace FracCuts {
     
     double TriangleSoup::computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
                                           std::map<int, Eigen::RowVector2d>& newVertPos,
-                                          const std::map<int, int>& mergeVert, int maxIter) const
+                                          const std::map<int, int>& mergeVert,
+                                          const Eigen::RowVector2d& initMergedPos,
+                                          int maxIter) const
     {
         assert(triangles.size() && freeVert.size());
         
@@ -2151,7 +2235,7 @@ namespace FracCuts {
                         localV_rest.conservativeResize(localVI + 1, 3);
                         localV_rest.row(localVI) = V_rest.row(globalVI);
                         localV.conservativeResize(localVI + 1, 2);
-                        localV.row(localVI) = (V.row(globalVI) + V.row(mergeFinder->second)) / 2.0;//TODO: get init merged pos from input
+                        localV.row(localVI) = initMergedPos;
                         localF(localTriI, vI) = localVI;
                         globalVI2local[globalVI] = localVI;
                         

@@ -105,7 +105,8 @@ namespace FracCuts{
         
         void initRigidUV(void);
         
-        bool checkInversion(bool mute = false) const;
+        bool checkInversion(int triI, bool mute) const;
+        bool checkInversion(bool mute = false, const std::vector<int>& triangles = std::vector<int>()) const;
         
         void save(const std::string& filePath, const Eigen::MatrixXd& V, const Eigen::MatrixXi& F,
                   const Eigen::MatrixXd UV, const Eigen::MatrixXi& FUV = Eigen::MatrixXi()) const;
@@ -132,7 +133,9 @@ namespace FracCuts{
                                 const Eigen::RowVectorXd& mergedPos);
         
         // query vertex candidate
-        double computeLocalEwDec(int vI, double lambda_t, std::vector<int>& path, Eigen::MatrixXd& newVertPos) const;
+        double computeLocalEwDec(int vI, double lambda_t, std::vector<int>& path, Eigen::MatrixXd& newVertPos,
+                                 const std::vector<int>& incTris = std::vector<int>(),
+                                 const Eigen::RowVector2d& initMergedPos = Eigen::RowVector2d()) const;
         // query incident edge of a vertex candidate
         double computeLocalEDec(const std::pair<int, int>& edge,
             const std::map<std::pair<int, int>, int>& edge2Tri, const std::vector<std::set<int>>& vNeighbor,
@@ -140,7 +143,9 @@ namespace FracCuts{
         // minimize SD on the local stencil
         double computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
                                 std::map<int, Eigen::RowVector2d>& newVertPos,
-                                const std::map<int, int>& mergeVert = std::map<int, int>(), int maxIter = 100) const;
+                                const std::map<int, int>& mergeVert = std::map<int, int>(),
+                                const Eigen::RowVector2d& initMergedPos = Eigen::RowVector2d(),
+                                int maxIter = 100) const;
     };
     
 }

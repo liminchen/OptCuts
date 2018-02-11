@@ -546,6 +546,29 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     const double E_w = optimizer->getLastEnergyVal() +
                         (1.0 - energyParams[0]) * E_se / triSoup[channel_result]->virtualRadius;
                     std::cout << "E_w from " << lastE_w << " to " << E_w << std::endl;
+                    
+                    //DEBUG: dual problem
+                    // lambda will quickly go to 1 and stay as 1 till b is reached, which means it won't care about seam length for a long time, will this be fine?
+                    // then lambda goes down, but if it only changes a little bit everytime, split and merge will oscillate and E_SD will very slowly go up, what a bout other regularizers? or a varying kai according to expected nonincreasing E_w in next inner iteration?
+                    //  the oscillating might be because we don't have the feasible merged position computation so the merging choices are limited!
+                    // it would be meaningful to compare results once E_SD reaches b with the final result
+                    // triangle moving operation?
+                    // what about stopping condition, is the old E_w > lastE_w still necessary?
+                    // can consider R with distortion and seam length changes
+                    // for the dual problem formulation, it seems solving by min(E_SD*E_SE) or max(E_SD/E_SE) is also doable?
+//                    const double b = 5.0;
+//                    const double kai = 0.1;
+//                    const double E_SD = optimizer->getLastEnergyVal() / energyParams[0];
+//                    energyParams[0] = kai * (E_SD - b) + energyParams[0];
+//                    if(energyParams[0] > 1.0) {
+//                        energyParams[0] = 1.0;
+//                    }
+//                    else if(energyParams[0] <= 0.0) {
+//                        energyParams[0] = 1.0e-3;
+//                    }
+//                    std::cout << "E_SD = " << E_SD << ", b = " << b << std::endl;
+//                    std::cout << "new lambda = " << energyParams[0] << std::endl;
+                    
                     if(E_w > lastE_w) {
                         assert(fracThres < 0.0);
                         
@@ -595,7 +618,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     else {
                         // continue to split boundary
                         triSoup_backup = optimizer->getResult();
-                        lastE_w = E_w;
+                        lastE_w = E_w; // might need update for applying varying lambda
                     
                         homoTransFile << iterNum << std::endl;
                         lastStart = clock();
