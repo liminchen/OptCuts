@@ -460,6 +460,15 @@ namespace FracCuts {
                 fracTail.insert(cohE(cohI, 1));
             }
         }
+        // tails of initial seams doesn't count as fracture tails for propagation
+        for(int initSeamI = 0; initSeamI < initSeams.rows(); initSeamI++) {
+            if(initSeams(initSeamI, 0) == initSeams(initSeamI, 2)) {
+                fracTail.erase(initSeams(initSeamI, 0));
+            }
+            else if(initSeams(initSeamI, 1) == initSeams(initSeamI, 3)) {
+                fracTail.erase(initSeams(initSeamI, 1));
+            }
+        }
     }
     
     void TriangleSoup::updateFeatures(void)
@@ -877,8 +886,8 @@ namespace FracCuts {
                 assert(!propagate);
                 std::cout << "interior split E_dec = " << EwDec_max << std::endl;
                 cutPath(path_max, true, 1, newVertPos_max);
-                fracTail.insert(path_max[0]);
-                fracTail.insert(path_max[2]);
+//                fracTail.insert(path_max[0]);
+//                fracTail.insert(path_max[2]);
             }
             return true;
         }

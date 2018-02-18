@@ -63,7 +63,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/closed/cow_head.obj 0.025 16 2 test"
+            argument = "0 /Users/mincli/Downloads/meshes/closed/cow_head.obj 0.025 16 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -111,6 +111,10 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "0 /Users/mincli/Downloads/meshes/bimba.obj 0.025 1 0 test"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "0 cone2.0.obj 0.025 8 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
@@ -135,28 +139,28 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 bishop_part_f1000_ours.obj 0.99 1 0 test"
+            argument = "0 bishop_part_f1000_ours.obj 0.99 0 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 cat_ours.obj 0.99 1 0 test"
+            argument = "0 cat_ours.obj 0.99 0 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 bone_lowRes_noInputUV_ours.obj 0.99 1 0 test"
+            argument = "0 bone_lowRes_noInputUV_ours.obj 0.99 0 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 hand_1_i_f5000_ours.obj 0.99 1 0 test"
-            isEnabled = "YES">
+            argument = "0 hand_1_i_f5000_ours.obj 0.99 0 0 test"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "1 0 /Users/mincli/Desktop/output_FracCuts/cmH1000_tutte_0.2_8.0_modifiedSH/precondMtr_140"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "1 1 /Applications/XAMPP/xamppfiles/htdocs/expResults/results11"
-            isEnabled = "NO">
+            argument = "1 1 /Applications/XAMPP/xamppfiles/htdocs/expResults/results12"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "2 hand_1_i_f5000_Tutte.obj 2"
