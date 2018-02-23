@@ -732,13 +732,8 @@ namespace FracCuts {
         return modified;
     }
     
-    void TriangleSoup::resetSubOptInfo(void)
-    {
-        curFracTail = -1;
-    }
-    
     void TriangleSoup::querySplit(double lambda_t, bool propagate, bool splitInterior,
-                                  double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max)
+                                  double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max) const
     {
         const double filterExp_b = 0.8;
         const double filterExp_in = 0.8;
@@ -814,7 +809,7 @@ namespace FracCuts {
                 }
             }
             
-            resetSubOptInfo();
+//            curFracTail = -1;
         }
         else {
             // see whether fracture could be propagated from each fracture tail
@@ -2390,11 +2385,11 @@ namespace FracCuts {
         fracTail.erase(vI_boundary);
         if(!duplicateBoth) {
             fracTail.insert(vI_interior);
-            curFracTail = vI_interior;
+//            curFracTail = vI_interior;
         }
-        else {
-            curFracTail = -1;
-        }
+//        else {
+//            curFracTail = -1;
+//        }
         
         // duplicate vI_boundary
         std::vector<int> tri_toSep[2];

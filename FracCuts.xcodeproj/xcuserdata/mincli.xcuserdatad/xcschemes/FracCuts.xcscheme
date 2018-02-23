@@ -71,6 +71,10 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "0 /Users/mincli/Downloads/meshes/closed/sphere_uniRemesh.obj 0.025 1 0 test"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/needMoreTime/rgb_dragon_o_f8000.obj 0.025 4 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
@@ -103,7 +107,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/caesar1.obj 0.025 6 0 test"
+            argument = "0 /Users/mincli/Downloads/meshes/caesar1.obj 0.025 1 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -113,6 +117,10 @@
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/bimba.obj 0.025 1 0 test"
             isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 /Users/mincli/Downloads/meshes/planck_s1.obj 0.025 1 0 test"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 cone2.0.obj 0.025 8 0 test"
@@ -131,7 +139,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 cat.obj 0.025 8 0 test"
+            argument = "0 cat.obj 0.025 1 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -160,7 +168,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "1 1 /Applications/XAMPP/xamppfiles/htdocs/expResults/results12"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "2 hand_1_i_f5000_Tutte.obj 2"

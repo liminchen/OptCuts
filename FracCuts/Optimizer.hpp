@@ -77,7 +77,7 @@ namespace FracCuts {
         void computeLastEnergyVal(void);
         
         void getGradientVisual(Eigen::MatrixXd& arrowVec) const;
-        const TriangleSoup& getResult(void) const;
+        TriangleSoup& getResult(void);
         int getIterNum(void) const;
         int getTopoIter(void) const;
         void setRelGL2Tol(double p_relTol);

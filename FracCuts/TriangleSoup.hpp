@@ -58,7 +58,7 @@ namespace FracCuts{
         std::map<std::pair<int, int>, int> cohEIndex;
         
         std::set<int> fracTail;
-        int curFracTail;
+//        int curFracTail;
         double initSeamLen;
         
     public: // constructor
@@ -80,9 +80,8 @@ namespace FracCuts{
         
         bool separateTriangle(const Eigen::VectorXd& measure, double thres);
         bool splitVertex(const Eigen::VectorXd& measure, double thres);
-        void resetSubOptInfo(void);
         void querySplit(double lambda_t, bool propagate, bool splitInterior,
-                        double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max);
+                        double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max) const;
         bool splitEdge(double lambda_t, double EDecThres = 0.0, bool propagate = false, bool splitInterior = false);
         void queryMerge(double lambda,
                         double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max);

@@ -85,7 +85,7 @@ namespace FracCuts {
         computeEnergyVal(result, lastEnergyVal);
     }
     
-    const TriangleSoup& Optimizer::getResult(void) const {
+    TriangleSoup& Optimizer::getResult(void) {
         return result;
     }
     
