@@ -60,12 +60,13 @@ const std::string meshFolder = "/Users/mincli/Desktop/meshes/";
 igl::viewer::Viewer viewer;
 const int channel_initial = 0;
 const int channel_result = 1;
+const int channel_findExtrema = 2;
 int viewChannel = channel_result;
 bool viewUV = true; // view UV or 3D model
 double texScale = 1.0;
 bool showSeam = true;
 bool showBoundary = false;
-bool showDistortion = true;
+int showDistortion = 1; // 0: don't show; 1: SD energy value; 2: L2 stretch value;
 bool showTexture = true; // show checkerboard
 bool isLighting = false;
 bool showFracTail = true;
@@ -127,18 +128,32 @@ void updateViewerData_seam(const Eigen::MatrixXd& V)
 
 void updateViewerData_distortion(void)
 {
-    if(showDistortion) {
-        Eigen::VectorXd distortionPerElem;
-        energyTerms[0]->getEnergyValPerElem(*triSoup[viewChannel], distortionPerElem, true);
-//        dynamic_cast<FracCuts::SymStretchEnergy*>(energyTerms[0])->getDivGradPerElem(*triSoup[viewChannel], distortionPerElem);
-        Eigen::MatrixXd color_distortionVis;
-        FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 6.25);
-//        FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis,
-//            distortionPerElem.minCoeff(), distortionPerElem.maxCoeff());
-        viewer.data.set_colors(color_distortionVis);
-    }
-    else {
-        viewer.data.set_colors(Eigen::RowVector3d(1.0, 1.0, 0.0));
+    switch(showDistortion) {
+        case 1: { // show SD energy value
+            Eigen::VectorXd distortionPerElem;
+            energyTerms[0]->getEnergyValPerElem(*triSoup[viewChannel], distortionPerElem, true);
+    //        dynamic_cast<FracCuts::SymStretchEnergy*>(energyTerms[0])->getDivGradPerElem(*triSoup[viewChannel], distortionPerElem);
+            Eigen::MatrixXd color_distortionVis;
+            FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 6.25);
+    //        FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis,
+    //            distortionPerElem.minCoeff(), distortionPerElem.maxCoeff());
+            viewer.data.set_colors(color_distortionVis);
+            break;
+        }
+            
+        case 2: { // show L2 stretch value
+            Eigen::VectorXd l2StretchPerElem;
+            triSoup[viewChannel]->computeL2StretchPerElem(l2StretchPerElem);
+            Eigen::MatrixXd color_distortionVis;
+            FracCuts::IglUtils::mapScalarToColor(l2StretchPerElem, color_distortionVis, 1.0, 2.0);
+            viewer.data.set_colors(color_distortionVis);
+            break;
+        }
+    
+        case 0: {
+            viewer.data.set_colors(Eigen::RowVector3d(1.0, 1.0, 0.0));
+            break;
+        }
     }
 }
 
@@ -160,8 +175,8 @@ void updateViewerData(void)
         updateViewerData_seam(UV_vis);
         
         viewer.data.set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 1.0));
-        if(showFracTail && (viewChannel == channel_result)) {
-            for(const auto& tailVI : triSoup[channel_result]->fracTail) {
+        if(showFracTail) {
+            for(const auto& tailVI : triSoup[viewChannel]->fracTail) {
                 viewer.data.add_points(UV_vis.row(tailVI), Eigen::RowVector3d(0.0, 0.0, 1.0));
             }
         }
@@ -194,9 +209,9 @@ void updateViewerData(void)
         updateViewerData_seam(triSoup[viewChannel]->V_rest);
         
         viewer.data.set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 1.0));
-        if(showFracTail && (viewChannel == channel_result)) {
-            for(const auto& tailVI : triSoup[channel_result]->fracTail) {
-                viewer.data.add_points(triSoup[channel_result]->V_rest.row(tailVI), Eigen::RowVector3d(0.0, 0.0, 1.0));
+        if(showFracTail) {
+            for(const auto& tailVI : triSoup[viewChannel]->fracTail) {
+                viewer.data.add_points(triSoup[viewChannel]->V_rest.row(tailVI), Eigen::RowVector3d(0.0, 0.0, 1.0));
             }
         }
     }
@@ -368,7 +383,10 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
                 
             case 'd':
             case 'D': {
-                showDistortion = !showDistortion;
+                showDistortion++;
+                if(showDistortion > 2) {
+                    showDistortion = 0;
+                }
                 break;
             }
                 
@@ -589,8 +607,9 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
 //        const double E_w = optimizer->getLastEnergyVal() +
 //            (1.0 - energyParams[0]) * E_se;
     const double kai = 100.0;
+    const double kai2 = 1.0;
 //        const double kai = 0.5 / (lastE_w - E_w);
-    energyParams[0] = kai * (E_SD - upperBound_E_SD) + energyParams[0] / (1.0 - energyParams[0]);
+    energyParams[0] = kai * (E_SD - upperBound_E_SD) + kai2 * energyParams[0] / (1.0 - energyParams[0]);
     energyParams[0] /= (1.0 + energyParams[0]);
     assert(energyParams[0] < 1.0);
     if(energyParams[0] < minLambda) {
@@ -615,7 +634,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
             proceedOptimization();
         }
         
-        viewChannel = channel_result;
+//        viewChannel = channel_result;
         updateViewerData();
         
         FracCuts::SeparationEnergy *sepE = NULL;
@@ -626,7 +645,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
             }
         }
         
-        if(sepE != NULL) {
+        if(methodType == FracCuts::MT_AUTOCUTS) {
+            assert(sepE != NULL);
             if((iterNum < 10) || (iterNum % 10 == 0)) {
 //                saveScreenshot(outputFolderPath + std::to_string(iterNum) + ".png", 1.0);
                 saveInfo_postDraw = true;
@@ -634,38 +654,96 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
         }
         
         if(converged) {
-            if(sepE != NULL) {
-                saveInfo_postDraw = true;
-                infoName = "homotopy_" + std::to_string(sepE->getSigmaParam());
-            }
-            else {
-                saveInfo_postDraw = true;
-                infoName = std::to_string(iterNum);
-            }
-            
-            if(autoHomotopy && sepE && sepE->decreaseSigma()) {
-                // AutoCuts
-                homoTransFile << iterNum << std::endl;
-                optimizer->computeLastEnergyVal();
-                converged = false;
-            }
-            else {
-                if(fractureMode) {
-                    if(std::abs(optimizer->getLastEnergyVal() / energyParams[0] - upperBound_E_SD)
+            saveInfo_postDraw = true;
+            switch(methodType) {
+                case FracCuts::MT_AUTOCUTS: {
+                    infoName = "homotopy_" + std::to_string(sepE->getSigmaParam());
+                    if(autoHomotopy && sepE->decreaseSigma()) {
+                        homoTransFile << iterNum << std::endl;
+                        optimizer->computeLastEnergyVal();
+                        converged = false;
+                    }
+                    else {
+                        infoName = "finalResult";
+
+                        // perform exact solve
+//                        optimizer->setRelGL2Tol(1.0e-8);
+                        optimizer->setAllowEDecRelTol(false);
+                        converged = false;
+                        while(!converged) {
+                            proceedOptimization(1000);
+                        }
+                        secPast += difftime(time(NULL), lastStart_world);
+                        updateViewerData();
+                        
+                        optimization_on = false;
+                        viewer.core.is_animating = false;
+                        const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
+                        std::cout << "optimization converged, with " << timeUsed << "s." << std::endl;
+                        logFile << "optimization converged, with " << timeUsed << "s." << std::endl;
+                        homoTransFile.close();
+                        outerLoopFinished = true;
+                    }
+                    break;
+                }
+                    
+                case FracCuts::MT_GEOMIMG: {
+                    if(optimizer->getLastEnergyVal() / energyParams[0] - upperBound_E_SD
+                       < convTol_upperBound_E_SD)
+                    {
+                        logFile << "E_SD reaches user specified upperbound " << upperBound_E_SD << std::endl;
+                        
+                        infoName = "finalResult";
+                        // perform exact solve
+//                        optimizer->setRelGL2Tol(1.0e-10);
+                        optimizer->setAllowEDecRelTol(false);
+                        converged = false;
+                        while(!converged) {
+                            proceedOptimization(1000);
+                        }
+                        secPast += difftime(time(NULL), lastStart_world);
+                        updateViewerData();
+                        
+                        optimization_on = false;
+                        viewer.core.is_animating = false;
+                        const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
+                        const double timeUsed_frac = static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC;
+                        std::cout << "optimization converged, with " << timeUsed << "s, where " <<
+                        timeUsed_frac << "s is for fracture computation." << std::endl;
+                        logFile << "optimization converged, with " << timeUsed << "s, where " <<
+                        timeUsed_frac << "s is for fracture computation." << std::endl;
+                        homoTransFile.close();
+                        outerLoopFinished = true;
+                    }
+                    else {
+                        infoName = std::to_string(iterNum);
+                        
+                        // continue to make geometry image cuts
+                        homoTransFile << iterNum << std::endl;
+                        lastStart = clock();
+                        assert(optimizer->createFracture(fracThres, false, false));
+                        ticksPast += clock() - lastStart;
+                        converged = false;
+                    }
+                    break;
+                }
+                    
+                case FracCuts::MT_OURS: {
+                    infoName = std::to_string(iterNum);
+                    if(optimizer->getLastEnergyVal() / energyParams[0] - upperBound_E_SD
                        < convTol_upperBound_E_SD)
                     {
                         // save info once bound is reached for comparison
                         static bool saved = false;
                         if(!saved) {
                             saveScreenshot(outputFolderPath + "firstFeasible.png", 0.5, false, true);
-//                            triSoup[channel_result]->save(outputFolderPath + infoName + "_triSoup.obj");
+                            //                            triSoup[channel_result]->save(outputFolderPath + infoName + "_triSoup.obj");
                             triSoup[channel_result]->saveAsMesh(outputFolderPath + "firstFeasible_mesh.obj");
                             saveInfoForPresent("info_firstFeasible.txt");
                             saved = true;
                         }
                     }
                     
-                    // our method
                     double E_se; triSoup[channel_result]->computeSeamSparsity(E_se);
                     E_se /= triSoup[channel_result]->virtualRadius;
                     const double E_w = optimizer->getLastEnergyVal() +
@@ -685,7 +763,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                                 
                                 infoName = "finalResult";
                                 // perform exact solve
-    //                            optimizer->setRelGL2Tol(1.0e-10);
+                                //                            optimizer->setRelGL2Tol(1.0e-10);
                                 optimizer->setAllowEDecRelTol(false);
                                 //!! can recompute precondmtr if needed
                                 converged = false;
@@ -764,28 +842,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                             assert(0);
                         }
                     }
-                }
-                else {
-                    // AutoCuts or pure distortion minimization
-                    infoName = "finalResult";
-                    
-                    // perform exact solve
-//                    optimizer->setRelGL2Tol(1.0e-8);
-                    optimizer->setAllowEDecRelTol(false);
-                    converged = false;
-                    while(!converged) {
-                        proceedOptimization(1000);
-                    }
-                    secPast += difftime(time(NULL), lastStart_world);
-                    updateViewerData();
-                    
-                    optimization_on = false;
-                    viewer.core.is_animating = false;
-                    const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
-                    std::cout << "optimization converged, with " << timeUsed << "s." << std::endl;
-                    logFile << "optimization converged, with " << timeUsed << "s." << std::endl;
-                    homoTransFile.close();
-                    outerLoopFinished = true;
+                    break;
                 }
             }
         }
@@ -925,21 +982,28 @@ int main(int argc, char *argv[])
         std::cout << "Use default method: ours." << std::endl;
     }
     bool startWithTriSoup = (methodType == FracCuts::MT_AUTOCUTS);
+    std::string startDS;
     switch (methodType) {
         case FracCuts::MT_OURS:
+            assert(lambda < 1.0);
+            startDS = "Ours";
+            break;
+            
         case FracCuts::MT_GEOMIMG:
             assert(lambda < 1.0);
+            startDS = "GeomImg";
             break;
             
         case FracCuts::MT_AUTOCUTS:
             assert(lambda > 0.0);
             assert(delta > 0.0);
+            startDS = "AutoCuts";
             break;
             
         default:
+            //!!!TODO: pure SD
             break;
     }
-    const std::string startDS = (startWithTriSoup ? "soup" : ((lambda == 0.0) ? "SD": "frac"));
     
     std::string folderTail = "";
     if(argc > 6) {
@@ -1070,6 +1134,7 @@ int main(int argc, char *argv[])
     ticksPast += clock() - lastStart;
     triSoup.emplace_back(&optimizer->getResult());
     triSoup_backup = optimizer->getResult();
+    triSoup.emplace_back(&optimizer->getData_findExtrema()); // for visualizing UV map for finding extrema
     if((lambda > 0.0) && (!startWithTriSoup)) {
         // fracture mode
         fractureMode = true;

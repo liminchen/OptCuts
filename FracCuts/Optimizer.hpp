@@ -36,6 +36,7 @@ namespace FracCuts {
         int topoIter;
         double relGL2Tol, energyParamSum;
         TriangleSoup result; // intermediate results of each iteration
+        TriangleSoup data_findExtrema; // intermediate results for deciding the cuts in each topology step
         // constant precondition matrix for solving the linear system for search directions
         Eigen::SparseMatrix<double> precondMtr;
         Eigen::VectorXi I_mtr, J_mtr; // triplet representation
@@ -78,6 +79,7 @@ namespace FracCuts {
         
         void getGradientVisual(Eigen::MatrixXd& arrowVec) const;
         TriangleSoup& getResult(void);
+        const TriangleSoup& getData_findExtrema(void) const;
         int getIterNum(void) const;
         int getTopoIter(void) const;
         void setRelGL2Tol(double p_relTol);

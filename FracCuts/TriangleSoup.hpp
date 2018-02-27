@@ -91,7 +91,7 @@ namespace FracCuts{
         void onePointCut(int vI = 0);
         void highCurvOnePointCut(void);
         void farthestPointCut(void);
-        void geomImgCut(void);
+        void geomImgCut(TriangleSoup& data_findExtrema);
         void cutPath(std::vector<int> path, bool makeCoh = false, int changePos = 0, const Eigen::MatrixXd& newVertPos = Eigen::MatrixXd());
         
         void computeSeamScore(Eigen::VectorXd& seamScore) const;

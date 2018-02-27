@@ -89,6 +89,10 @@ namespace FracCuts {
         return result;
     }
     
+    const TriangleSoup& Optimizer::getData_findExtrema(void) const {
+        return data_findExtrema;
+    }
+    
     int Optimizer::getIterNum(void) const {
         return globalIterNum;
     }
@@ -135,6 +139,7 @@ namespace FracCuts {
         
         lastEDec = 0.0;
         result = data0;
+        data_findExtrema = data0;
         updateTargetGRes();
         computeEnergyVal(result, lastEnergyVal);
         if(!mute) {
@@ -319,6 +324,7 @@ namespace FracCuts {
         bool isMerge = false;
         switch(methodType) {
             case MT_OURS: {
+                data_findExtrema = result;
                 switch(propType) {
                     case 0: // initiation
                         changed = result.splitOrMerge(1.0 - energyParams[0], stressThres, false, allowInSplit, isMerge);
@@ -337,7 +343,7 @@ namespace FracCuts {
             }
                 
             case MT_GEOMIMG:
-                result.geomImgCut();
+                result.geomImgCut(data_findExtrema);
                 allowPropagate = false;
                 changed = true;
                 break;

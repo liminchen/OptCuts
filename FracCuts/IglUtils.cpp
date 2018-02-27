@@ -287,8 +287,13 @@ namespace FracCuts {
         for(int elemI = 0; elemI < scalar.size(); elemI++)
         {
 //            getColor(scalar[elemI], color.row(elemI).data(), 0.0, upperBound);
-            const double s = 0.8 * std::max(0.0, std::min((scalar[elemI] - lowerBound) / range, 1.0));
-            color.row(elemI) = Eigen::RowVector3d(s, 0.8 - s, 0.0);
+            const double s = 0.8 * std::max(-1.0, std::min((scalar[elemI] - lowerBound) / range, 1.0));
+            if(s >= 0.0) {
+                color.row(elemI) = Eigen::RowVector3d(s, 0.8 - s, 0.0);
+            }
+            else {
+                color.row(elemI) = Eigen::RowVector3d(0.0, 0.8 + s, -s);
+            }
         }
     }
     

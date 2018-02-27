@@ -1340,34 +1340,61 @@ namespace FracCuts {
         }
     }
     
-    void TriangleSoup::geomImgCut(void)
+    void TriangleSoup::geomImgCut(TriangleSoup& data_findExtrema)
     {
-        // find extremal point (interior)
+        // compute UV map for find extremal point (interior)
+        data_findExtrema = *this;
+        const int mapType = 0; // 0: SD, 1: harmonic (uniform), 2: harmonic (cotangent), 3: harmonic (MVC)
+        if(mapType) {
+            Eigen::VectorXi bnd;
+            igl::boundary_loop(this->F, bnd); // Find the open boundary
+            assert(bnd.size());
+            //TODO: ensure it doesn't have multiple boundaries? or multi-components?
+            
+            // Map the boundary to a circle, preserving edge proportions
+            Eigen::MatrixXd bnd_uv;
+            //            igl::map_vertices_to_circle(V, bnd, bnd_uv);
+            FracCuts::IglUtils::map_vertices_to_circle(this->V_rest, bnd, bnd_uv);
+            
+            Eigen::MatrixXd UV_Tutte;
+            
+            switch (mapType) {
+                case 1: {
+                    // Harmonic map with uniform weights
+                    Eigen::SparseMatrix<double> A, M;
+                    FracCuts::IglUtils::computeUniformLaplacian(this->F, A);
+                    igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
+                    break;
+                }
+                    
+                case 2: {
+                    // Harmonic parametrization
+                    igl::harmonic(V, F, bnd, bnd_uv, 1, UV_Tutte);
+                    break;
+                }
+                    
+                case 3: {
+                    // Shape Preserving Mesh Parameterization
+                    // (Harmonic map with MVC weights)
+                    Eigen::SparseMatrix<double> A;
+                    FracCuts::IglUtils::computeMVCMtr(this->V_rest, this->F, A);
+                    FracCuts::IglUtils::fixedBoundaryParam_MVC(A, bnd, bnd_uv, UV_Tutte);
+                    break;
+                }
+                    
+                default:
+                    assert(0 && "Unknown map specified for finding Geometry Image cuts");
+                    break;
+            }
+            
+            
+            data_findExtrema.V = UV_Tutte;
+        }
         
-        Eigen::VectorXi bnd;
-        igl::boundary_loop(this->F, bnd); // Find the open boundary
-        assert(bnd.size());
-        //TODO: ensure it doesn't have multiple boundaries? or multi-components?
-        
-        // Map the boundary to a circle, preserving edge proportions
-        Eigen::MatrixXd bnd_uv;
-        //            igl::map_vertices_to_circle(V, bnd, bnd_uv);
-        FracCuts::IglUtils::map_vertices_to_circle(this->V_rest, bnd, bnd_uv);
-        
-        Eigen::MatrixXd UV_Tutte;
-        
-//        // Harmonic parametrization
-//        igl::harmonic(V, F, bnd, bnd_uv, 1, UV_Tutte);
-        
-        // Harmonic map with uniform weights
-        Eigen::SparseMatrix<double> A, M;
-//        FracCuts::IglUtils::computeUniformLaplacian(this->F, A);
-//        igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
-        FracCuts::IglUtils::computeMVCMtr(this->V_rest, this->F, A);
-        FracCuts::IglUtils::fixedBoundaryParam_MVC(A, bnd, bnd_uv, UV_Tutte);
-        
+        // pick the vertex with largest L2 stretch
+        int vI_extremal = -1;
         Eigen::VectorXd L2stretchPerElem, vertScores;
-        TriangleSoup(this->V_rest, this->F, UV_Tutte, this->F, 0, 0.0).computeL2StretchPerElem(L2stretchPerElem);
+        data_findExtrema.computeL2StretchPerElem(L2stretchPerElem);
         vertScores.resize(V_rest.rows());
         vertScores.setZero();
         for(int triI = 0; triI < F.rows(); triI++) {
@@ -1377,7 +1404,6 @@ namespace FracCuts {
                 }
             }
         }
-        int vI_extremal = -1;
         double extremal = 0.0;
         for(int vI = 0; vI < vertScores.size(); vI++) {
             if(!isBoundaryVert(edge2Tri, vNeighbor, vI)) {
@@ -1388,22 +1414,6 @@ namespace FracCuts {
             }
         }
         assert(vI_extremal >= 0);
-        
-//        // use SD energy
-//        Eigen::VectorXd energyValPerVert;
-//        SymStretchEnergy SD;
-//        SD.getMaxUnweightedEnergyValPerVert(*this, energyValPerVert);
-//        int vI_extremal = -1;
-//        double maxE_vert = 0.0;
-//        for(int vI = 0; vI < energyValPerVert.size(); vI++) {
-//            if(!isBoundaryVert(edge2Tri, vNeighbor, vI)) {
-//                if(energyValPerVert[vI] > maxE_vert) {
-//                    vI_extremal = vI;
-//                    maxE_vert = energyValPerVert[vI];
-//                }
-//            }
-//        }
-//        assert(vI_extremal >= 0);
         
         // construct mesh graph
         assert(vNeighbor.size() == V_rest.rows());
