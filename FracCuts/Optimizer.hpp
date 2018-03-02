@@ -52,6 +52,8 @@ namespace FracCuts {
         std::vector<Eigen::VectorXd> gradient_ET;
         std::vector<double> energyVal_ET;
         
+        std::ostringstream buffer_energyValPerIter;
+        std::ostringstream buffer_gradientPerIter;
         std::ofstream file_energyValPerIter;
         std::ofstream file_gradientPerIter;
         
@@ -85,6 +87,11 @@ namespace FracCuts {
         void setRelGL2Tol(double p_relTol);
         void setAllowEDecRelTol(bool p_allowEDecRelTol);
         
+        void flushEnergyFileOutput(void);
+        void flushGradFileOutput(void);
+        void clearEnergyFileOutputBuffer(void);
+        void clearGradFileOutputBuffer(void);
+        
     protected: // helper functions
         // solve for new configuration in the next iteration
         //NOTE: must compute current gradient first
@@ -104,6 +111,7 @@ namespace FracCuts {
         void initStepSize(const TriangleSoup& data, double& stepSize) const;
         
         void writeEnergyValToFile(bool flush);
+        void writeGradL2NormToFile(bool flush);
         
     public: // data access
         double getLastEnergyVal(void) const;

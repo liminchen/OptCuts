@@ -684,6 +684,9 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         homoTransFile.close();
                         outerLoopFinished = true;
                     }
+                    //!!!TODO: energy and grad file output!
+                    // flush
+                    // decrease delta will change E_s thus E_w
                     break;
                 }
                     
@@ -725,6 +728,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         ticksPast += clock() - lastStart;
                         converged = false;
                     }
+                    optimizer->flushEnergyFileOutput();
+                    optimizer->flushGradFileOutput();
                     break;
                 }
                     
@@ -754,6 +759,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         assert(fracThres < 0.0);
                         
                         // roll back
+                        optimizer->clearEnergyFileOutputBuffer();
+                        optimizer->clearGradFileOutputBuffer();
                         optimizer->setConfig(triSoup_backup);
                         
                         if(lastFractureIn) {
@@ -772,6 +779,9 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                                 }
                                 secPast += difftime(time(NULL), lastStart_world);
                                 updateViewerData();
+                                
+                                optimizer->flushEnergyFileOutput();
+                                optimizer->flushGradFileOutput();
                                 
                                 optimization_on = false;
                                 viewer.core.is_animating = false;
@@ -820,6 +830,9 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         }
                     }
                     else {
+                        optimizer->flushEnergyFileOutput();
+                        optimizer->flushGradFileOutput();
+                        
                         // continue to split boundary
                         updateLambda_stationaryV();
                         

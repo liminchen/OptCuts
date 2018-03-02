@@ -156,17 +156,13 @@ namespace FracCuts {
             const double sqn_g = gradient.squaredNorm();
             if(!mute) {
                 std::cout << "||gradient||^2 = " << sqn_g << ", targetGRes = " << targetGRes << std::endl;
-                file_gradientPerIter << sqn_g;
-                for(int eI = 0; eI < energyTerms.size(); eI++) {
-                    file_gradientPerIter << " " << gradient_ET[eI].squaredNorm();
-                }
-                file_gradientPerIter << std::endl;
+                writeGradL2NormToFile(false);
             }
             if(sqn_g < targetGRes) {
                 // converged
                 lastEDec = 0.0;
                 if(!mute) {
-                    writeEnergyValToFile(true);
+                    writeEnergyValToFile(false);
                 }
                 globalIterNum++;
                 return true;
@@ -509,7 +505,7 @@ namespace FracCuts {
             std::cout << "stepLen = " << (stepSize * searchDir).squaredNorm() << std::endl;
             std::cout << "E_cur_smooth = " << testingE << std::endl;
             
-            writeEnergyValToFile(true);
+            writeEnergyValToFile(false);
         }
         
         return stopped;
@@ -558,21 +554,55 @@ namespace FracCuts {
         E_se /= result.virtualRadius;
         
         if(fractureMode) {
-            file_energyValPerIter << lastEnergyVal + (1.0 - energyParams[0]) * E_se;
+            buffer_energyValPerIter << lastEnergyVal + (1.0 - energyParams[0]) * E_se;
         }
         else {
-            file_energyValPerIter << lastEnergyVal;
+            buffer_energyValPerIter << lastEnergyVal;
         }
         
         for(int eI = 0; eI < energyTerms.size(); eI++) {
-            file_energyValPerIter << " " << energyVal_ET[eI];
+            buffer_energyValPerIter << " " << energyVal_ET[eI];
         }
         
-        file_energyValPerIter << " " << E_se << "\n";
+        buffer_energyValPerIter << " " << E_se << " " << energyParams[0] << "\n";
         
         if(flush) {
-            file_energyValPerIter.flush();
+            flushEnergyFileOutput();
         }
+    }
+    void Optimizer::writeGradL2NormToFile(bool flush)
+    {
+        buffer_gradientPerIter << gradient.squaredNorm();
+        for(int eI = 0; eI < energyTerms.size(); eI++) {
+            buffer_gradientPerIter << " " << gradient_ET[eI].squaredNorm();
+        }
+        buffer_gradientPerIter << "\n";
+        
+        if(flush) {
+            flushGradFileOutput();
+        }
+    }
+    void Optimizer::flushEnergyFileOutput(void)
+    {
+        file_energyValPerIter << buffer_energyValPerIter.str();
+        file_energyValPerIter.flush();
+        clearEnergyFileOutputBuffer();
+    }
+    void Optimizer::flushGradFileOutput(void)
+    {
+        file_gradientPerIter << buffer_gradientPerIter.str();
+        file_gradientPerIter.flush();
+        clearGradFileOutputBuffer();
+    }
+    void Optimizer::clearEnergyFileOutputBuffer(void)
+    {
+        buffer_energyValPerIter.str("");
+        buffer_energyValPerIter.clear();
+    }
+    void Optimizer::clearGradFileOutputBuffer(void)
+    {
+        buffer_gradientPerIter.str("");
+        buffer_gradientPerIter.clear();
     }
     
     void Optimizer::computeEnergyVal(const TriangleSoup& data, double& energyVal)
