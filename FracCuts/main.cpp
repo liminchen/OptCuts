@@ -1136,6 +1136,7 @@ int main(int argc, char *argv[])
     triSoup_backup = optimizer->getResult();
     triSoup.emplace_back(&optimizer->getData_findExtrema()); // for visualizing UV map for finding extrema
     if((lambda > 0.0) && (!startWithTriSoup)) {
+        //!!!TODO: put into switch(methodType)
         // fracture mode
         fractureMode = true;
         

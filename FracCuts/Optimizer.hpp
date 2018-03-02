@@ -103,6 +103,8 @@ namespace FracCuts {
         
         void initStepSize(const TriangleSoup& data, double& stepSize) const;
         
+        void writeEnergyValToFile(bool flush);
+        
     public: // data access
         double getLastEnergyVal(void) const;
     };

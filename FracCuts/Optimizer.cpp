@@ -143,19 +143,7 @@ namespace FracCuts {
         updateTargetGRes();
         computeEnergyVal(result, lastEnergyVal);
         if(!mute) {
-            double seamSparsity;
-            result.computeSeamSparsity(seamSparsity, !fractureMode);
-            seamSparsity /= result.virtualRadius;
-            if(fractureMode) {
-                file_energyValPerIter << lastEnergyVal + (1.0 - energyParams[0]) * seamSparsity;
-            }
-            else {
-                file_energyValPerIter << lastEnergyVal;
-            }
-            for(int eI = 0; eI < energyTerms.size(); eI++) {
-                file_energyValPerIter << " " << energyVal_ET[eI];
-            }
-            file_energyValPerIter << " " << seamSparsity << std::endl;
+            writeEnergyValToFile(true);
             std::cout << "E_initial = " << lastEnergyVal << std::endl;
         }
     }
@@ -178,19 +166,7 @@ namespace FracCuts {
                 // converged
                 lastEDec = 0.0;
                 if(!mute) {
-                    double seamSparsity;
-                    result.computeSeamSparsity(seamSparsity, !fractureMode);
-                    seamSparsity /= result.virtualRadius;
-                    if(fractureMode) {
-                        file_energyValPerIter << lastEnergyVal + (1.0 - energyParams[0]) * seamSparsity;
-                    }
-                    else {
-                        file_energyValPerIter << lastEnergyVal;
-                    }
-                    for(int eI = 0; eI < energyTerms.size(); eI++) {
-                        file_energyValPerIter << " " << energyVal_ET[eI];
-                    }
-                    file_energyValPerIter << " " << seamSparsity << std::endl;
+                    writeEnergyValToFile(true);
                 }
                 globalIterNum++;
                 return true;
@@ -533,19 +509,7 @@ namespace FracCuts {
             std::cout << "stepLen = " << (stepSize * searchDir).squaredNorm() << std::endl;
             std::cout << "E_cur_smooth = " << testingE << std::endl;
             
-            double seamSparsity;
-            result.computeSeamSparsity(seamSparsity, !fractureMode);
-            seamSparsity /= result.virtualRadius;
-            if(fractureMode) {
-                file_energyValPerIter << lastEnergyVal + (1.0 - energyParams[0]) * seamSparsity;
-            }
-            else {
-                file_energyValPerIter << lastEnergyVal;
-            }
-            for(int eI = 0; eI < energyTerms.size(); eI++) {
-                file_energyValPerIter << " " << energyVal_ET[eI];
-            }
-            file_energyValPerIter << " " << seamSparsity << std::endl;
+            writeEnergyValToFile(true);
         }
         
         return stopped;
@@ -584,6 +548,30 @@ namespace FracCuts {
     {
         for(int eI = 0; eI < energyTerms.size(); eI++) {
             energyTerms[eI]->initStepSize(data, searchDir, stepSize);
+        }
+    }
+    
+    void Optimizer::writeEnergyValToFile(bool flush)
+    {
+        double E_se;
+        result.computeSeamSparsity(E_se, !fractureMode);
+        E_se /= result.virtualRadius;
+        
+        if(fractureMode) {
+            file_energyValPerIter << lastEnergyVal + (1.0 - energyParams[0]) * E_se;
+        }
+        else {
+            file_energyValPerIter << lastEnergyVal;
+        }
+        
+        for(int eI = 0; eI < energyTerms.size(); eI++) {
+            file_energyValPerIter << " " << energyVal_ET[eI];
+        }
+        
+        file_energyValPerIter << " " << E_se << "\n";
+        
+        if(flush) {
+            file_energyValPerIter.flush();
         }
     }
     
