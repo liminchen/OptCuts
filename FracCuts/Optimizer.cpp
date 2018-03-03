@@ -161,9 +161,6 @@ namespace FracCuts {
             if(sqn_g < targetGRes) {
                 // converged
                 lastEDec = 0.0;
-                if(!mute) {
-                    writeEnergyValToFile(false);
-                }
                 globalIterNum++;
                 return true;
             }
@@ -208,8 +205,10 @@ namespace FracCuts {
         }
     }
     
-    void Optimizer::setConfig(const TriangleSoup& config)
+    void Optimizer::setConfig(const TriangleSoup& config, int iterNum, int p_topoIter)
     {
+        topoIter = p_topoIter;
+        globalIterNum = iterNum;
         result = config; //!!! is it able to copy all?
         
         updateTargetGRes();
@@ -326,10 +325,16 @@ namespace FracCuts {
         }
 //        logFile << result.V.rows() << std::endl;
         if(changed) {
+            // In fact currently it will always change
+            // because we are doing it anyway and roll back
+            // if it increase E_w
 //            logFile << result.F << std::endl; //DEBUG
 //            logFile << result.cohE << std::endl; //DEBUG
             
             updateEnergyData();
+            if((!mute) && (propType == 0)) {
+                writeEnergyValToFile(false);
+            }
             
             if(allowPropagate && (propType == 0)) {
 //                solve(1);
@@ -505,7 +510,9 @@ namespace FracCuts {
             std::cout << "stepLen = " << (stepSize * searchDir).squaredNorm() << std::endl;
             std::cout << "E_cur_smooth = " << testingE << std::endl;
             
-            writeEnergyValToFile(false);
+            if(!stopped) {
+                writeEnergyValToFile(false);
+            }
         }
         
         return stopped;

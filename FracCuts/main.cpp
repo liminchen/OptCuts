@@ -37,6 +37,10 @@ std::vector<FracCuts::Energy*> energyTerms;
 std::vector<double> energyParams;
 bool optimization_on = false;
 int iterNum = 0;
+int iterNum_lastTopo = 0;
+int iterAmt_rollBack = 0;
+int iterAmt_rollBack_topo = 0;
+int iterNum_backUp = 0;
 bool converged = false;
 bool autoHomotopy = true;
 std::ofstream homoTransFile;
@@ -276,7 +280,8 @@ void saveInfoForPresent(const std::string fileName = "info.txt")
     file << vertAmt_input << " " <<
         triSoup[channel_initial]->F.rows() << std::endl;
     
-    file << iterNum << " " << optimizer->getTopoIter() << std::endl;
+    file << iterNum << " " << optimizer->getTopoIter() << " "
+        << iterAmt_rollBack << " " << iterAmt_rollBack_topo << std::endl;
     
     file << static_cast<double>(ticksPast) / CLOCKS_PER_SEC << " " <<
         static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC << " " <<
@@ -761,7 +766,10 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         // roll back
                         optimizer->clearEnergyFileOutputBuffer();
                         optimizer->clearGradFileOutputBuffer();
-                        optimizer->setConfig(triSoup_backup);
+                        optimizer->setConfig(triSoup_backup, iterNum_backUp, optimizer->getTopoIter() - 1);
+                        iterAmt_rollBack += iterNum - iterNum_backUp;
+                        iterNum = iterNum_backUp;
+                        iterAmt_rollBack_topo++;
                         
                         if(lastFractureIn) {
                             if(!updateLambda_stationaryV(false, true)) {
@@ -804,7 +812,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                                 lastE_w = optimizer->getLastEnergyVal() +
                                     (1.0 - energyParams[0]) * lastE_se;
                                 
-                                homoTransFile << iterNum << std::endl;
+                                iterNum_lastTopo = iterNum;
                                 lastStart = clock();
                                 if(optimizer->createFracture(fracThres, false, !altBase)) {
                                     lastFractureIn = false;
@@ -821,7 +829,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                             // last topology operation is boundary split,
                             // roll back and try interior split
                             saveInfo_postDraw = false;
-                            homoTransFile << iterNum << std::endl;
+                            iterNum_lastTopo = iterNum;
                             lastStart = clock();
                             optimizer->createFracture(fracThres, false, !altBase, true);
                             lastFractureIn = true;
@@ -832,18 +840,20 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     else {
                         optimizer->flushEnergyFileOutput();
                         optimizer->flushGradFileOutput();
+                        homoTransFile << iterNum_lastTopo << std::endl;
                         
                         // continue to split boundary
                         updateLambda_stationaryV();
                         
                         triSoup_backup = optimizer->getResult();
+                        iterNum_backUp = iterNum;
                         triSoup[channel_result]->computeSeamSparsity(lastE_se);
                         lastE_se /= triSoup[channel_result]->virtualRadius;
                         lastE_SD = optimizer->getLastEnergyVal() / energyParams[0];
                         lastE_w = optimizer->getLastEnergyVal() +
                             (1.0 - energyParams[0]) * lastE_se;
-                    
-                        homoTransFile << iterNum << std::endl;
+                        
+                        iterNum_lastTopo = iterNum;
                         lastStart = clock();
                         if(optimizer->createFracture(fracThres, false, !altBase)) {
                             lastFractureIn = false;
