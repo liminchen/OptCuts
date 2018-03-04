@@ -576,6 +576,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
             return false;
         }
     }
+    // momentum canceling:
     if(E_SD < upperBound_E_SD) {
 //        if(checkConvergence) {
 //            if(upperBound_E_SD - E_SD < 5.0e-3) {
@@ -607,6 +608,10 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
         }
     }
     
+//    if(((E_SD < lastE_SD) && (E_SD < upperBound_E_SD)) ||
+//       ((E_SD > lastE_SD) && (E_SD > upperBound_E_SD)) ||
+//       checkConvergence)
+//    {
 //        double E_se; triSoup[channel_result]->computeSeamSparsity(E_se);
 //    E_se /= triSoup[channel_result]->virtualRadius;
 //        const double E_w = optimizer->getLastEnergyVal() +
@@ -624,6 +629,10 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
     
     logFile << "E_SD = " << E_SD << ", b = " << upperBound_E_SD << ", new lambda = " << energyParams[0] << std::endl;
     return true;
+//    }
+//    else {
+//        return false; // not necessary now
+//    }
 }
 
 bool preDrawFunc(igl::viewer::Viewer& viewer)

@@ -1681,6 +1681,27 @@ namespace FracCuts {
         stretch_l2 = std::sqrt(stretch_l2);
         stretch_shear /= surfaceArea;
         stretch_shear = std::sqrt(stretch_shear);
+        
+        double surfaceArea_UV = 0.0;
+        for(int triI = 0; triI < F.rows(); triI++) {
+            const Eigen::Vector3i& triVInd = F.row(triI);
+            
+            const Eigen::Vector2d& U1 = V.row(triVInd[0]);
+            const Eigen::Vector2d& U2 = V.row(triVInd[1]);
+            const Eigen::Vector2d& U3 = V.row(triVInd[2]);
+            
+            const Eigen::Vector2d U2m1 = U2 - U1;
+            const Eigen::Vector2d U3m1 = U3 - U1;
+            
+            surfaceArea_UV += 0.5 * (U2m1[0] * U3m1[1] - U2m1[1] * U3m1[0]);
+        }
+        
+        // area scaling:
+        const double scaleFactor = std::sqrt(surfaceArea_UV / surfaceArea);
+        stretch_l2 *= scaleFactor;
+        stretch_inf *= scaleFactor;
+        compress_inf *= scaleFactor; // not meaningful now...
+        // stretch_shear won't be affected by area scaling
     }
     void TriangleSoup::outputStandardStretch(std::ofstream& file) const
     {
