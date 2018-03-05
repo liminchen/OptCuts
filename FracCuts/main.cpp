@@ -55,6 +55,7 @@ double lastE_SD = 0.0;
 double lastE_se = 0.0;
 const double upperBound_E_SD = 4.05;
 const double convTol_upperBound_E_SD = 1.0e-3; //TODO!!! related to avg edge len?
+//double criticalLambda_boundaryOpt, criticalLambda_interiorOpt;
 
 std::ofstream logFile;
 std::string outputFolderPath = "/Users/mincli/Desktop/output_FracCuts/";
@@ -519,79 +520,56 @@ bool postDrawFunc(igl::viewer::Viewer& viewer)
     return false;
 }
 
-//void computeCriticalLambda_merge(double& CL_merge)
-//{
-//    double E_se_old; triSoup[channel_result]->computeSeamSparsity(E_se_old);
-//    E_se_old /= triSoup[channel_result]->virtualRadius;
-//    const double E_SD_old = optimizer->getLastEnergyVal() / energyParams[0];
-//    FracCuts::TriangleSoup triSoup_old = optimizer->getResult();
-//    optimizer->createFracture(fracThres, 2, false, false);
-//    
-//    bool converged_old = converged;
-//    converged = false;
-//    while(!converged) {
-//        proceedOptimization(100);
-//    }
-//    converged = converged_old;
-//    //!!! iter number backup?
-//    
-//    double E_se; triSoup[channel_result]->computeSeamSparsity(E_se);
-//    E_se /= triSoup[channel_result]->virtualRadius;
-//    const double E_SD = optimizer->getLastEnergyVal() / energyParams[0];
-//    CL_merge = (E_SD - E_SD_old) / (E_se_old - E_se + E_SD - E_SD_old);
-//    
-//    optimizer->setConfig(triSoup_old);
-//}
-
-//void computeNextLargerE_SD(double& nextLargerE_SD)
-//{
-//    //!!! count time!
-//    const double E_SD_old = optimizer->getLastEnergyVal() / energyParams[0];
-//    FracCuts::TriangleSoup triSoup_old = optimizer->getResult();
-//    
-//    optimizer->getResult().mergeEdge(0.0, fracThres);
-//    optimizer->updateEnergyData();
-//    
-//    bool converged_old = converged;
-//    converged = false;
-//    while(!converged) {
-//        proceedOptimization(100);
-//    }
-//    converged = converged_old;
-//    //!!! iter number backup?
-//    
-//    nextLargerE_SD = optimizer->getLastEnergyVal() / energyParams[0];
-//    
-//    optimizer->setConfig(triSoup_old);
-//}
-
 bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence = false)
 {
     static const double minLambda = 1.0e-3;
     
+    static bool firstReach = true;
+    static bool leaveFirstReach = false;
+    static double E_se_firstReach;
+    static const double eps_E_se = 1.0e-3 / triSoup[channel_result]->virtualRadius *
+        igl::avg_edge_length(triSoup[channel_result]->V_rest, triSoup[channel_result]->F);
+    
     const double E_SD = optimizer->getLastEnergyVal() / energyParams[0];
+    double E_se; triSoup[channel_result]->computeSeamSparsity(E_se);
+    E_se /= triSoup[channel_result]->virtualRadius;
+    
     if(checkConvergence) {
         if(std::abs(upperBound_E_SD - E_SD) < convTol_upperBound_E_SD) {
             logFile << "converged at E_SD = " << E_SD << ", b = " << upperBound_E_SD << std::endl;
             return false;
         }
+        
+        if(leaveFirstReach) {
+            // after bound is first reached,
+            // keep a record of the current best feasible E_se and
+            // use it to detect oscillation
+            static double E_se_curBestFeasible = __DBL_MAX__;
+            static int lastStationaryIterNum = 0;
+            
+            if(E_SD < upperBound_E_SD) {
+                // a feasible stationary
+                if(iterNum != lastStationaryIterNum) {
+                    // not a roll back config
+                    if(std::abs(E_se - E_se_curBestFeasible) < eps_E_se) {
+                        // arrive at the best feasible config again
+                        logFile << "converged at E_SD = " << E_SD << ", b = " << upperBound_E_SD << std::endl;
+                        return false;
+                    }
+                    else if(E_se < E_se_curBestFeasible) {
+                        E_se_curBestFeasible = E_se;
+                    }
+                }
+            }
+            lastStationaryIterNum = iterNum;
+        }
     }
+    
     // momentum canceling:
     if(E_SD < upperBound_E_SD) {
-//        if(checkConvergence) {
-//            if(upperBound_E_SD - E_SD < 5.0e-3) {
-//                double nextLargerE_SD = 0.0;
-//                computeNextLargerE_SD(nextLargerE_SD);
-//                if(nextLargerE_SD > upperBound_E_SD) {
-//                    logFile << "converged at E_SD = " << E_SD << ", b = " << upperBound_E_SD << ", nextLarge = " << nextLargerE_SD << std::endl;
-//                    return false;
-//                }
-//            }
-//        }
-        
-        static bool firstReach = true;
         if(firstReach) {
             firstReach = false;
+            E_se_firstReach = E_se;
             if(cancelMomentum) {
                 double E_se; triSoup[channel_result]->computeSeamSparsity(E_se);
                 E_se /= triSoup[channel_result]->virtualRadius;
@@ -608,6 +586,14 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
         }
     }
     
+    if((!leaveFirstReach) && (!firstReach)) {
+        // if first feasible is reached,
+        // check whether it has left the config
+        if(std::abs(E_se_firstReach - E_se) > eps_E_se) {
+            leaveFirstReach = true;
+        }
+    }
+    
 //    if(((E_SD < lastE_SD) && (E_SD < upperBound_E_SD)) ||
 //       ((E_SD > lastE_SD) && (E_SD > upperBound_E_SD)) ||
 //       checkConvergence)
@@ -616,11 +602,16 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
 //    E_se /= triSoup[channel_result]->virtualRadius;
 //        const double E_w = optimizer->getLastEnergyVal() +
 //            (1.0 - energyParams[0]) * E_se;
-    const double kai = 100.0;
+    const double kai = 1000.0;
     const double kai2 = 1.0;
 //        const double kai = 0.5 / (lastE_w - E_w);
-    energyParams[0] = kai * (E_SD - upperBound_E_SD) + kai2 * energyParams[0] / (1.0 - energyParams[0]);
+    energyParams[0] = std::max(0.0, kai * (E_SD - upperBound_E_SD) + kai2 * energyParams[0] / (1.0 - energyParams[0]));
     energyParams[0] /= (1.0 + energyParams[0]);
+    if(checkConvergence) {
+        // ensure lambda update reaches critical lambda so that
+        // feasible update on V and T is absolutely triggered
+        
+    }
     assert(energyParams[0] < 1.0);
     if(energyParams[0] < minLambda) {
         energyParams[0] = minLambda;
@@ -765,12 +756,21 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     
                     double E_se; triSoup[channel_result]->computeSeamSparsity(E_se);
                     E_se /= triSoup[channel_result]->virtualRadius;
+                    const double E_SD = optimizer->getLastEnergyVal() / energyParams[0];
                     const double E_w = optimizer->getLastEnergyVal() +
                         (1.0 - energyParams[0]) * E_se;
                     std::cout << "E_w from " << lastE_w << " to " << E_w << std::endl;
                     
                     if(E_w > lastE_w) {
                         assert(fracThres < 0.0);
+                        
+                        // compute critical lambda
+//                        if(lastFractureIn) {
+//                            criticalLambda_interiorOpt = (E_SD - lastE_SD) / (E_SD - lastE_SD - E_se + lastE_se);
+//                        }
+//                        else {
+//                            criticalLambda_boundaryOpt = (E_SD - lastE_SD) / (E_SD - lastE_SD - E_se + lastE_se);
+//                        }
                         
                         // roll back
                         optimizer->clearEnergyFileOutputBuffer();
@@ -781,6 +781,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         iterAmt_rollBack_topo++;
                         
                         if(lastFractureIn) {
+                            homoTransFile << iterNum << std::endl; // mark stationaryVT
                             if(!updateLambda_stationaryV(false, true)) {
                                 // if the last topology operation is interior split
                                 logFile << "E_w is not decreased, end process." << std::endl;
