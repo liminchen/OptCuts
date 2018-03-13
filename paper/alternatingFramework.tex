@@ -4,7 +4,7 @@ The most basic and intuitive mesh parameterization objective regarding both seam
 
 \subsection{Formulation}
 
-This topological space is a directed graph $G_T$ with its vertices $v_T \in V_T$ being all possible UV topologies of a given 3D surface, and its edges $e_T \in E_T$ are the basic topological operations on a mesh such as vertex split, edge merge, etc, that can transform one UV topology to a nearby topology.
+This topological space is a directed graph $G_T$ with its vertices $v_T \in V_T$ being all possible UV topologies of a given 3D surface, and its edges $e_T \in E_T$ are the basic topological operations conducted on a mesh such as vertex split, edge merge, etc, that can transform one UV topology to a nearby topology.
 
 Now, if we consider both distortion and seam in one objective $E_w$, we can define the value $f_v$ of vertex $v_{T,i}$ as 
 \[ f_v(v_{T,i}) = \min_{U_i} E_w \]
@@ -19,9 +19,9 @@ However, computing $f_v$ for one UV topology requires a whole continuous optimiz
 \subsection{Method}
 
 Let's consider a simple situation, minimizing normalized symmetric Dirichlet energy~\cite{Smith2015Bijective}
-\[ E_{SD} = \frac{1}{n_t \overline{|A|}} \sum_t |A_t|(\sigma_{t,1}^2 + \sigma_{t,2}^2 + \sigma_{t,1}^{-2} + \sigma_{t,2}^{-2}) \]
+\[ E_{SD} = \frac{1}{\sum_t |A_t|} \sum_t |A_t|(\sigma_{t,1}^2 + \sigma_{t,2}^2 + \sigma_{t,1}^{-2} + \sigma_{t,2}^{-2}) \]
 and normalized total seam length
-\[ E_{se} = \frac{1}{\sqrt{n_t}\overline{|e|}} \sum_{i \in \mathcal{S}} 2|e_i| \]
+\[ E_{se} = \frac{1}{\sqrt{(\sum_t |A_t|)/\pi}} \sum_{i \in \mathcal{S}} |e_i| \]
 where a balancing factor $\lambda \in [0, 1]$ is controlling the ratio between the two: 
 \[ E_w = \lambda E_{se} + (1 - \lambda) E_{SD} \]
 With the energy term normalization, our $E_w$ is invariant of coordinate scale and resolution for meshes with the same shape.
@@ -31,24 +31,23 @@ We minimize $E_w$ by iteratively alternate between continuous optimization (in d
 \[ f_v(v_{T,i}) = E_{se,i} + \min_{U_i} E_{SD} \]
 \item In topology steps, we estimate $f_v(v_{T,j})$ for a filtered set of neighbors of $v_{T,i}$ on a local stencil of $U$ as $\hat{f}_v$ and move onto the neighbor $v_{T,i+1}$ with smallest $\hat{f}_v$.
 \end{itemize}
-If in a descent step, $f_v(v_{T,i}) \geq f_v(v_{T,i-1})$ is detected, we stop the process by rolling back to $v_{T,i-1}$, which is the stationary of $E_w$ w.r.t. both UV topology (in an approximation sense) and coordinates that we are searching for.
+If after a descent step, $f_v(v_{T,i}) \geq f_v(v_{T,i-1})$ is detected, we stop the process by rolling back to $v_{T,i-1}$, which is the stationary of $E_w$ w.r.t. both UV topology (in an approximation sense) and coordinates that we are searching for.
 
 \subsection{Convergence}
 
 As our method is defined to guarantee convergence, we now analyze the convergence rate. First, it's easy to see that $E_w$ is monotonically decreasing looking at each end of descent steps. Now we look at descent step $i$ and $i+1$, from $E^i_w \geq E^{i+1}_w$ we have
-\[ E^i_{SD} - E^{i+1}_{SD} \geq \frac{\lambda}{1-\lambda} (E^{i+1}_{se} - E^i_{se}) \geq \frac{\lambda}{1-\lambda} \frac{1}{\sqrt{n_t}\overline{|e|}} 2|e|_{min} \]
+\[ E^i_{SD} - E^{i+1}_{SD} \geq \frac{\lambda}{1-\lambda} (E^{i+1}_{se} - E^i_{se}) \geq \frac{\lambda}{1-\lambda} \frac{1}{\sqrt{(\sum_t |A_t|)/\pi}} |e|_{min} \]
 if we now only consider splitting operations that keep increasing $E_{se}$. It's obvious that $E_{SD}$'s theoretical lower bound is defined to be $4$, so we have
-\[ n_{alter} \leq \frac{(1-\lambda)\sqrt{n_t}\overline{|e|}}{2\lambda|e|_{min}} (E^0_{SD} - 4) \]
+\[ n_{alter} \leq \frac{(1-\lambda)\sqrt{(\sum_t |A_t|)/\pi}}{\lambda|e|_{min}} (E^0_{SD} - 4) \]
 The most important hint we can read from this is, to accelerate convergence, we can move through multiple vertices on $G_T$ in each topology step to increase $E^{i+1}_{se} - E^i_{se}$. \minchen{[TODO] Consequently, we build an anologous line search method and allow multiple fracture initiation to be appropriately agressive when searching in the topological space and ensure that we won't fall into bad locally optimal UV topologies.}
 
 \minchen{[NOTE]
  Merge operations should be defined carefully to ensure convergence, and the proof will need updates.
-For example, it needs to decrease $E_w$ in order to be considered. 
-What will be the filtering measurement?
-How do we prevent from element inversion potentially caused by merge?
-How will we choose among merge and split? Is their energy decrease comparable?
-Will we need to also propagate merge like "zippering"?
-Do we need merge to be performed on non-corner edge pairs like the sense of interior splits? 
+For example:
+\begin{enumerate}
+\item How will we choose among merge and split? Is their energy decrease comparable?
+\item Do we need merge to be performed on non-corner edge pairs like the sense of interior splits? 
+\end{enumerate}
 }
 
 \subsection{Potential Extensions}

@@ -9,11 +9,11 @@
 \eIf{boundary split}
 {
   compute divergence of local gradients for all $n_{v,b}^i$ boundary vertices\;
-  pick $\sqrt{n_{v,b}^i}$ vertices with largest divergence as candidates\;
+  pick $(n_{v,b}^i)^{0.8}$ vertices with largest divergence as candidates\;
 }
 {
   compute divergence of local gradients for all $n_{v,i}^i$ interior vertices that doesn't connect to boundary\;
-  pick $\sqrt{n_{v,i}^i}$ vertices with largest divergence as candidates\;
+  pick $(n_{v,i}^i)^{0.8}$ vertices with largest divergence as candidates\;
 }
 \caption{Candidate Filtering}
 \end{algorithm}
@@ -37,7 +37,24 @@
     }
   }
 }
-split the vertex with largest $|\Delta E_{w,l}|$
+\If{!interiorSplit}
+{
+  \For{each fracture tail}
+  {
+    merge the 2 incident boundary edges with averaged position\;
+    \If{element inversion is detected}
+    {
+      project the averaged position to feasible region\;
+      \If{feasible region is empty}
+      {
+        continue\;
+      }
+    }
+    compute $\Delta E_{SD,l}$ locally\;
+    compute $\Delta E_{w,l} = (1-\lambda_t)\Delta E_{SD,l}+\lambda_t \Delta E_{se}$
+  }
+}
+conduct the operation with largest $|\Delta E_{w,l}|$
 \caption{Local Evaluation}
 \end{algorithm}
 For boundary vertex that connects to another boundary, we free both the 2 boundary vertices while evaluating the local energy decrease.
@@ -54,10 +71,6 @@ Since we are using the local estimation to approximate true global energy decrea
 Seamster's selected high curvature vertices are set to be the leaf of the seam tree while necessary, while our interior splitting scheme seems to always allow fracture to be extended on both the 2 sides of a picked vertex, which seems suboptimal. However, instead of just trying to connect interior vertex to the boundary like geometry images, we still have the reason to preserve our current interior splits because we've seen results that holes in UV map will be needed as a better solution for resolving some interior distortion. What we need to do is to take Seamster's inspiration and improve our interior splitting scheme.
 }
 
-\minchen{[TODO]
-Enable merge operation.
-}
-
 \subsection{Line Search in Topological Space}
 
 Once a fracture is initiated, it almost always be extended further in the later topology steps, which justifies the robustness of our method. To speed up the process, instead of waiting for another descent step and query all the filtered candidates again, we propagate this newly initiated fracture further in between the first several inner iterations of the following descent step.
@@ -72,7 +85,7 @@ After the fracture has been initiated, we first go to descent step to run an inn
   split and compute $\Delta E_{SD, l}$ locally\;
   compute $\Delta E_{w,l} = (1 - \lambda_t) \Delta E_{SD,l} + \lambda_t \Delta E_{se}$\;
 }
-\eIf{the largest $|\Delta E_{w,l}|$ is larger than $|(1-\lambda_t)\Delta E_{SD}^j|$}
+\eIf{$\max (|\Delta E_{w,l}|) \geq |(1-\lambda_t)\Delta E_{SD}^j|$}
 {
   propagate fracture by splitting the vertex\;
   update fracture tail record\;
@@ -82,6 +95,8 @@ After the fracture has been initiated, we first go to descent step to run an inn
 }
 \caption{Fracture Propagation Line Search}
 \end{algorithm}
+
+\minchen{[TODO] Write merge propagation}
 
 \minchen{[TODO] Improve current propagation scheme by developing analogous line search method}
 
