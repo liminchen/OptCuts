@@ -24,6 +24,9 @@
 
 extern std::ofstream logFile;
 
+extern std::vector<std::pair<double, double>> energyChanges_bSplit, energyChanges_iSplit, energyChanges_merge;
+extern int id_pickedBSplit, id_pickedISplit, id_pickedMerge;
+
 namespace FracCuts {
     
     TriangleSoup::TriangleSoup(void)
@@ -733,10 +736,11 @@ namespace FracCuts {
     }
     
     void TriangleSoup::querySplit(double lambda_t, bool propagate, bool splitInterior,
-                                  double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max) const
+                                  double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max,
+                                  std::pair<double, double>& energyChanges_max) const
     {
-        const double filterExp_b = 0.8;
-        const double filterExp_in = 0.8;
+        const double filterExp_b = 0.5, filterMult_b = 1.0;
+        const double filterExp_in = 0.5; // smaller than 0.5 is not recommanded
         
         std::vector<int> bestCandVerts;
         if(!propagate) {
@@ -781,7 +785,7 @@ namespace FracCuts {
             if(!splitInterior)
             {
                 assert(!sortedCandVerts_b.empty());
-                int bestCandAmt_b = static_cast<int>(std::pow(sortedCandVerts_b.size(), filterExp_b));
+                int bestCandAmt_b = static_cast<int>(std::pow(sortedCandVerts_b.size(), filterExp_b) * filterMult_b);
                 if(bestCandAmt_b < 2) {
                     bestCandAmt_b = 2;
                 }
@@ -833,17 +837,34 @@ namespace FracCuts {
         std::vector<double> EwDecs(bestCandVerts.size());
         std::vector<std::vector<int>> paths(bestCandVerts.size());
         std::vector<Eigen::MatrixXd> newVertPoses(bestCandVerts.size());
+        static std::vector<std::pair<double, double>> energyChanges_p;
         // query boundary splits
         if(!splitInterior) {
-            tbb::parallel_for(0, (int)bestCandVerts.size(), 1, [&](int candI) {
-                EwDecs[candI] = computeLocalEwDec(bestCandVerts[candI], lambda_t, paths[candI], newVertPoses[candI]);
-            });
+            if(propagate) {
+                energyChanges_p.resize(bestCandVerts.size());
+                tbb::parallel_for(0, (int)bestCandVerts.size(), 1, [&](int candI) {
+                    EwDecs[candI] = computeLocalEwDec(bestCandVerts[candI], lambda_t, paths[candI], newVertPoses[candI],
+                                                      energyChanges_p[candI]);
+                });
+            }
+            else {
+                energyChanges_bSplit.resize(bestCandVerts.size());
+                tbb::parallel_for(0, (int)bestCandVerts.size(), 1, [&](int candI) {
+                    EwDecs[candI] = computeLocalEwDec(bestCandVerts[candI], lambda_t, paths[candI], newVertPoses[candI],
+                                                      energyChanges_bSplit[candI]);
+                });
+            }
         }
         else {
             assert(!propagate);
             // query interior splits
+            energyChanges_iSplit.resize(bestCandVerts.size());
             tbb::parallel_for(0, (int)bestCandVerts.size(), 1, [&](int candI) {
-                EwDecs[candI] = 0.5 * computeLocalEwDec(bestCandVerts[candI], lambda_t, paths[candI], newVertPoses[candI]);
+                EwDecs[candI] = computeLocalEwDec(bestCandVerts[candI], lambda_t, paths[candI], newVertPoses[candI],
+                                                        energyChanges_iSplit[candI]);
+                if(EwDecs[candI] != -__DBL_MAX__) {
+                    EwDecs[candI] *= 0.5;
+                }
             });
         }
         int candI_max = 0;
@@ -856,6 +877,19 @@ namespace FracCuts {
         EwDec_max = EwDecs[candI_max];
         path_max = paths[candI_max];
         newVertPos_max = newVertPoses[candI_max];
+        if(splitInterior) {
+            energyChanges_max = energyChanges_iSplit[candI_max];
+            id_pickedISplit = candI_max;
+        }
+        else {
+            if(propagate) {
+                energyChanges_max = energyChanges_p[candI_max];
+            }
+            else {
+                energyChanges_max = energyChanges_bSplit[candI_max];
+                id_pickedBSplit = candI_max;
+            }
+        }
     }
     
     bool TriangleSoup::splitEdge(double lambda_t, double thres, bool propagate, bool splitInterior)
@@ -863,8 +897,10 @@ namespace FracCuts {
         double EwDec_max;
         std::vector<int> path_max;
         Eigen::MatrixXd newVertPos_max;
+        std::pair<double, double> energyChanges_max;
         querySplit(lambda_t, propagate, splitInterior,
-                   EwDec_max, path_max, newVertPos_max);
+                   EwDec_max, path_max, newVertPos_max,
+                   energyChanges_max);
         
         std::cout << "E_dec threshold = " << thres << std::endl;
         if(EwDec_max > thres) {
@@ -893,13 +929,15 @@ namespace FracCuts {
     }
     
     void TriangleSoup::queryMerge(double lambda,
-                                  double& localEwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max)
+                                  double& localEwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max,
+                                  std::pair<double, double>& energyChanges_max)
     {
         //TODO: local index updates in mergeBoundaryEdge()
         //TODO: parallelize the query
         
         std::cout << "evaluate edge merge, " << cohE.rows() << " cohesive edge pairs." << std::endl;
         localEwDec_max = -__DBL_MAX__;
+        energyChanges_merge.resize(0);
         for(int cohI = 0; cohI < cohE.rows(); cohI++) {
             int forkVI = 0;
             if(cohE(cohI, 0) == cohE(cohI, 2)) {
@@ -1012,12 +1050,16 @@ namespace FracCuts {
                 path.emplace_back(cohE(cohI, 1));
             }
             Eigen::MatrixXd newVertPos;
-            double localEwDec = computeLocalEwDec(0, lambda, path, newVertPos, triangles, mergedPos);
+            std::pair<double, double> energyChanges;
+            double localEwDec = computeLocalEwDec(0, lambda, path, newVertPos, energyChanges, triangles, mergedPos);
+            energyChanges_merge.emplace_back(energyChanges); //TODO: consider merge propagation
             
             if(localEwDec > localEwDec_max) {
                 localEwDec_max = localEwDec;
                 newVertPos_max = newVertPos;
                 path_max = path;
+                energyChanges_max = energyChanges;
+                id_pickedMerge = static_cast<int>(energyChanges_merge.size()) - 1;
             }
         }
     }
@@ -1027,7 +1069,9 @@ namespace FracCuts {
         double localEwDec_max;
         std::vector<int> path_max;
         Eigen::MatrixXd newVertPos_max;
-        queryMerge(lambda, localEwDec_max, path_max, newVertPos_max);
+        std::pair<double, double> energyChanges_max;
+        queryMerge(lambda, localEwDec_max, path_max, newVertPos_max,
+                   energyChanges_max);
         
         std::cout << "E_dec threshold = " << EDecThres << std::endl;
         if(localEwDec_max > EDecThres) {
@@ -1045,7 +1089,8 @@ namespace FracCuts {
         }
     }
     
-    bool TriangleSoup::splitOrMerge(double lambda_t, double EDecThres, bool propagate, bool splitInterior, bool& isMerge)
+    bool TriangleSoup::splitOrMerge(double lambda_t, double EDecThres, bool propagate, bool splitInterior,
+                                    bool& isMerge)
     {
         assert((!propagate) && "propagation is supported separately for split and merge!");
         
@@ -1053,17 +1098,21 @@ namespace FracCuts {
         std::vector<int> path_max;
         Eigen::MatrixXd newVertPos_max;
         isMerge = false;
+        std::pair<double, double> energyChanes_split, energyChanes_merge;
         if(splitInterior) {
             querySplit(lambda_t, propagate, splitInterior,
-                       EwDec_max, path_max, newVertPos_max);
+                       EwDec_max, path_max, newVertPos_max,
+                       energyChanes_split);
         }
         else {
             double EwDec_max_split, EwDec_max_merge;
             std::vector<int> path_max_split, path_max_merge;
             Eigen::MatrixXd newVertPos_max_split, newVertPos_max_merge;
             querySplit(lambda_t, propagate, splitInterior,
-                       EwDec_max_split, path_max_split, newVertPos_max_split);
-            queryMerge(lambda_t, EwDec_max_merge, path_max_merge, newVertPos_max_merge);
+                       EwDec_max_split, path_max_split, newVertPos_max_split,
+                       energyChanes_split);
+            queryMerge(lambda_t, EwDec_max_merge, path_max_merge, newVertPos_max_merge,
+                       energyChanes_merge);
             
             if(EwDec_max_merge > EwDec_max_split) {
                 isMerge = true;
@@ -1097,7 +1146,7 @@ namespace FracCuts {
                 }
                 else {
                     // interior split
-                    std::cout << "interior split E_dec = " << EwDec_max << std::endl;
+                    std::cout << "Interior split E_dec = " << EwDec_max << std::endl;
                     cutPath(path_max, true, 1, newVertPos_max);
                     fracTail.insert(path_max[0]);
                     fracTail.insert(path_max[2]);
@@ -2071,6 +2120,7 @@ namespace FracCuts {
     }
     
     double TriangleSoup::computeLocalEwDec(int vI, double lambda_t, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max,
+                                           std::pair<double, double>& energyChanges_max,
                                            const std::vector<int>& incTris, const Eigen::RowVector2d& initMergedPos) const
     {
         if(!path_max.empty()) {
@@ -2110,6 +2160,9 @@ namespace FracCuts {
                 newVertPos_max.resize(1, 2);
                 newVertPos_max.row(0) = finder->second;
                 
+                energyChanges_max.first = SDInc;
+                energyChanges_max.second = -seDec;
+                
                 return lambda_t * seDec - (1.0 - lambda_t) * SDInc;
             }
             else {
@@ -2139,6 +2192,8 @@ namespace FracCuts {
                         path_max[0] = vI;
                         path_max[1] = nbVI;
                         newVertPos_max = newVertPosI;
+                        energyChanges_max.first = -SDDec;
+                        energyChanges_max.second = seInc;
                     }
                 }
             }
@@ -2148,6 +2203,8 @@ namespace FracCuts {
             // interior split
             for(const auto& nbVI : vNeighbor[vI]) {
                 if(isBoundaryVert(edge2Tri, vNeighbor, nbVI)) {
+                    energyChanges_max.first = __DBL_MAX__;
+                    energyChanges_max.second = __DBL_MAX__;
                     return -__DBL_MAX__; // don't split vertices connected to boundary here
                 }
             }
@@ -2206,6 +2263,8 @@ namespace FracCuts {
                         EwDec_max = EwDec;
                         newVertPos_max = newVertPos;
                         path_max = path;
+                        energyChanges_max.first = -SDDec;
+                        energyChanges_max.second = seInc;
                     }
                 }
             }

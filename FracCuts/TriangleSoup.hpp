@@ -81,12 +81,15 @@ namespace FracCuts{
         bool separateTriangle(const Eigen::VectorXd& measure, double thres);
         bool splitVertex(const Eigen::VectorXd& measure, double thres);
         void querySplit(double lambda_t, bool propagate, bool splitInterior,
-                        double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max) const;
+                        double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max,
+                        std::pair<double, double>& energyChanges_max) const;
         bool splitEdge(double lambda_t, double EDecThres = 0.0, bool propagate = false, bool splitInterior = false);
         void queryMerge(double lambda,
-                        double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max);
+                        double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max,
+                        std::pair<double, double>& energyChanges_max);
         bool mergeEdge(double lambda, double EDecThres);
-        bool splitOrMerge(double lambda_t, double EDecThres, bool propagate, bool splitInterior, bool& isMerge);
+        bool splitOrMerge(double lambda_t, double EDecThres, bool propagate, bool splitInterior,
+                          bool& isMerge);
         
         void onePointCut(int vI = 0);
         void highCurvOnePointCut(void);
@@ -133,6 +136,7 @@ namespace FracCuts{
         
         // query vertex candidate
         double computeLocalEwDec(int vI, double lambda_t, std::vector<int>& path, Eigen::MatrixXd& newVertPos,
+                                 std::pair<double, double>& energyChanges,
                                  const std::vector<int>& incTris = std::vector<int>(),
                                  const Eigen::RowVector2d& initMergedPos = Eigen::RowVector2d()) const;
         // query incident edge of a vertex candidate

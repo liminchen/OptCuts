@@ -124,52 +124,28 @@ namespace FracCuts {
             incTriAmt[triVInd[2]]++;
         }
         for(int vI = 0; vI < data.V_rest.rows(); vI++) {
-            divGradPerVert[vI] = std::sqrt(divGradPerVert[vI] / (incTriAmt[vI] - 1.0));
+            if(incTriAmt[vI] == 1) {
+                // impossible to be splitted
+                divGradPerVert[vI] = 0.0;
+            }
+            else {
+                divGradPerVert[vI] = std::sqrt(divGradPerVert[vI] / (incTriAmt[vI] - 1.0));
+            }
         }
     }
     
     void SymStretchEnergy::getDivGradPerElem(const TriangleSoup& data, Eigen::VectorXd& divGradPerElem) const
     {
-        Eigen::MatrixXd localGradients;
-        computeLocalGradient(data, localGradients);
-        
         Eigen::VectorXd divGrad_vert;
-        divGrad_vert.resize(data.V_rest.rows());
-        for(int vI = 0; vI < data.V_rest.rows(); vI++) {
-            if(!data.isBoundaryVert(data.edge2Tri, data.vNeighbor, vI)) {
-                //TODO: also compute it for inner vertices
-                divGrad_vert[vI] = 0.0;
-                continue;
-            }
-            
-            double divergence = 0.0;
-            int count = 0;
-            for(const auto& nbI : data.vNeighbor[vI]) {
-                const auto finder = data.edge2Tri.find(std::pair<int, int>(vI, nbI));
-                if(finder != data.edge2Tri.end()) {
-                    int vI_other = -1;
-                    int vI_local = -1;
-                    for(int i = 0; i < 3; i++) {
-                        if(data.F(finder->second, i) == vI) {
-                            vI_local = i;
-                            vI_other = data.F(finder->second, (i + 2) % 3);
-                            break;
-                        }
-                    }
-                    assert(vI_other >= 0);
-//                    const Eigen::RowVector2d e = data.V.row(vI_other) - data.V.row(nbI); // how to define divergence? is it really matches? visualize!
-//                    const Eigen::Vector2d eOrtho(-e[1], e[0]);
-                    const Eigen::Vector2d stretchDir = localGradients.row(finder->second * 3 + vI_local);
-//                    divergence += eOrtho.dot(stretchDir);
-                    divergence += stretchDir.squaredNorm();
-                    count++;
-                }
-            }
-//            divGrad_vert[vI] = std::abs(divergence);
-            divGrad_vert[vI] = std::sqrt(divergence / count);
-        }
+        computeDivGradPerVert(data, divGrad_vert);
         
-        // for visualization only
+        // filter out interior vertices for visualizing boundary verts
+//        for(int vI = 0; vI < divGrad_vert.size(); vI++) {
+//            if(!data.isBoundaryVert(data.edge2Tri, data.vNeighbor, vI)) {
+//                divGrad_vert[vI] = 0.0;
+//            }
+//        }
+        
         divGradPerElem.resize(data.F.rows());
         for(int triI = 0; triI < data.F.rows(); triI++) {
             const Eigen::RowVector3i& triVInd = data.F.row(triI);

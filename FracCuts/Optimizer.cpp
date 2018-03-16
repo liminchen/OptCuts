@@ -23,6 +23,7 @@
 extern FracCuts::MethodType methodType;
 extern const std::string outputFolderPath;
 extern const bool fractureMode;
+
 extern std::ofstream logFile;
 extern clock_t ticksPast_frac;
 
@@ -305,8 +306,9 @@ namespace FracCuts {
                         changed = result.splitEdge(1.0 - energyParams[0], stressThres, true, allowInSplit);
                         break;
                         
-                    case 2: // propagate merge
-                        changed = result.mergeEdge(1.0 - energyParams[0], stressThres);
+                    case 2: //TODO: propagate merge, probably need to also update lambda in-between propagation!
+//                        changed = result.mergeEdge(1.0 - energyParams[0], stressThres);
+                        changed = false;
                         isMerge = true;
                         break;
                 }
