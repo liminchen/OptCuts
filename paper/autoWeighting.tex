@@ -1,5 +1,6 @@
 \section{Weighting the Objective Automatically by Introducing a Dual Problem}
 
+\subsection{Formulation}
 At each inner iterate $k+1$, we fix some $\lambda^{k+1}$ and minimize the bi-objective 
 \[ \min_{T,V} E_{SE}(V,T) + \lambda^{k+1} E_{SD}(V,T) \]
 
@@ -31,4 +32,53 @@ Followed by the next update of dual variable $\lambda$.
 
 (Notice that throughout the above we can define a progressive $\lambda$ without needing to employ subgradients to reason about nonsmoothness in our sparsity energy.)
 
-$R$ is to iteratively solving for $\lambda$ so that it could have intermediate values between $0$ and $\infty$. Then starting from full mesh, $\lambda$ will first increase as bound is not reached, and then it will decrease when bound is reached. But currently we don't have merge to increase $E_{SE}$ and decrease $E_{SD}$, so our process will stop right after it reaches the bound. The bound is obvious to be reached, how do we know the path of $\lambda$ is great? If we have merge, then will the optimization converge on all $T$, $V$, $\lambda$?
+\subsection{Implementation}
+
+\begin{algorithm}[!h]
+\SetAlgoLined
+\KwData{Input model with initial UV map, expected $E_{SD}$ upper bound $b$}
+\KwResult{UV map with $argmin_{v_T} E_{se}$ topology and $E_{SD} <= b$}
+
+$\lambda \leftarrow +\infty$ \\
+\For{each alternating iteration $i$}{
+  descent step $i$\;
+  \If{$E^i_{SD} <= b$}{
+  	$j \leftarrow i$
+    break;
+  }
+  $i \leftarrow i + 1$\;
+  topology step $i$\;
+}
+
+$\lambda \leftarrow (E^j_{se} - E^{j-1}_{se})/(E^{j-1}_{SD}-E^{j}_{SD})$\;
+
+\For{each alternating iteration $i$}{
+  topology step\;
+  descent step\;
+
+  \If{$(E^i_{se}, E^i_{SD}, \lambda)$ has occurred before}{
+    set to best feasible UV map and break\;
+  }
+  \If{at $\min_{V,T} E_{se} + \lambda E_{SD}$}{
+    \If{$E^i_{SD} <= b$  $E^i_{SD} >= b - tol$}{
+      set to best feasible UV map and break\;
+    }
+  }
+  
+  $\lambda \leftarrow \max\big(0,\kappa(E_{SD}(V,T) -b) + \lambda \big)$\;
+  \If{at $\min_{V,T} E_{se} + \lambda E_{SD}$}{
+    \If{picking the wrong type of operation}{
+      do
+        $\lambda \leftarrow \max\big(0,\kappa(E_{SD}(V,T) -b) + \lambda \big)$\;
+      while picking the wrong type of operation
+    }
+    \Else {
+      while candidate selection didn't change
+        $\lambda \leftarrow \max\big(0,\kappa(E_{SD}(V,T) -b) + \lambda \big)$\;
+      end
+    }
+  }
+}
+
+\caption{Self-Weighted $E_w$}
+\end{algorithm}
