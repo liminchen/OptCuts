@@ -761,9 +761,19 @@ namespace FracCuts {
                     }
                     
                     if(!isBoundaryVert(edge2Tri, vNeighbor, vI)) {
+                        bool connectToBound = false;
+                        for(const auto& nbVI : vNeighbor[vI]) {
+                            if(isBoundaryVert(edge2Tri, vNeighbor, nbVI)) {
+                                connectToBound = true;
+                                break;
+                            }
+                        }
+                        if(!connectToBound) {
+                            // don't split vertices connected to boundary here
                         //                        if(maxUnweightedEnergyValPerVert[vI] > energyVal) {
-                        sortedCandVerts_in[-divGradPerVert[vI]] = vI;
+                            sortedCandVerts_in[-divGradPerVert[vI]] = vI;
                         //                        }
+                        }
                     }
                 }
             }
@@ -2205,6 +2215,7 @@ namespace FracCuts {
                 if(isBoundaryVert(edge2Tri, vNeighbor, nbVI)) {
                     energyChanges_max.first = __DBL_MAX__;
                     energyChanges_max.second = __DBL_MAX__;
+                    assert(0 && "should have prevented this case outside");
                     return -__DBL_MAX__; // don't split vertices connected to boundary here
                 }
             }

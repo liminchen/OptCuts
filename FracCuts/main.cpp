@@ -1021,6 +1021,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         optimizer->setConfig(triSoup_backup, iterNum_backUp, optimizer->getTopoIter() - 1);
                         iterAmt_rollBack += iterNum - iterNum_backUp;
                         iterNum = iterNum_backUp;
+                        logFile << "iterNum roll back to " << iterNum << std::endl;
                         iterAmt_rollBack_topo++;
                         
                         if(lastFractureIn) {
@@ -1067,6 +1068,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                                 
                                 iterNum_lastTopo = iterNum;
                                 lastStart = clock();
+                                logFile << "boundary split VT " << triSoup[channel_result]->V_rest.rows() << std::endl;
                                 if(optimizer->createFracture(fracThres, false, !altBase)) {
                                     lastFractureIn = false;
                                     ticksPast += clock() - lastStart;
@@ -1084,13 +1086,15 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                             saveInfo_postDraw = false;
                             iterNum_lastTopo = iterNum;
                             lastStart = clock();
-                            optimizer->createFracture(fracThres, false, !altBase, true);
+                            logFile << "interior split " << triSoup[channel_result]->V_rest.rows() << std::endl;
+                            assert(optimizer->createFracture(fracThres, false, !altBase, true));
                             lastFractureIn = true;
                             ticksPast += clock() - lastStart;
                             converged = false;
                         }
                     }
                     else {
+                        logFile << iterNum << ": " << E_SD << " " << E_se << " " << triSoup[channel_result]->V_rest.rows() << std::endl;
                         optimizer->flushEnergyFileOutput();
                         optimizer->flushGradFileOutput();
                         homoTransFile << iterNum_lastTopo << std::endl;
@@ -1135,6 +1139,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                                 (1.0 - energyParams[0]) * lastE_se;
                             
                             iterNum_lastTopo = iterNum;
+                            logFile << "boundary split V " << triSoup[channel_result]->V_rest.rows() << std::endl;
                             lastStart = clock();
                             if(optimizer->createFracture(fracThres, false, !altBase)) {
                                 lastFractureIn = false;
