@@ -79,7 +79,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/needMoreTime/lucy_o_f8000.obj 0.025 4 2 test"
+            argument = "0 /Users/mincli/Downloads/meshes/needMoreTime/lucy_o_f8000.obj 0.025 4 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -95,7 +95,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/needSmallerTol_/hand_1_i_f5000.obj 0.025 1 2 test"
+            argument = "0 /Users/mincli/Downloads/meshes/needSmallerTol_/hand_1_i_f5000.obj 0.025 1 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -112,7 +112,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/chinese_lion_i_f10000.obj 0.025 1 0 test"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/bimba.obj 0.025 0 0 test"
@@ -123,12 +123,16 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/statue_5_i_f10000.obj 0.025 1 2 testt"
+            argument = "0 /Users/mincli/Downloads/meshes/statue_5_i_f10000.obj 0.025 1 0 testt"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/golf.obj 0.025 1 0 test"
             isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 /Users/mincli/Downloads/meshes/bull.obj 0.025 1 0 test"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 cone2.0.obj 0.025 8 0 test"
@@ -151,7 +155,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 face_f10000.obj 0.025 16 1 test"
+            argument = "0 face_f10000.obj 0.025 16 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument

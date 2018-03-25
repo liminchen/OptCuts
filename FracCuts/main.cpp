@@ -56,7 +56,7 @@ double lastE_w = 0.0;
 double lastE_SD = 0.0;
 double lastE_se = 0.0;
 const int boundMeasureType = 0; // 0: E_SD, 1: L2 Stretch
-const double upperBound = 4.1;
+const double upperBound = 4.5;
 const double convTol_upperBound = 1.0e-2; //TODO!!! related to avg edge len or upperBound?
 double criticalLambda_boundaryOpt, criticalLambda_interiorOpt;
 std::vector<std::pair<double, double>> energyChanges_bSplit, energyChanges_iSplit, energyChanges_merge;
@@ -142,11 +142,8 @@ void updateViewerData_distortion(void)
         case 1: { // show SD energy value
             Eigen::VectorXd distortionPerElem;
             energyTerms[0]->getEnergyValPerElem(*triSoup[viewChannel], distortionPerElem, true);
-    //        dynamic_cast<FracCuts::SymStretchEnergy*>(energyTerms[0])->getDivGradPerElem(*triSoup[viewChannel], distortionPerElem);
             Eigen::MatrixXd color_distortionVis;
-            FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 6.25);
-    //        FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis,
-    //            distortionPerElem.minCoeff(), distortionPerElem.maxCoeff());
+            FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 8.5);
             viewer.data.set_colors(color_distortionVis);
             break;
         }
@@ -577,6 +574,8 @@ int computeBestCand(const std::vector<std::pair<double, double>>& energyChanges,
 
 bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence = false)
 {
+//    return !checkConvergence; // fixed lambda scheme
+    
     const double eps_lambda = 1.0e-3;
     Eigen::MatrixXd edgeLengths; igl::edge_lengths(triSoup[channel_result]->V_rest, triSoup[channel_result]->F, edgeLengths);
     const double eps_E_se = 1.0e-3 * edgeLengths.minCoeff() / triSoup[channel_result]->virtualRadius;
