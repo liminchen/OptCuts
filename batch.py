@@ -4,9 +4,9 @@ from os import listdir
 from os.path import isfile, join
 
 # meshFolderPath = '/Users/mincli/Downloads/meshes/'
-meshFolderPath = '/Users/mincli/Downloads/meshes/needMoreTime/'
+# meshFolderPath = '/Users/mincli/Downloads/meshes/needMoreTime/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/closed/'
-# meshFolderPath = '/Users/mincli/Downloads/meshes/test_/'
+meshFolderPath = '/Users/mincli/Downloads/meshes/test_/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/small_/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/fullBatch_/'
 onlyfiles = [f for f in listdir(meshFolderPath) if isfile(join(meshFolderPath, f))]
@@ -27,15 +27,15 @@ FracCutsPath = '/Users/mincli/Library/Developer/Xcode/DerivedData/FracCuts-agmha
 # 		continue
 
 for inputModelNameI in onlyfiles:
-	# no prop, no filter
-	runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.025 1 0'
-	if subprocess.call([runCommand], shell=True):
-		continue
-
-	# # prop, no filter
-	# runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.001 33 0'
+	# # no prop, no filter
+	# runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.025 1 0'
 	# if subprocess.call([runCommand], shell=True):
 	# 	continue
+
+	# prop, no filter
+	runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.001 34 0'
+	if subprocess.call([runCommand], shell=True):
+		continue
 
 	# # prop, no filter
 	# runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.001 102 2'

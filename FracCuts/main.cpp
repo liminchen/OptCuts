@@ -56,8 +56,8 @@ double lastE_w = 0.0;
 double lastE_SD = 0.0;
 double lastE_se = 0.0;
 const int boundMeasureType = 0; // 0: E_SD, 1: L2 Stretch
-const double upperBound = 4.5;
-const double convTol_upperBound = 1.0e-2; //TODO!!! related to avg edge len or upperBound?
+const double upperBound = 4.05;
+const double convTol_upperBound = 1.0e-3; //TODO!!! related to avg edge len or upperBound?
 double criticalLambda_boundaryOpt, criticalLambda_interiorOpt;
 std::vector<std::pair<double, double>> energyChanges_bSplit, energyChanges_iSplit, energyChanges_merge;
 int id_pickedBSplit, id_pickedISplit, id_pickedMerge;
@@ -572,11 +572,16 @@ int computeBestCand(const std::vector<std::pair<double, double>>& energyChanges,
     return id_minEChange;
 }
 
+double updateLambda(double measure_bound, double lambda_SD = energyParams[0], double kappa = 1.0, double kappa2 = 1.0)
+{
+    lambda_SD = std::max(0.0, kappa * (measure_bound - (upperBound - convTol_upperBound / 2.0)) + kappa2 * lambda_SD / (1.0 - lambda_SD));
+    return lambda_SD / (1.0 + lambda_SD);
+}
+
 bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence = false)
 {
 //    return !checkConvergence; // fixed lambda scheme
     
-    const double eps_lambda = 1.0e-3;
     Eigen::MatrixXd edgeLengths; igl::edge_lengths(triSoup[channel_result]->V_rest, triSoup[channel_result]->F, edgeLengths);
     const double eps_E_se = 1.0e-3 * edgeLengths.minCoeff() / triSoup[channel_result]->virtualRadius;
     static bool firstReach = true;
@@ -601,6 +606,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
             assert(0 && "invalid bound measure type");
             break;
     }
+    const double eps_lambda = std::min(1.0e-3, std::abs(updateLambda(measure_bound) - energyParams[0]));
     
     // oscillation detection
     static int iterNum_bestFeasible = -1;
@@ -754,10 +760,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
     }
     
     // lambda update (dual update)
-    const double kappa = 1.0;
-    const double kappa2 = 1.0;
-    energyParams[0] = std::max(0.0, kappa * (measure_bound - (upperBound - convTol_upperBound / 2.0)) + kappa2 * energyParams[0] / (1.0 - energyParams[0]));
-    energyParams[0] /= (1.0 + energyParams[0]);
+    energyParams[0] = updateLambda(measure_bound);
     //!!! needs to be careful on lambda update space
     
     // critical lambda scheme
@@ -772,9 +775,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
                (computeOptPicked(energyChanges_bSplit, energyChanges_merge, 1.0 - energyParams[0]) == 1)) {
                 // still picking merge
                 do {
-                    energyParams[0] = std::max(0.0, kappa * (measure_bound - (upperBound - convTol_upperBound / 2.0)) +
-                                               kappa2 * energyParams[0] / (1.0 - energyParams[0]));
-                    energyParams[0] /= (1.0 + energyParams[0]);
+                    energyParams[0] = updateLambda(measure_bound);
                 } while(computeOptPicked(energyChanges_bSplit, energyChanges_merge, 1.0 - energyParams[0]) == 1);
                 
                 logFile << "iterativelyUpdated = " << energyParams[0] << ", increase for switch, critical " <<
@@ -786,9 +787,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
                 while((sameBSplit && (energyParams[0] < 1.0 - criticalLambda_boundaryOpt)) &&
                       (sameISplit && (energyParams[0] < 1.0 - criticalLambda_interiorOpt)))
                 {
-                    energyParams[0] = std::max(0.0, kappa * (measure_bound - (upperBound - convTol_upperBound / 2.0)) +
-                                            kappa2 * energyParams[0] / (1.0 - energyParams[0]));
-                    energyParams[0] /= (1.0 + energyParams[0]);
+                    energyParams[0] = updateLambda(measure_bound);
 
                     sameBSplit = (computeBestCand(energyChanges_bSplit, 1.0 - energyParams[0]) == id_pickedBSplit);
                     sameISplit = (computeBestCand(energyChanges_iSplit, 1.0 - energyParams[0]) == id_pickedISplit);
@@ -815,9 +814,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
             if(computeOptPicked(energyChanges_bSplit, energyChanges_merge, 1.0 - energyParams[0]) == 0) {
                 // still picking split
                 do {
-                    energyParams[0] = std::max(0.0, kappa * (measure_bound - (upperBound - convTol_upperBound / 2.0)) +
-                                               kappa2 * energyParams[0] / (1.0 - energyParams[0]));
-                    energyParams[0] /= (1.0 + energyParams[0]);
+                    energyParams[0] = updateLambda(measure_bound);
                 } while(computeOptPicked(energyChanges_bSplit, energyChanges_merge, 1.0 - energyParams[0]) == 0);
                 
                 logFile << "iterativelyUpdated = " << energyParams[0] << ", decrease for switch, critical " <<
@@ -827,9 +824,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
                 bool sameMerge = (computeBestCand(energyChanges_merge, 1.0 - energyParams[0]) == id_pickedMerge);
                 while(sameMerge && (energyParams[0] > 1.0 - criticalLambda_boundaryOpt))
                 {
-                    energyParams[0] = std::max(0.0, kappa * (measure_bound - (upperBound - convTol_upperBound / 2.0)) +
-                                               kappa2 * energyParams[0] / (1.0 - energyParams[0]));
-                    energyParams[0] /= (1.0 + energyParams[0]);
+                    energyParams[0] = updateLambda(measure_bound);
                     
                     sameMerge = (computeBestCand(energyChanges_merge, 1.0 - energyParams[0]) == id_pickedMerge);
                 }
