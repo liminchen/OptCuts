@@ -68,7 +68,7 @@ namespace FracCuts {
         
         // solve the optimization problem that minimizes E using a hill-climbing method,
         // the final result will be in result
-        bool solve(int maxIter = 100);
+        int solve(int maxIter = 100);
         
         void updatePrecondMtrAndFactorize(void);
         

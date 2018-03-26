@@ -149,7 +149,7 @@ namespace FracCuts {
         }
     }
     
-    bool Optimizer::solve(int maxIter)
+    int Optimizer::solve(int maxIter)
     {
         for(int iterI = 0; iterI < maxIter; iterI++)
         {
@@ -163,23 +163,24 @@ namespace FracCuts {
                 // converged
                 lastEDec = 0.0;
                 globalIterNum++;
-                return true;
+                return 0;
             }
             else {
                 if(solve_oneStep()) {
                     globalIterNum++;
-                    return true;
+                    return 0;
                 }
             }
             globalIterNum++;
             
             if(propagateFracture > 0) {
                 if(!createFracture(lastEDec, propagateFracture)) {
+//                    return 2;
                     propagateFracture = 0;
                 }
             }
         }
-        return false;
+        return 1;
     }
     
     void Optimizer::updatePrecondMtrAndFactorize(void)
@@ -295,6 +296,7 @@ namespace FracCuts {
         bool changed = false;
         bool isMerge = false;
         switch(methodType) {
+            case MT_OURS_FIXED:
             case MT_OURS: {
                 data_findExtrema = result;
                 switch(propType) {

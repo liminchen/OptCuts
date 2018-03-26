@@ -56,7 +56,7 @@ double lastE_w = 0.0;
 double lastE_SD = 0.0;
 double lastE_se = 0.0;
 const int boundMeasureType = 0; // 0: E_SD, 1: L2 Stretch
-const double upperBound = 4.05;
+const double upperBound = 4.2;
 const double convTol_upperBound = 1.0e-3; //TODO!!! related to avg edge len or upperBound?
 double criticalLambda_boundaryOpt, criticalLambda_interiorOpt;
 std::vector<std::pair<double, double>> energyChanges_bSplit, energyChanges_iSplit, energyChanges_merge;
@@ -98,7 +98,7 @@ void proceedOptimization(int proceedNum = 1)
     for(int proceedI = 0; (proceedI < proceedNum) && (!converged); proceedI++) {
         std::cout << "Iteration" << iterNum << ":" << std::endl;
         lastStart = clock();
-        converged = optimizer->solve(1);
+        converged = !optimizer->solve(1);
         ticksPast += clock() - lastStart;
         iterNum = optimizer->getIterNum();
     }
@@ -580,8 +580,6 @@ double updateLambda(double measure_bound, double lambda_SD = energyParams[0], do
 
 bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence = false)
 {
-//    return !checkConvergence; // fixed lambda scheme
-    
     Eigen::MatrixXd edgeLengths; igl::edge_lengths(triSoup[channel_result]->V_rest, triSoup[channel_result]->F, edgeLengths);
     const double eps_E_se = 1.0e-3 * edgeLengths.minCoeff() / triSoup[channel_result]->virtualRadius;
     static bool firstReach = true;
@@ -975,9 +973,10 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     break;
                 }
                     
+                case FracCuts::MT_OURS_FIXED:
                 case FracCuts::MT_OURS: {
                     infoName = std::to_string(iterNum);
-                    if(measure_bound <= upperBound) {
+                    if((methodType == FracCuts::MT_OURS) && (measure_bound <= upperBound)) {
                         // save info once bound is reached for comparison
                         static bool saved = false;
                         if(!saved) {
@@ -1021,7 +1020,9 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         if(lastFractureIn) {
                             // if the last topology operation is interior split
                             homoTransFile << iterNum << std::endl; // mark stationaryVT
-                            if(!updateLambda_stationaryV(false, true)) {
+                            if((methodType == FracCuts::MT_OURS_FIXED) ||
+                               (!updateLambda_stationaryV(false, true)))
+                            {
                                 // all converged
                                 
                                 infoName = "finalResult";
@@ -1094,7 +1095,9 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         homoTransFile << iterNum_lastTopo << std::endl;
                         
                         // continue to split boundary
-                        if(!updateLambda_stationaryV()) {
+                        if((methodType == FracCuts::MT_OURS) &&
+                           (!updateLambda_stationaryV()))
+                        {
                             // oscillation detected
                             
                             infoName = "finalResult";
@@ -1289,9 +1292,14 @@ int main(int argc, char *argv[])
     bool startWithTriSoup = (methodType == FracCuts::MT_AUTOCUTS);
     std::string startDS;
     switch (methodType) {
+        case FracCuts::MT_OURS_FIXED:
+            assert(lambda < 1.0);
+            startDS = "OursFixed";
+            break;
+            
         case FracCuts::MT_OURS:
             assert(lambda < 1.0);
-            startDS = "Ours";
+            startDS = "OursBounded";
             break;
             
         case FracCuts::MT_GEOMIMG:
