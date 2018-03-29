@@ -12,8 +12,22 @@
 #include "TriangleSoup.hpp"
 
 #include <igl/readOBJ.h>
+#include <igl/viewer/Viewer.h>
 
 #include <cstdio>
+
+extern igl::viewer::Viewer viewer;
+extern bool viewUV;
+extern bool showTexture;
+extern int showDistortion;
+extern double texScale;
+extern std::vector<const FracCuts::TriangleSoup*> triSoup;
+extern std::vector<FracCuts::Energy*> energyTerms;
+extern void updateViewerData(void);
+extern bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier);
+extern bool preDrawFunc(igl::viewer::Viewer& viewer);
+extern bool postDrawFunc(igl::viewer::Viewer& viewer);
+extern void saveScreenshot(const std::string& filePath, double scale, bool writeGIF, bool writePNG);
 
 namespace FracCuts{
     class Diagnostic
@@ -86,6 +100,130 @@ namespace FracCuts{
                         fclose(dirList);
                         
                         std::cout << "stats.txt output in " << resultsFolderPath << std::endl;
+                        break;
+                    }
+                        
+                    case 2: {
+                        // compute and output our metric for AutoCuts output
+                        const std::string resultsFolderPath(argv[3]);
+                        FILE *dirList = fopen((resultsFolderPath + "/folderList.txt").c_str(), "r");
+                        assert(dirList);
+                        
+                        // for rendering:
+                        energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
+                        triSoup.resize(2);
+                        viewer.core.background_color << 1.0f, 1.0f, 1.0f, 0.0f;
+                        viewer.callback_key_down = &key_down;
+                        viewer.callback_pre_draw = &preDrawFunc;
+                        viewer.callback_post_draw = &postDrawFunc;
+                        viewer.core.show_lines = true;
+                        viewer.core.orthographic = true;
+                        viewer.core.camera_zoom *= 1.9;
+                        viewer.core.animation_max_fps = 60.0;
+                        viewer.core.point_size = 16.0f;
+                        viewer.core.show_overlay = true;
+                        viewer.core.is_animating = true;
+                        viewer.launch_init(true, false);
+                        
+                        char buf[BUFSIZ];
+                        while((!feof(dirList)) && fscanf(dirList, "%s", buf)) {
+                            double lambda;
+                            int iterNum, worldTime;
+                            FILE *in = fopen((resultsFolderPath + '/' + std::string(buf) + "/info_pre.txt").c_str(), "r");
+                            assert(in);
+                            fscanf(in, "%lf%d%d", &lambda, &iterNum, &worldTime);
+                            fclose(in);
+                            
+                            std::string meshPath(resultsFolderPath + '/' + std::string(buf) + "/finalResult_mesh.obj");
+                            Eigen::MatrixXd V, UV, N;
+                            Eigen::MatrixXi F, FUV, FN;
+                            igl::readOBJ(meshPath, V, UV, N, F, FUV, FN);
+                            UV.conservativeResize(UV.rows(), 2);
+                            TriangleSoup resultMesh(V, F, UV, FUV, false, 0.0);
+                            
+                            std::ofstream file;
+                            file.open(resultsFolderPath + '/' + std::string(buf) + "/info.txt");
+                            assert(file.is_open());
+                            
+                            file << V.rows() << " " << F.rows() << std::endl;
+                            
+                            file << iterNum << " " << 0 << " "
+                                << 0 << " " << 0 << " "
+                                << lambda << " " << lambda << std::endl;
+                            
+                            file << 0 << " " << 0 << " " << worldTime << std::endl;
+                            
+                            double seamLen;
+                            resultMesh.computeSeamSparsity(seamLen, false);
+                            double distortion;
+                            SymStretchEnergy SD;
+                            SD.computeEnergyVal(resultMesh, distortion);
+                            file << distortion << " " << seamLen / resultMesh.virtualRadius << std::endl;
+                            
+                            resultMesh.outputStandardStretch(file);
+
+                            file.close();
+                            
+                            triSoup[0] = triSoup[1] = &resultMesh;
+                            texScale = 10.0 / (triSoup[0]->bbox.row(1) - triSoup[0]->bbox.row(0)).maxCoeff();
+                            viewUV = true;
+                            showTexture = false;
+                            showDistortion = true;
+                            updateViewerData();
+                            viewer.launch_rendering(false);
+                            saveScreenshot(resultsFolderPath + '/' + std::string(buf) + "/finalResult.png",
+                                           1.0, false, true);
+                            
+                            for(int capture3DI = 0; capture3DI < 2; capture3DI++) {
+                                // change view accordingly
+                                double rotDeg = ((capture3DI < 8) ? (M_PI_2 * (capture3DI / 2)) : M_PI_2);
+                                Eigen::Vector3f rotAxis = Eigen::Vector3f::UnitY();
+                                if((capture3DI / 2) == 4) {
+                                    rotAxis = Eigen::Vector3f::UnitX();
+                                }
+                                else if((capture3DI / 2) == 5) {
+                                    rotAxis = -Eigen::Vector3f::UnitX();
+                                }
+                                viewer.core.trackball_angle = Eigen::Quaternionf(Eigen::AngleAxisf(rotDeg, rotAxis));
+                                viewUV = false;
+                                showTexture = showDistortion = (capture3DI % 2);
+                                updateViewerData();
+                                std::string filePath = resultsFolderPath + '/' + std::string(buf) + "/3DView" + std::to_string(capture3DI / 2) + ((capture3DI % 2 == 0) ? "_seam.png" : "_distortion.png");
+                                viewer.launch_rendering(false);
+                                saveScreenshot(filePath, 1.0, false, true);
+                            }
+                            
+                            std::cout << buf << " processed" << std::endl;
+                        }
+
+                        fclose(dirList);
+                        
+                        break;
+                    }
+                        
+                    case 3: {
+                        // check inversion
+                        const std::string resultsFolderPath(argv[3]);
+                        FILE *dirList = fopen((resultsFolderPath + "/folderList.txt").c_str(), "r");
+                        assert(dirList);
+
+                        char buf[BUFSIZ];
+                        while((!feof(dirList)) && fscanf(dirList, "%s", buf)) {
+                            std::string meshPath(resultsFolderPath + '/' + std::string(buf) + "/finalResult_mesh.obj");
+                            Eigen::MatrixXd V, UV, N;
+                            Eigen::MatrixXi F, FUV, FN;
+                            igl::readOBJ(meshPath, V, UV, N, F, FUV, FN);
+                            UV.conservativeResize(UV.rows(), 2);
+                            TriangleSoup resultMesh(V, F, UV, FUV, false, 0.0);
+                            
+                            if(!resultMesh.checkInversion()) {
+                                std::cout << buf << " inverted" << std::endl;
+                            }
+                        }
+                        
+                        fclose(dirList);
+                        std::cout << "check finished" << std::endl;
+                        
                         break;
                     }
                         

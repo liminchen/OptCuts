@@ -30,12 +30,12 @@ namespace FracCuts {
         for(int triI = 0; triI < data.F.rows(); triI++) {
             const Eigen::Vector3i& triVInd = data.F.row(triI);
             
-            const Eigen::Vector2d& U1 = data.V.row(triVInd[0]);
-            const Eigen::Vector2d& U2 = data.V.row(triVInd[1]);
-            const Eigen::Vector2d& U3 = data.V.row(triVInd[2]);
+            const Eigen::RowVector2d& U1 = data.V.row(triVInd[0]);
+            const Eigen::RowVector2d& U2 = data.V.row(triVInd[1]);
+            const Eigen::RowVector2d& U3 = data.V.row(triVInd[2]);
             
-            const Eigen::Vector2d U2m1 = U2 - U1;
-            const Eigen::Vector2d U3m1 = U3 - U1;
+            const Eigen::RowVector2d U2m1 = U2 - U1;
+            const Eigen::RowVector2d U3m1 = U3 - U1;
             
             const double area_U = 0.5 * (U2m1[0] * U3m1[1] - U2m1[1] * U3m1[0]);
             
@@ -111,27 +111,87 @@ namespace FracCuts {
         Eigen::MatrixXd localGradients;
         computeLocalGradient(data, localGradients);
         
-        divGradPerVert = Eigen::VectorXd::Zero(data.V_rest.rows());
+#define STANDARD_DEVIATION_FILTERING 1
+#ifdef STANDARD_DEVIATION_FILTERING
+        //NOTE: no need to weight by area since gradient already contains area information
+        //TODO: don't need to compute mean because it's always zero at stationary, go back to the simpler version?
+        Eigen::MatrixXd mean = Eigen::MatrixXd::Zero(data.V_rest.rows(), 2);
         Eigen::VectorXi incTriAmt = Eigen::VectorXi::Zero(data.V_rest.rows());
         for(int triI = 0; triI < data.F.rows(); triI++) {
             const Eigen::RowVector3i& triVInd = data.F.row(triI);
             int locGradStartInd = triI * 3;
-            divGradPerVert[triVInd[0]] += localGradients.row(locGradStartInd).squaredNorm();
-            divGradPerVert[triVInd[1]] += localGradients.row(locGradStartInd + 1).squaredNorm();
-            divGradPerVert[triVInd[2]] += localGradients.row(locGradStartInd + 2).squaredNorm();
-            incTriAmt[triVInd[0]]++;
-            incTriAmt[triVInd[1]]++;
-            incTriAmt[triVInd[2]]++;
+            for(int i = 0; i < 3; i++) {
+                mean.row(triVInd[i]) += localGradients.row(locGradStartInd + i);
+                incTriAmt[triVInd[i]]++;
+            }
         }
+        for(int vI = 0; vI < data.V_rest.rows(); vI++) {
+            mean.row(vI) /= incTriAmt[vI];
+        }
+        
+        Eigen::VectorXd standardDeviation = Eigen::VectorXd::Zero(data.V_rest.rows());
+        for(int triI = 0; triI < data.F.rows(); triI++) {
+            const Eigen::RowVector3i& triVInd = data.F.row(triI);
+            int locGradStartInd = triI * 3;
+            for(int i = 0; i < 3; i++) {
+                standardDeviation[triVInd[i]] += (localGradients.row(locGradStartInd + i) - mean.row(triVInd[i])).squaredNorm();
+            }
+        }
+        
+        divGradPerVert = Eigen::VectorXd::Zero(data.V_rest.rows());
         for(int vI = 0; vI < data.V_rest.rows(); vI++) {
             if(incTriAmt[vI] == 1) {
                 // impossible to be splitted
                 divGradPerVert[vI] = 0.0;
             }
             else {
-                divGradPerVert[vI] = std::sqrt(divGradPerVert[vI] / (incTriAmt[vI] - 1.0));
+                divGradPerVert[vI] = std::sqrt(standardDeviation[vI] / (incTriAmt[vI] - 1.0));
             }
         }
+#else
+        divGradPerVert = Eigen::VectorXd::Zero(data.V_rest.rows());
+        for(int triI = 0; triI < data.F.rows(); triI++) {
+            const Eigen::RowVector3i& triVInd = data.F.row(triI);
+            const Eigen::RowVector2d eDir[3] = {
+                (data.V.row(triVInd[1]) - data.V.row(triVInd[0])).normalized(),
+                (data.V.row(triVInd[2]) - data.V.row(triVInd[1])).normalized(),
+                (data.V.row(triVInd[0]) - data.V.row(triVInd[2])).normalized()
+//                (data.V.row(triVInd[1]) - data.V.row(triVInd[0])),
+//                (data.V.row(triVInd[2]) - data.V.row(triVInd[1])),
+//                (data.V.row(triVInd[0]) - data.V.row(triVInd[2]))
+            };
+            int locGradStartInd = triI * 3;
+            for(int i = 0; i < 3; i++) {
+                const Eigen::RowVector2d centralDir = (eDir[i] - eDir[(i+2) % 3]).normalized();
+//                const Eigen::RowVector2d centralDir(eDir[(i+1) % 3][1], -eDir[(i+1) % 3][0]);
+                const double w = std::acos(std::max(-1.0, std::min(1.0, eDir[i].dot(-eDir[(i+2) % 3]))));
+                divGradPerVert[triVInd[i]] += w * -localGradients.row(locGradStartInd + i).dot(centralDir);
+//                divGradPerVert[triVInd[i]] += -localGradients.row(locGradStartInd + i).dot(centralDir);
+                
+                //TODO: when querying boundary verts, no need to compute for interior verts
+                //TODO: if want to compare boundary with interior, w needs to be /pi or /2pi
+            }
+        }
+        
+//        double minDiv = divGradPerVert.minCoeff();
+//        minDiv -= std::abs(minDiv) * 1.0e-3;
+        for(int vI = 0; vI < data.V_rest.rows(); vI++) {
+            // prefer to split stretched regions:
+//            if(data.vNeighbor[vI].size() <= 2) {
+//                // impossible to be splitted
+//                divGradPerVert[vI] = minDiv;
+//            }
+            
+            // if want to split both compressed and stretched regions:
+            if(data.vNeighbor[vI].size() <= 2) {
+                // impossible to be splitted
+                divGradPerVert[vI] = 0.0;
+            }
+            else {
+                divGradPerVert[vI] = std::abs(divGradPerVert[vI]);
+            }
+        }
+#endif
     }
     
     void SymStretchEnergy::getDivGradPerElem(const TriangleSoup& data, Eigen::VectorXd& divGradPerElem) const

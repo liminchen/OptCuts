@@ -129,12 +129,14 @@ namespace FracCuts {
             pardisoSolver.set_type(pardisoThreadAmt, -2);
             pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
             pardisoSolver.analyze_pattern();
-            try {
-                pardisoSolver.factorize();
-            }
-            catch(std::exception e) {
-                IglUtils::writeSparseMatrixToFile(outputFolderPath + "mtr_factorizeFail", I_mtr, J_mtr, V_mtr, true);
-                exit(-1);
+            if(!needRefactorize) {
+                try {
+                    pardisoSolver.factorize();
+                }
+                catch(std::exception e) {
+                    IglUtils::writeSparseMatrixToFile(outputFolderPath + "mtr_factorizeFail", I_mtr, J_mtr, V_mtr, true);
+                    exit(-1);
+                }
             }
         }
         
@@ -175,9 +177,13 @@ namespace FracCuts {
             
             if(propagateFracture > 0) {
                 if(!createFracture(lastEDec, propagateFracture)) {
-//                    return 2;
                     propagateFracture = 0;
+                    // always perform the one decreasing E_w more
                 }
+                // for alternating propagation with lambda updates
+//                if(createFracture(lastEDec, propagateFracture)) {
+//                    return 2;
+//                }
             }
         }
         return 1;
@@ -213,75 +219,54 @@ namespace FracCuts {
         globalIterNum = iterNum;
         result = config; //!!! is it able to copy all?
         
-        updateTargetGRes();
-        
-        // compute energy and output
-        computeEnergyVal(result, lastEnergyVal);
-        
-        // compute gradient and output
-        computeGradient(result, gradient);
-        
-        // for the changing hessian
-        if(!mute) {
-            std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
-        }
-        computePrecondMtr(result, precondMtr);
-        if(!pardisoThreadAmt) {
-            cholSolver.analyzePattern(precondMtr);
-            if(!needRefactorize) {
-                cholSolver.factorize(precondMtr);
-                if(cholSolver.info() != Eigen::Success) {
-                    IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_decomposeFailed", precondMtr);
-                    assert(0 && "Cholesky decomposition failed!");
-                }
-            }
-        }
-        else {
-            pardisoSolver = PardisoSolver<Eigen::VectorXi, Eigen::VectorXd>(); //TODO: make it cheaper!
-            pardisoSolver.set_type(pardisoThreadAmt, -2);
-            pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
-            pardisoSolver.analyze_pattern();
-            if(!needRefactorize) {
-                pardisoSolver.factorize();
-            }
-        }
+        updateEnergyData();
     }
     
-    void Optimizer::updateEnergyData(void)
+    void Optimizer::updateEnergyData(bool updateEVal, bool updateGradient, bool updateHessian)
     {
+        energyParamSum = 0.0;
+        for(const auto& ePI : energyParams) {
+            energyParamSum += ePI;
+        }
         updateTargetGRes();
         
-        // compute energy and output
-        computeEnergyVal(result, lastEnergyVal);
-        
-        // compute gradient and output
-        computeGradient(result, gradient);
-        if(gradient.squaredNorm() < targetGRes) {
-            logFile << "||g||^2 = " << gradient.squaredNorm() << " after fracture initiation!" << std::endl;
+        if(updateEVal) {
+            // compute energy and output
+            computeEnergyVal(result, lastEnergyVal);
         }
         
-        // for the changing hessian
-        if(!mute) {
-            std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
-        }
-        computePrecondMtr(result, precondMtr);
-        if(!pardisoThreadAmt) {
-            cholSolver.analyzePattern(precondMtr);
-            if(!needRefactorize) {
-                cholSolver.factorize(precondMtr);
-                if(cholSolver.info() != Eigen::Success) {
-                    IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_decomposeFailed", precondMtr);
-                    assert(0 && "Cholesky decomposition failed!");
-                }
+        if(updateGradient) {
+            // compute gradient and output
+            computeGradient(result, gradient);
+            if(gradient.squaredNorm() < targetGRes) {
+                logFile << "||g||^2 = " << gradient.squaredNorm() << " after fracture initiation!" << std::endl;
             }
         }
-        else {
-            pardisoSolver = PardisoSolver<Eigen::VectorXi, Eigen::VectorXd>(); //TODO: make it cheaper!
-            pardisoSolver.set_type(pardisoThreadAmt, -2);
-            pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
-            pardisoSolver.analyze_pattern();
-            if(!needRefactorize) {
-                pardisoSolver.factorize();
+        
+        if(updateHessian) {
+            // for the changing hessian
+            if(!mute) {
+                std::cout << "recompute proxy/Hessian matrix and factorize..." << std::endl;
+            }
+            computePrecondMtr(result, precondMtr);
+            if(!pardisoThreadAmt) {
+                cholSolver.analyzePattern(precondMtr);
+                if(!needRefactorize) {
+                    cholSolver.factorize(precondMtr);
+                    if(cholSolver.info() != Eigen::Success) {
+                        IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_decomposeFailed", precondMtr);
+                        assert(0 && "Cholesky decomposition failed!");
+                    }
+                }
+            }
+            else {
+                pardisoSolver = PardisoSolver<Eigen::VectorXi, Eigen::VectorXd>(); //TODO: make it cheaper!
+                pardisoSolver.set_type(pardisoThreadAmt, -2);
+                pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
+                pardisoSolver.analyze_pattern();
+                if(!needRefactorize) {
+                    pardisoSolver.factorize();
+                }
             }
         }
     }
@@ -335,7 +320,8 @@ namespace FracCuts {
 //            logFile << result.F << std::endl; //DEBUG
 //            logFile << result.cohE << std::endl; //DEBUG
             
-            updateEnergyData();
+            updateEnergyData(true, false, true);
+            fractureInitiated = true;
             if((!mute) && (propType == 0)) {
                 writeEnergyValToFile(false);
             }
@@ -356,7 +342,9 @@ namespace FracCuts {
             if(!mute) {
                 std::cout << "recompute proxy/Hessian matrix..." << std::endl;
             }
-            computePrecondMtr(result, precondMtr);
+            if(!fractureInitiated) {
+                computePrecondMtr(result, precondMtr);
+            }
             
             if(!mute) {
                 std::cout << "factorizing proxy/Hessian matrix..." << std::endl;
@@ -369,7 +357,9 @@ namespace FracCuts {
                 }
             }
             else {
-                pardisoSolver.update_a(V_mtr);
+                if(!fractureInitiated) {
+                    pardisoSolver.update_a(V_mtr);
+                }
                 try {
                     pardisoSolver.factorize();
                 }
@@ -380,56 +370,17 @@ namespace FracCuts {
             }
         }
         
-        //TODO: half matrix size when you can
-//        if(precondMtr.rows() == result.V.rows() * 2) {
-            if(!pardisoThreadAmt) {
-                searchDir = cholSolver.solve(-gradient);
-                if(cholSolver.info() != Eigen::Success) {
-                    assert(0 && "Cholesky solve failed!");
-                }
+        if(!pardisoThreadAmt) {
+            searchDir = cholSolver.solve(-gradient);
+            if(cholSolver.info() != Eigen::Success) {
+                assert(0 && "Cholesky solve failed!");
             }
-            else {
-                Eigen::VectorXd minusG = -gradient;
-                pardisoSolver.solve(minusG, searchDir);
-            }
-//        }
-//        else {
-//            assert(precondMtr.rows() == result.V.rows());
-//            
-//            Eigen::VectorXd gradient_x, gradient_y;
-//            gradient_x.resize(result.V.rows());
-//            gradient_y.resize(result.V.rows());
-//            for(int vI = 0; vI < result.V.rows(); vI++) {
-//                int startInd = vI * 2;
-//                gradient_x[vI] = gradient[startInd];
-//                gradient_y[vI] = gradient[startInd + 1];
-//            }
-//            
-//            Eigen::VectorXd searchDir_x, searchDir_y;
-//            if(!pardisoThreadAmt) {
-//                searchDir_x = cholSolver.solve(-gradient_x);
-//                if(cholSolver.info() != Eigen::Success) {
-//                    assert(0 && "Cholesky solve failed!");
-//                }
-//                searchDir_y = cholSolver.solve(-gradient_y);
-//                if(cholSolver.info() != Eigen::Success) {
-//                    assert(0 && "Cholesky solve failed!");
-//                }
-//            }
-//            else {
-//                Eigen::VectorXd minusG_x = -gradient_x;
-//                pardisoSolver.solve(minusG_x, searchDir_x);
-//                Eigen::VectorXd minusG_y = -gradient_y;
-//                pardisoSolver.solve(minusG_y, searchDir_y);
-//            }
-//
-//            searchDir.resize(result.V.rows() * 2);
-//            for(int vI = 0; vI < result.V.rows(); vI++) {
-//                int startInd = vI * 2;
-//                searchDir[startInd] = searchDir_x[vI];
-//                searchDir[startInd + 1] = searchDir_y[vI];
-//            }
-//        }
+        }
+        else {
+            Eigen::VectorXd minusG = -gradient;
+            pardisoSolver.solve(minusG, searchDir);
+        }
+        fractureInitiated = false;
         
         bool stopped = lineSearch();
         if(stopped) {

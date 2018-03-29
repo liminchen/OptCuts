@@ -318,6 +318,7 @@ void PardisoSolver<vectorTypeI,vectorTypeS>::analyze_pattern()
     if (mtype ==-1)
         throw std::runtime_error("Pardiso mtype not set.");
     
+//#define PLOTS_PARDISO 1
 #ifdef PLOTS_PARDISO
     /* -------------------------------------------------------------------- */
     /*  .. pardiso_chk_matrix(...)                                          */

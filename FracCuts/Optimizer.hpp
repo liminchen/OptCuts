@@ -28,6 +28,7 @@ namespace FracCuts {
         
     protected: // owned data
         int propagateFracture;
+        bool fractureInitiated = false;
         bool allowEDecRelTol;
         bool mute;
         bool pardisoThreadAmt;
@@ -72,7 +73,7 @@ namespace FracCuts {
         
         void updatePrecondMtrAndFactorize(void);
         
-        void updateEnergyData(void);
+        void updateEnergyData(bool updateEVal = true, bool updateGradient = true, bool updateHessian = true);
         bool createFracture(double stressThres, int propType,
                             bool allowPropagate = true, bool allowInSplit = false);
         void setConfig(const TriangleSoup& config, int iterNum, int p_topoIter);

@@ -56,7 +56,7 @@ double lastE_w = 0.0;
 double lastE_SD = 0.0;
 double lastE_se = 0.0;
 const int boundMeasureType = 0; // 0: E_SD, 1: L2 Stretch
-const double upperBound = 4.2;
+const double upperBound = 4.05;
 const double convTol_upperBound = 1.0e-3; //TODO!!! related to avg edge len or upperBound?
 double criticalLambda_boundaryOpt, criticalLambda_interiorOpt;
 std::vector<std::pair<double, double>> energyChanges_bSplit, energyChanges_iSplit, energyChanges_merge;
@@ -152,6 +152,7 @@ void updateViewerData_distortion(void)
             Eigen::VectorXd l2StretchPerElem;
 //            triSoup[viewChannel]->computeL2StretchPerElem(l2StretchPerElem);
             dynamic_cast<FracCuts::SymStretchEnergy*>(energyTerms[0])->getDivGradPerElem(*triSoup[viewChannel], l2StretchPerElem);
+//            std::cout << l2StretchPerElem << std::endl; //DEBUG
             Eigen::MatrixXd color_distortionVis;
 //            FracCuts::IglUtils::mapScalarToColor(l2StretchPerElem, color_distortionVis, 1.0, 2.0);
             FracCuts::IglUtils::mapScalarToColor(l2StretchPerElem, color_distortionVis,
@@ -749,7 +750,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
                 energyParams[0] = eps_lambda;
             }
             
-            optimizer->updateEnergyData();
+            optimizer->updateEnergyData(true, false, false);
 
             logFile << "measure = " << measure_bound << ", b = " << upperBound <<
                 ", estimated convergence lambda = " << energyParams[0] << std::endl;
@@ -798,7 +799,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
             if(energyChanges_merge.empty()) {
                 logFile << "No merge operation available, end process!" << std::endl;
                 energyParams[0] = 1.0 - eps_lambda;
-                optimizer->updateEnergyData();
+                optimizer->updateEnergyData(true, false, false);
                 if(iterNum_bestFeasible != iterNum) {
                     homoTransFile << iterNum_bestFeasible << std::endl;
                     optimizer->setConfig(triSoup_bestFeasible, iterNum, optimizer->getTopoIter());
@@ -839,7 +840,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
         energyParams[0] = eps_lambda;
     }
     
-    optimizer->updateEnergyData();
+    optimizer->updateEnergyData(true, false, false);
     
     logFile << "measure = " << measure_bound << ", b = " << upperBound << ", updated lambda = " << energyParams[0] << std::endl;
     return true;
@@ -1151,6 +1152,34 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     }
                     break;
                 }
+                    
+                case FracCuts::MT_NOCUT: {
+                    infoName = "finalResult";
+                    // perform exact solve
+                    //                        optimizer->setRelGL2Tol(1.0e-10);
+                    optimizer->setAllowEDecRelTol(false);
+                    converged = false;
+                    while(!converged) {
+                        proceedOptimization(1000);
+                    }
+                    secPast += difftime(time(NULL), lastStart_world);
+                    updateViewerData();
+                    
+                    optimization_on = false;
+                    viewer.core.is_animating = false;
+                    const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
+                    const double timeUsed_frac = static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC;
+                    std::cout << "optimization converged, with " << timeUsed << "s, where " <<
+                    timeUsed_frac << "s is for fracture computation." << std::endl;
+                    logFile << "optimization converged, with " << timeUsed << "s, where " <<
+                    timeUsed_frac << "s is for fracture computation." << std::endl;
+                    homoTransFile.close();
+                    outerLoopFinished = true;
+                    
+                    optimizer->flushEnergyFileOutput();
+                    optimizer->flushGradFileOutput();
+                    break;
+                }
             }
         }
     }
@@ -1313,8 +1342,13 @@ int main(int argc, char *argv[])
             startDS = "AutoCuts";
             break;
             
+        case FracCuts::MT_NOCUT:
+            lambda = 0.0;
+            startDS = "NoCut";
+            break;
+            
         default:
-            //!!!TODO: pure SD
+            assert(0 && "method type not valid!");
             break;
     }
     
