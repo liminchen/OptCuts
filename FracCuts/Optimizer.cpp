@@ -177,7 +177,7 @@ namespace FracCuts {
             
             if(propagateFracture > 0) {
                 if(!createFracture(lastEDec, propagateFracture)) {
-                    propagateFracture = 0;
+//                    propagateFracture = 0;
                     // always perform the one decreasing E_w more
                 }
                 // for alternating propagation with lambda updates
@@ -220,6 +220,11 @@ namespace FracCuts {
         result = config; //!!! is it able to copy all?
         
         updateEnergyData();
+    }
+    
+    void Optimizer::setPropagateFracture(bool p_prop)
+    {
+        propagateFracture = p_prop;
     }
     
     void Optimizer::updateEnergyData(bool updateEVal, bool updateGradient, bool updateHessian)
@@ -294,8 +299,8 @@ namespace FracCuts {
                         break;
                         
                     case 2: //TODO: propagate merge, probably need to also update lambda in-between propagation!
-//                        changed = result.mergeEdge(1.0 - energyParams[0], stressThres);
-                        changed = false;
+                        changed = result.mergeEdge(1.0 - energyParams[0], stressThres);
+//                        changed = false;
                         isMerge = true;
                         break;
                 }

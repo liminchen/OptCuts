@@ -822,20 +822,35 @@ namespace FracCuts {
                     }
                 }
             }
-            
-//            curFracTail = -1;
         }
         else {
             // see whether fracture could be propagated from each fracture tail
+//#define PROPAGATE_MULTIPLE_TAIL 1
+#ifdef PROPAGATE_MULTIPLE_TAIL
             if(fracTail.empty()) {
-                EwDec_max = -__DBL_MAX__;
-                path_max.resize(0);
-                newVertPos_max.resize(0, 2);
-                return;
+#else
+            if(curFracTail < 0) {
+#endif
+                if(curInteriorFracTails.first < 0) {
+                    EwDec_max = -__DBL_MAX__;
+                    path_max.resize(0);
+                    newVertPos_max.resize(0, 2);
+                    return;
+                }
+                else {
+                    assert(curInteriorFracTails.second >= 0);
+                    splitInterior = false;
+                    bestCandVerts.emplace_back(curInteriorFracTails.first);
+                    bestCandVerts.emplace_back(curInteriorFracTails.second);
+                }
             }
             else {
                 splitInterior = false;
+#ifdef PROPAGATE_MULTIPLE_TAIL
                 bestCandVerts.insert(bestCandVerts.end(), fracTail.begin(), fracTail.end());
+#else
+                bestCandVerts.emplace_back(curFracTail);
+#endif
             }
         }
         
@@ -927,8 +942,11 @@ namespace FracCuts {
                 assert(!propagate);
                 std::cout << "interior split E_dec = " << EwDec_max << std::endl;
                 cutPath(path_max, true, 1, newVertPos_max);
-//                fracTail.insert(path_max[0]);
-//                fracTail.insert(path_max[2]);
+                fracTail.insert(path_max[0]);
+                fracTail.insert(path_max[2]);
+                curInteriorFracTails.first = path_max[0];
+                curInteriorFracTails.second = path_max[2];
+                curFracTail = -1;
             }
             return true;
         }
@@ -1160,6 +1178,9 @@ namespace FracCuts {
                     cutPath(path_max, true, 1, newVertPos_max);
                     fracTail.insert(path_max[0]);
                     fracTail.insert(path_max[2]);
+                    curInteriorFracTails.first = path_max[0];
+                    curInteriorFracTails.second = path_max[2];
+                    curFracTail = -1;
                 }
             }
             return true;
@@ -2486,11 +2507,12 @@ namespace FracCuts {
         fracTail.erase(vI_boundary);
         if(!duplicateBoth) {
             fracTail.insert(vI_interior);
-//            curFracTail = vI_interior;
+            curFracTail = vI_interior;
         }
-//        else {
-//            curFracTail = -1;
-//        }
+        else {
+            curFracTail = -1;
+        }
+        curInteriorFracTails.first = curInteriorFracTails.second = -1;
         
         // duplicate vI_boundary
         std::vector<int> tri_toSep[2];
@@ -2636,6 +2658,7 @@ namespace FracCuts {
         
         fracTail.erase(edge0.second);
         fracTail.insert(edge0.first);
+        curFracTail = edge0.first;
         
         V.row(edge0.first) = mergedPos;
         int vBackI = static_cast<int>(V.rows()) - 1;
@@ -2756,6 +2779,7 @@ namespace FracCuts {
            {
                fracTail.erase(cohE(cohI, 0));
                fracTail.erase(cohE(cohI, 1));
+               curFracTail = -1;
                
                if(cohI < cohE.rows() - 1) {
                    cohE.row(cohI) = cohE.row(cohE.rows() - 1);

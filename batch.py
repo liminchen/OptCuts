@@ -7,7 +7,8 @@ from os.path import isfile, join
 # meshFolderPath = '/Users/mincli/Downloads/meshes/needMoreTime/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/closed/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/test_/'
-meshFolderPath = '/Users/mincli/Downloads/meshes/small_/'
+meshFolderPath = '/Users/mincli/Downloads/meshes/interiorSplitExp_/'
+# meshFolderPath = '/Users/mincli/Downloads/meshes/small_/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/fullBatch_/'
 onlyfiles = [f for f in listdir(meshFolderPath) if isfile(join(meshFolderPath, f))]
 
@@ -28,7 +29,7 @@ FracCutsPath = '/Users/mincli/Library/Developer/Xcode/DerivedData/FracCuts-agmha
 
 for inputModelNameI in onlyfiles:
 	# no prop, no filter
-	runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.025 39 3'
+	runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.025 102 2'
 	if subprocess.call([runCommand], shell=True):
 		continue
 

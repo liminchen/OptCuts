@@ -56,7 +56,7 @@ double lastE_w = 0.0;
 double lastE_SD = 0.0;
 double lastE_se = 0.0;
 const int boundMeasureType = 0; // 0: E_SD, 1: L2 Stretch
-const double upperBound = 4.05;
+const double upperBound = 4.1;
 const double convTol_upperBound = 1.0e-3; //TODO!!! related to avg edge len or upperBound?
 double criticalLambda_boundaryOpt, criticalLambda_interiorOpt;
 std::vector<std::pair<double, double>> energyChanges_bSplit, energyChanges_iSplit, energyChanges_merge;
@@ -1032,6 +1032,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                                 optimizer->setAllowEDecRelTol(false);
                                 //!! can recompute precondmtr if needed
                                 converged = false;
+                                optimizer->setPropagateFracture(false);
                                 while(!converged) {
                                     proceedOptimization(1000);
                                 }

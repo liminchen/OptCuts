@@ -58,7 +58,8 @@ namespace FracCuts{
         std::map<std::pair<int, int>, int> cohEIndex;
         
         std::set<int> fracTail;
-//        int curFracTail;
+        int curFracTail;
+        std::pair<int, int> curInteriorFracTails;
         double initSeamLen;
         
     public: // constructor

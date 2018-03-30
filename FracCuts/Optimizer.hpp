@@ -77,6 +77,7 @@ namespace FracCuts {
         bool createFracture(double stressThres, int propType,
                             bool allowPropagate = true, bool allowInSplit = false);
         void setConfig(const TriangleSoup& config, int iterNum, int p_topoIter);
+        void setPropagateFracture(bool p_prop);
         
         void computeLastEnergyVal(void);
         
