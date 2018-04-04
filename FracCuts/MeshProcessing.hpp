@@ -12,10 +12,14 @@
 #include <igl/readOFF.h>
 #include <igl/readOBJ.h>
 #include <igl/writeOBJ.h>
+#include <igl/boundary_loop.h>
+#include <igl/map_vertices_to_circle.h>
+#include <igl/harmonic.h>
+#include <igl/euler_characteristic.h>
 
 #include <cstdio>
 
-extern const std::string meshFolder;
+extern std::string outputFolderPath;
 
 namespace FracCuts {
     class MeshProcessing
@@ -26,8 +30,10 @@ namespace FracCuts {
             if(argc > 2) {
                 Eigen::MatrixXd V, UV, N;
                 Eigen::MatrixXi F, FUV, FN;
-                std::string meshPath = meshFolder + std::string(argv[2]);
-                const std::string suffix = meshPath.substr(meshPath.find_last_of('.'));
+                std::string meshPath = std::string(argv[2]);
+                std::string meshFileName = meshPath.substr(meshPath.find_last_of('/') + 1);
+                std::string meshName = meshFileName.substr(0, meshFileName.find_last_of('.'));
+                const std::string suffix = meshFileName.substr(meshFileName.find_last_of('.'));
                 if(suffix == ".off") {
                     igl::readOFF(meshPath, V, F);
                 }
@@ -50,7 +56,7 @@ namespace FracCuts {
                                 F(triI, 1) = temp[2];
                                 F(triI, 2) = temp[1];
                             }
-                            igl::writeOBJ(meshFolder + "processedMesh.obj", V, F);
+                            igl::writeOBJ(outputFolderPath + meshName + "_processed.obj", V, F);
                             break;
                         }
                             
@@ -70,7 +76,7 @@ namespace FracCuts {
                                 // input original model to get cohesive edge information
                                 Eigen::MatrixXd V0;
                                 Eigen::MatrixXi F0;
-                                std::string meshPath = meshFolder + std::string(argv[4]);
+                                std::string meshPath = std::string(argv[4]);
                                 const std::string suffix = meshPath.substr(meshPath.find_last_of('.'));
                                 if(suffix == ".off") {
                                     igl::readOFF(meshPath, V0, F0);
@@ -86,15 +92,57 @@ namespace FracCuts {
                                 inputTriSoup.cohE = FracCuts::TriangleSoup(V0, F0, Eigen::MatrixXd()).cohE;
                                 inputTriSoup.computeFeatures();
                             }
-                            inputTriSoup.saveAsMesh(meshFolder + "processedMesh.obj", true);
+                            inputTriSoup.saveAsMesh(outputFolderPath + meshName + "_processed.obj", true);
                             break;
                         }
                             
                         case 2: {
                             // save texture as mesh
                             if(UV.rows() == 0) {
-                                std::cout << "no input UV coordinates!" << std::endl;
-                                return;
+                                // no input UV
+                                Eigen::VectorXi bnd;
+                                igl::boundary_loop(F, bnd); // Find the open boundary
+                                if(bnd.size()) {
+                                    // disk-topology
+                                    
+                                    //TODO: what if it has multiple boundaries? or multi-components?
+                                    // Map the boundary to a circle, preserving edge proportions
+                                    Eigen::MatrixXd bnd_uv;
+                                    //            igl::map_vertices_to_circle(V, bnd, bnd_uv);
+                                    FracCuts::IglUtils::map_vertices_to_circle(V, bnd, bnd_uv);
+                                    
+                                    //            // Harmonic parametrization
+                                    //            igl::harmonic(V, F, bnd, bnd_uv, 1, UV);
+                                    
+                                    // Harmonic map with uniform weights
+                                    Eigen::SparseMatrix<double> A, M;
+                                    FracCuts::IglUtils::computeUniformLaplacian(F, A);
+                                    igl::harmonic(A, M, bnd, bnd_uv, 1, UV);
+                                    //            FracCuts::IglUtils::computeMVCMtr(V, F, A);
+                                    //            FracCuts::IglUtils::fixedBoundaryParam_MVC(A, bnd, bnd_uv, UV);
+                                }
+                                else {
+                                    // closed surface
+                                    if(igl::euler_characteristic(V, F) != 2) {
+                                        std::cout << "Input surface genus > 0 or has multiple connected components!" << std::endl;
+                                        exit(-1);
+                                    }
+                                    
+                                    FracCuts::TriangleSoup *temp = new FracCuts::TriangleSoup(V, F, Eigen::MatrixXd(), Eigen::MatrixXi(), false);
+                                    //            temp->farthestPointCut(); // open up a boundary for Tutte embedding
+                                    //                temp->highCurvOnePointCut();
+                                    temp->onePointCut();
+                                    
+                                    igl::boundary_loop(temp->F, bnd);
+                                    assert(bnd.size());
+                                    Eigen::MatrixXd bnd_uv;
+                                    FracCuts::IglUtils::map_vertices_to_circle(temp->V_rest, bnd, bnd_uv);
+                                    Eigen::SparseMatrix<double> A, M;
+                                    FracCuts::IglUtils::computeUniformLaplacian(temp->F, A);
+                                    igl::harmonic(A, M, bnd, bnd_uv, 1, UV);
+                                    
+                                    delete temp;
+                                }
                             }
                             
                             Eigen::MatrixXd V_uv;
@@ -102,13 +150,13 @@ namespace FracCuts {
                             V_uv << UV, Eigen::VectorXd::Zero(UV.rows(), 1);
                             if(FUV.rows() == 0) {
                                 assert(F.rows() > 0);
-                                igl::writeOBJ(meshFolder + "texture.obj", V_uv, F);
+                                igl::writeOBJ(outputFolderPath + meshName + "_UV.obj", V_uv, F);
                             }
                             else {
-                                igl::writeOBJ(meshFolder + "texture.obj", V_uv, FUV);
+                                igl::writeOBJ(outputFolderPath + meshName + "_UV.obj", V_uv, FUV);
                             }
                             
-                            std::cout << "texture saved as mesh into " << meshFolder << "texture.obj" << std::endl;
+                            std::cout << "texture saved as mesh into " << outputFolderPath << meshName << "_UV.obj" << std::endl;
                             
                             break;
                         }

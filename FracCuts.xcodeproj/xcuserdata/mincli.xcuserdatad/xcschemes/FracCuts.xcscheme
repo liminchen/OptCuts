@@ -23,7 +23,7 @@
       </BuildActionEntries>
    </BuildAction>
    <TestAction
-      buildConfiguration = "Debug"
+      buildConfiguration = "Release"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
@@ -79,15 +79,19 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "100 /Users/mincli/Downloads/meshes/closed/tiger_noUV.obj 0.025 1 2 test"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/needMoreTime/rgb_dragon_o_f8000.obj 0.025 4 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "100 /Users/mincli/Downloads/meshes/needMoreTime/lucy_o_f8000.obj 0.0 4 4 test"
+            argument = "100 /Users/mincli/Downloads/meshes/needMoreTime/lucy_o_f8000.obj 0.025 4 2 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/needMoreTime/three_man_statue_i_f10000.obj 0.025 4 0 test"
+            argument = "100 /Users/mincli/Downloads/meshes/needMoreTime/gargoyle_i_f10000.obj 0.025 4 2 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -108,7 +112,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/statue_5_i_f10000.obj 0.025 1 3 test"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/caesar1.obj 0.001 1 0 test"
@@ -139,7 +143,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/torusOnPlane.obj 0.001 1 2 test"
+            argument = "100 /Users/mincli/Downloads/meshes/male_body_i_f10000.obj 0.025 1 2 test"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -152,7 +156,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 cone2.0_f1500.obj 0.025 16 3 test"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 camelhead_f1000.off 0.025 8 0 test"
@@ -203,15 +207,19 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "1 3 /Applications/XAMPP/xamppfiles/htdocs/expResults/results17/"
+            argument = "1 2 /Applications/XAMPP/xamppfiles/htdocs/expResults/results17/"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "2 hand_1_i_f5000_Tutte.obj 2"
-            isEnabled = "NO">
+            argument = "2 /Users/mincli/Downloads/meshes/statue_1_i_f8000.obj 2"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/bull.obj 0.025 1 0 test"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 /Users/mincli/Downloads/meshes/closed/sphere_uniRemesh.obj 0.025 1 0 test"
             isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
@@ -236,7 +244,7 @@
       </BuildableProductRunnable>
    </ProfileAction>
    <AnalyzeAction
-      buildConfiguration = "Debug">
+      buildConfiguration = "Release">
    </AnalyzeAction>
    <ArchiveAction
       buildConfiguration = "Release"

@@ -7,8 +7,8 @@ from os.path import isfile, join
 # meshFolderPath = '/Users/mincli/Downloads/meshes/needMoreTime/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/closed/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/test_/'
-meshFolderPath = '/Users/mincli/Downloads/meshes/interiorSplitExp_/'
-# meshFolderPath = '/Users/mincli/Downloads/meshes/small_/'
+# meshFolderPath = '/Users/mincli/Downloads/meshes/interiorSplitExp_/'
+meshFolderPath = '/Users/mincli/Downloads/meshes/small_/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/fullBatch_/'
 onlyfiles = [f for f in listdir(meshFolderPath) if isfile(join(meshFolderPath, f))]
 
@@ -28,8 +28,13 @@ FracCutsPath = '/Users/mincli/Library/Developer/Xcode/DerivedData/FracCuts-agmha
 # 		continue
 
 for inputModelNameI in onlyfiles:
-	# no prop, no filter
-	runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.025 102 2'
+	# # no prop, no filter
+	# runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.025 42 3'
+	# if subprocess.call([runCommand], shell=True):
+	# 	continue
+
+	# compute initial embedding and output for AutoCuts
+	runCommand = priority + FracCutsPath + ' 2 ' + meshFolderPath + inputModelNameI + ' 2'
 	if subprocess.call([runCommand], shell=True):
 		continue
 
