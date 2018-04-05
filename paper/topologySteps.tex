@@ -109,3 +109,11 @@ After the fracture has been initiated, we first go to descent step to run an inn
 Multiple fracture initiation would be redundant on a single cone-like region since only one fracture would be enough to release the distortion. However, initiating one fracture for each cone-like region within a single topology step would certainly accelerate the whole process.
 
 This could be done by partitioning the UV space according to distortion or filtering measurement and initiate a valid fracture (if any) in each region in every topology step. The partition criteria could be separating the domain so that on each subdomain, the function is convex (has exactly one stationary).
+
+\paragraph{Corner Merge} Applied relaxation method for projecting average position to inversion free position to start from, however cases are still there where only move the merged vertex is not enough
+method ref:
+S. Agmon. The relaxation method for linear inequalities
+I. Eremin. The relaxation method of solving systems of inequalities with convex functions on the left sides
+
+\paragraph{Forward Line Search} It is based on a kind of sufficient energy decrease criteria similar to Armijo rule in the continuous setting, where our epsilon term is the energy decrease of the previous PN iteration.
+To understand alternating lambda updates between PN iterations: lambda update changes the energy manifold, so it couldn’t be too frequent or the manifold can’t really be explored enough, nor it could be too seldom or it would be trapped in a local region.

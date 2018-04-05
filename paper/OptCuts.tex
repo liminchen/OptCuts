@@ -123,14 +123,16 @@
 \newcommand{\minchen}[1]{\textcolor{blue}{\textbf{Minchen: #1}}}
 
 \begin{abstract}
-Parameterizing 3D surfaces to the 2D plane is a fundamental problem with applications in texture mapping, remeshing, and detail transfer, etc.
+% context and need
+Parameterizing 3D surfaces to the 2D plane is a fundamental problem with many applications in texture mapping, remeshing, and detail transfer, etc.
 For most surfaces, one has to introduce discontinuities (seams) and distortion while producing a map. Existing techniques typically decide between the two independently: first placing seams and then minimizing distortion, and thus produce sub-optimal results.
-We propose a joint discrete-continuous optimization framework that optimally and progressively introduce or remove seams (in topology steps) in between distortion minimizations (in descent steps). We use a linear combination of symmetric Dirichlet energy and seam length as objective, of which the stationary w.r.t. both UV topology and coordinates are guaranteed to be reached within a bounded number of alternating iterations per balancing factor, input model, and initial embedding.
-
-Specifically, in descent steps, we minimize symmetric Dirichlet energy using projected Newton method given the current UV topology. In topology steps, we search for a nearby UV topology that locally decrease the objective the most by querying a filtered set of basic topological operations. To be appropriately aggressive on searching in the topological space, \minchen{[TODO] we develop an analogous line search method as in continuous settings and allow multiple fracture initiation.}
+% task and object
+We propose {\em OptCuts}, a joint discrete-continuous optimization framework that progressively place seams in between distortion minimizations, where the objective is a linear combination of a distortion energy and seam length. The stationary w.r.t. both UV topology and coordinates are guaranteed to be reached within a bounded number of iterations per balancing factor, input model, and initial embedding.
+Starting with an initial embedding, OptCuts alternates between topology steps and descent steps to search for an optimal UV map. In topology steps, it first finds a search direction in the UV topology space that locally decrease the objective the most; and then in the following descent step, it decides the topology search step-size by a newly derived forward-tracking line search scheme alternated with distortion minimization.
 Since in application scenarios, an upper bound for distortion is more intuitive than picking a balancing factor, we also provide a constrained optimization formulation that seeks stationary w.r.t. both primal (UV coordinates and topology) and dual (balancing factor) variables subject to user specified distortion upper bounds.
-
-Our method automatically produces high quality UV maps without any user assistance. \minchen{[TODO] We also show that given a UV configuration by other methods, our method can improve the distortion and seam placement}, and that our framework has the potential to handle bijectivity, seamlessness, and user preferences jointly within it as well.
+% conclusion
+We demonstrate in the experiment that OptCuts automatically produces high quality UV maps without any user assistance, and it can generate seams targeting on different types of distortion measurement or respecting user preferences on regional seam placement.
+We show that our discrete-continuous optimization framework also has the potential to jointly handle global bijectivity and seamlessness.
 \end{abstract}
 
 
