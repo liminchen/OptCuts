@@ -2214,17 +2214,25 @@ namespace FracCuts {
                    (edge2Tri.find(std::pair<int, int>(nbVI, vI)) != edge2Tri.end()))
                 {
                     // interior edge
+                    
                     Eigen::MatrixXd newVertPosI;
-                    const double seInc = (V_rest.row(vI) - V_rest.row(nbVI)).norm() / virtualRadius;
                     const double SDDec = computeLocalEDec(edge, edge2Tri, vNeighbor, cohEIndex, newVertPosI);
-                    const double curEwDec = (1.0 - lambda_t) * SDDec - lambda_t * seInc;
-                    if(curEwDec > maxEwDec) {
-                        maxEwDec = curEwDec;
-                        path_max[0] = vI;
-                        path_max[1] = nbVI;
-                        newVertPos_max = newVertPosI;
-                        energyChanges_max.first = -SDDec;
-                        energyChanges_max.second = seInc;
+                    
+                    // test overlap
+                    const Eigen::RowVector2d e = V.row(nbVI) - V.row(vI);
+                    const Eigen::RowVector2d a = newVertPosI.row(1) - V.row(vI);
+                    const Eigen::RowVector2d b = newVertPosI.row(0) - V.row(vI);
+                    if(IglUtils::computeRotAngle(a, e) + IglUtils::computeRotAngle(e, b) > 0.0) {
+                        const double seInc = (V_rest.row(vI) - V_rest.row(nbVI)).norm() / virtualRadius;
+                        const double curEwDec = (1.0 - lambda_t) * SDDec - lambda_t * seInc;
+                        if(curEwDec > maxEwDec) {
+                            maxEwDec = curEwDec;
+                            path_max[0] = vI;
+                            path_max[1] = nbVI;
+                            newVertPos_max = newVertPosI;
+                            energyChanges_max.first = -SDDec;
+                            energyChanges_max.second = seInc;
+                        }
                     }
                 }
             }
@@ -2287,6 +2295,34 @@ namespace FracCuts {
                     triangles.insert(triangles.end(), umbrella.begin() + endI, umbrella.end());
                     SDDec += computeLocalEDec(triangles, freeVert, newVertPosMap);
                     newVertPos.block(1, 0, 1, 2) = newVertPosMap[vI];
+                    
+                    // test overlap
+                    const Eigen::RowVector2d p0p1 = V.row(path[1]) - V.row(path[0]);
+                    const Eigen::RowVector2d p0nv0 = newVertPos.block(0, 0, 1, 2) - V.row(path[0]);
+                    const Eigen::RowVector2d p0nv1 = newVertPos.block(1, 0, 1, 2) - V.row(path[0]);
+                    const double ang_nv0p0p1 = IglUtils::computeRotAngle(p0nv0, p0p1);
+                    const double ang_p1p0nv1 = IglUtils::computeRotAngle(p0p1, p0nv1);
+                    if(ang_nv0p0p1 + ang_p1p0nv1 <= 0.0) {
+                        continue;
+                    }
+                    const Eigen::RowVector2d p2p1 = V.row(path[1]) - V.row(path[2]);
+                    const Eigen::RowVector2d p2nv0 = newVertPos.block(0, 0, 1, 2) - V.row(path[2]);
+                    const Eigen::RowVector2d p2nv1 = newVertPos.block(1, 0, 1, 2) - V.row(path[2]);
+                    const double ang_nv1p2p1 = IglUtils::computeRotAngle(p2nv1, p2p1);
+                    const double ang_p1p2nv0 = IglUtils::computeRotAngle(p2p1, p2nv0);
+                    if(ang_nv1p2p1 + ang_p1p2nv0 <= 0.0) {
+                        continue;
+                    }
+                    double ang_p0p1p2 = IglUtils::computeRotAngle(-p0p1, -p2p1);
+                    if(ang_p0p1p2 < 0.0) {
+                        ang_p0p1p2 += 2.0 * M_PI;
+                    }
+                    if(ang_p1p0nv1 + ang_nv1p2p1 >= ang_p0p1p2) {
+                        continue;
+                    }
+                    if(ang_p1p2nv0 + ang_nv0p0p1 >= 2.0 * M_PI - ang_p0p1p2) {
+                        continue;
+                    }
                     
                     const double seInc = ((V_rest.row(path[0]) - V_rest.row(path[1])).norm() +
                                           (V_rest.row(path[1]) - V_rest.row(path[2])).norm()) / virtualRadius;

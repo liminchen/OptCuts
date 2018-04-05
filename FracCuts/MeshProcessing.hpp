@@ -144,6 +144,9 @@ namespace FracCuts {
                                     delete temp;
                                 }
                             }
+                            else {
+                                std::cout << "use input UV" << std::endl;
+                            }
                             
                             Eigen::MatrixXd V_uv;
                             V_uv.resize(UV.rows(), 3);

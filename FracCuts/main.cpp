@@ -44,6 +44,7 @@ int iterAmt_rollBack = 0;
 int iterAmt_rollBack_topo = 0;
 int iterNum_backUp = 0;
 bool converged = false;
+bool noValidOp = false;
 bool autoHomotopy = true;
 std::ofstream homoTransFile;
 bool fractureMode = false;
@@ -846,6 +847,36 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
     return true;
 }
 
+void converge_preDrawFunc(igl::viewer::Viewer& viewer)
+{
+    infoName = "finalResult";
+    // perform exact solve
+    //                            optimizer->setRelGL2Tol(1.0e-10);
+    optimizer->setAllowEDecRelTol(false);
+    //!! can recompute precondmtr if needed
+    converged = false;
+    optimizer->setPropagateFracture(false);
+    while(!converged) {
+        proceedOptimization(1000);
+    }
+    secPast += difftime(time(NULL), lastStart_world);
+    updateViewerData();
+    
+    optimizer->flushEnergyFileOutput();
+    optimizer->flushGradFileOutput();
+    
+    optimization_on = false;
+    viewer.core.is_animating = false;
+    const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
+    const double timeUsed_frac = static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC;
+    std::cout << "optimization converged, with " << timeUsed << "s, where " <<
+    timeUsed_frac << "s is for fracture computation." << std::endl;
+    logFile << "optimization converged, with " << timeUsed << "s, where " <<
+    timeUsed_frac << "s is for fracture computation." << std::endl;
+    homoTransFile.close();
+    outerLoopFinished = true;
+}
+
 bool preDrawFunc(igl::viewer::Viewer& viewer)
 {
     if(optimization_on)
@@ -998,7 +1029,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         (1.0 - energyParams[0]) * E_se;
                     std::cout << "E_w from " << lastE_w << " to " << E_w << std::endl;
                     
-                    if(E_w > lastE_w) {
+                    if((E_w > lastE_w) || noValidOp) {
                         assert(fracThres < 0.0);
                         
                         // compute critical lambda
@@ -1025,33 +1056,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                                (!updateLambda_stationaryV(false, true)))
                             {
                                 // all converged
-                                
-                                infoName = "finalResult";
-                                // perform exact solve
-                                //                            optimizer->setRelGL2Tol(1.0e-10);
-                                optimizer->setAllowEDecRelTol(false);
-                                //!! can recompute precondmtr if needed
-                                converged = false;
-                                optimizer->setPropagateFracture(false);
-                                while(!converged) {
-                                    proceedOptimization(1000);
-                                }
-                                secPast += difftime(time(NULL), lastStart_world);
-                                updateViewerData();
-                                
-                                optimizer->flushEnergyFileOutput();
-                                optimizer->flushGradFileOutput();
-                                
-                                optimization_on = false;
-                                viewer.core.is_animating = false;
-                                const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
-                                const double timeUsed_frac = static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC;
-                                std::cout << "optimization converged, with " << timeUsed << "s, where " <<
-                                timeUsed_frac << "s is for fracture computation." << std::endl;
-                                logFile << "optimization converged, with " << timeUsed << "s, where " <<
-                                timeUsed_frac << "s is for fracture computation." << std::endl;
-                                homoTransFile.close();
-                                outerLoopFinished = true;
+                                converge_preDrawFunc(viewer);
                             }
                             else {
                                 // continue to split boundary after lambda update
@@ -1072,8 +1077,9 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                                     converged = false;
                                 }
                                 else {
-                                    // won't happen now since we are splitting anyway
-                                    assert(0);
+                                    // if no valid (won't cause overlaps) boundary split exists among the filtered candidate
+                                    lastFractureIn = false;
+                                    noValidOp = true;
                                 }
                             }
                         }
@@ -1084,10 +1090,16 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                             iterNum_lastTopo = iterNum;
                             lastStart = clock();
                             logFile << "interior split " << triSoup[channel_result]->V_rest.rows() << std::endl;
-                            assert(optimizer->createFracture(fracThres, false, !altBase, true));
-                            lastFractureIn = true;
-                            ticksPast += clock() - lastStart;
-                            converged = false;
+                            if(optimizer->createFracture(fracThres, false, !altBase, true)) {
+                                lastFractureIn = true;
+                                ticksPast += clock() - lastStart;
+                                converged = false;
+                            }
+                            else {
+                                // if no valid (won't cause overlaps) interior split exists among the filtered candidate
+                                lastFractureIn = true;
+                                noValidOp = true;
+                            }
                         }
                     }
                     else {
@@ -1101,32 +1113,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                            (!updateLambda_stationaryV()))
                         {
                             // oscillation detected
-                            
-                            infoName = "finalResult";
-                            // perform exact solve
-                            //                            optimizer->setRelGL2Tol(1.0e-10);
-                            optimizer->setAllowEDecRelTol(false);
-                            //!! can recompute precondmtr if needed
-                            converged = false;
-                            while(!converged) {
-                                proceedOptimization(1000);
-                            }
-                            secPast += difftime(time(NULL), lastStart_world);
-                            updateViewerData();
-                            
-                            optimizer->flushEnergyFileOutput();
-                            optimizer->flushGradFileOutput();
-                            
-                            optimization_on = false;
-                            viewer.core.is_animating = false;
-                            const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
-                            const double timeUsed_frac = static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC;
-                            std::cout << "optimization converged, with " << timeUsed << "s, where " <<
-                            timeUsed_frac << "s is for fracture computation." << std::endl;
-                            logFile << "optimization converged, with " << timeUsed << "s, where " <<
-                            timeUsed_frac << "s is for fracture computation." << std::endl;
-                            homoTransFile.close();
-                            outerLoopFinished = true;
+                            converge_preDrawFunc(viewer);
                         }
                         else {
                             triSoup_backup = optimizer->getResult();
@@ -1146,8 +1133,9 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                                 converged = false;
                             }
                             else {
-                                // won't happen now since we are splitting anyway
-                                assert(0);
+                                // if no valid (won't cause overlaps) boundary split exists among the filtered candidate
+                                lastFractureIn = false;
+                                noValidOp = true;
                             }
                         }
                     }

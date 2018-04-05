@@ -92,6 +92,8 @@ namespace FracCuts {
         static void differentiate_normalize(const Eigen::Vector2d& var, Eigen::Matrix2d& deriv);
         static void differentiate_xxT(const Eigen::Vector2d& var, Eigen::Matrix<Eigen::RowVector2d, 2, 2>& deriv,
                                       double param = 1.0);
+        
+        static double computeRotAngle(const Eigen::RowVector2d& from, const Eigen::RowVector2d& to);
     };
     
 }

@@ -556,4 +556,10 @@ namespace FracCuts {
         deriv(1, 0) = param * Eigen::RowVector2d(var[1], var[0]);
         deriv(1, 1) = param * Eigen::RowVector2d(0.0, 2 * var[1]);
     }
+    
+    double IglUtils::computeRotAngle(const Eigen::RowVector2d& from, const Eigen::RowVector2d& to)
+    {
+        double angle = std::acos(std::max(-1.0, std::min(1.0, from.dot(to) / from.norm() / to.norm())));
+        return ((from[0] * to[1] - from[1] * to[0] < 0.0) ? -angle : angle);
+    }
 }
