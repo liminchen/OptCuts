@@ -44,7 +44,8 @@
 % Document starts
 \begin{document}
 % Title portion
-\title{OptCuts: Joint Optimization for Seam Placement and Parameterization of 3D Surfaces} 
+\title{OptCuts: Joint %Optimization for 
+Seam Placement and Parameterization for 3D Surfaces} 
 
 \author{Minchen Li}
 % \orcid{1234-5678-9012-3456}
@@ -121,18 +122,25 @@
 \definecolor{darkgreen}{rgb}{0, 0.3, 0}
 \definecolor{orange}{rgb}{1, 0.5, 0.}
 \newcommand{\minchen}[1]{\textcolor{blue}{\textbf{Minchen: #1}}}
+\newcommand{\justin}[1]{\textcolor{red}{\textbf{Justin: #1}}}
+\newcommand{\alla}[1]{\textcolor{orange}{\textbf{Alla: #1}}}
+\newcommand{\danny}[1]{\textcolor{purple}{\textbf{Danny: #1}}}
+\newcommand{\vova}[1]{\textcolor{green}{\textbf{Vova: #1}}}
 
 \begin{abstract}
 % context and need
-Parameterizing 3D surfaces to the 2D plane is a fundamental problem with many applications in texture mapping, remeshing, and detail transfer, etc.
-For most surfaces, one has to introduce discontinuities (seams) and distortion while producing a map. Existing techniques typically decide between the two independently: first placing seams and then minimizing distortion, and thus produce sub-optimal results.
+Mapping 3D surfaces to the plane is a fundamental problem with applications in texture mapping, remeshing, and detail transfer.
+For most surfaces, one has to introduce discontinuities (seams) and distortion to produce a valid map. Existing techniques largely consider seam placement and distortion minimization independently, first placing seams and then minimizing distortion; this leads to sub-optimal output.
 % task and object
-We propose {\em OptCuts}, a joint discrete-continuous optimization framework that progressively place seams in between distortion minimizations, where the objective is a linear combination of a distortion energy and seam length. The stationary w.r.t. both UV topology and coordinates are guaranteed to be reached within a bounded number of iterations per balancing factor, input model, and initial embedding.
-Starting with an initial embedding, OptCuts alternates between topology steps and descent steps to search for an optimal UV map. In topology steps, it first finds a search direction in the UV topology space that locally decrease the objective the most; and then in the following descent step, it decides the topology search step-size by a newly derived forward-tracking line search scheme alternated with distortion minimization.
-Since in application scenarios, an upper bound for distortion is more intuitive than picking a balancing factor, we also provide a constrained optimization formulation that seeks stationary w.r.t. both primal (UV coordinates and topology) and dual (balancing factor) variables subject to user specified distortion upper bounds.
+As an alternative, we propose {\em OptCuts}, a joint discrete-continuous optimization framework that progressively places seams between distortion minimization steps, to reduce a linear combination of a distortion energy and seam length. 
+%he stationary w.r.t. both UV topology and coordinates are guaranteed to be reached within a bounded number of iterations per balancing factor, input model, and initial embedding.%<--- not sure this is true, also probably not necessary for abstract
+Starting with an initial embedding, OptCuts alternates between topology steps and descent steps to search for an optimal UV map. 
+%
+%In topology steps, it first finds a search direction in the UV topology space that locally decrease the objective the most; and then in the following descent step, it decides the topology search step-size by a newly derived forward-tracking line search scheme alternated with distortion minimization.%<--- keep it short!
+Since bounding distortion is more intuitive than balancing between objective terms, we also provide a constrained formulation seeking stationarity with respect to primal (UV coordinates and topology) and dual (balancing factor) variables subject to a user-specified distortion bound.
 % conclusion
-We demonstrate in the experiment that OptCuts automatically produces high quality UV maps without any user assistance, and it can generate seams targeting on different types of distortion measurement or respecting user preferences on regional seam placement.
-We show that our discrete-continuous optimization framework also has the potential to jointly handle global bijectivity and seamlessness.
+We demonstrate that OptCuts automatically produces high-quality UV maps without user assistance, and it can generate seams whose structure is informed by different types of distortion measurement and/or user preferences on regional seam placement.
+We show that our optimization framework also has the potential to handle global bijectivity and seamlessness.
 \end{abstract}
 
 
