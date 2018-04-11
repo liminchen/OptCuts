@@ -124,17 +124,15 @@ namespace FracCuts{
         void computeLaplacianMtr(void);
         
         bool findBoundaryEdge(int vI, const std::pair<int, int>& startEdge,
-                              const std::map<std::pair<int, int>, int>& edge2Tri,
                               std::pair<int, int>& boundaryEdge);
         
         // toBound = false indicate counter-clockwise
-        bool isBoundaryVert(const std::map<std::pair<int, int>, int>& edge2Tri, int vI, int vI_neighbor,
+        bool isBoundaryVert(int vI, int vI_neighbor,
                             std::vector<int>& tri_toSep, std::pair<int, int>& boundaryEdge, bool toBound = true) const;
-        bool isBoundaryVert(const std::map<std::pair<int, int>, int>& edge2Tri, const std::vector<std::set<int>>& vNeighbor, int vI) const;
+        bool isBoundaryVert(int vI) const;
         
         void splitEdgeOnBoundary(const std::pair<int, int>& edge, const Eigen::MatrixXd& newVertPos,
-            std::map<std::pair<int, int>, int>& edge2Tri, std::vector<std::set<int>>& vNeighbor,
-            std::map<std::pair<int, int>, int>& cohEIndex, bool changeVertPos = true);
+                                bool changeVertPos = true);
         void mergeBoundaryEdges(const std::pair<int, int>& edge0, const std::pair<int, int>& edge1,
                                 const Eigen::RowVectorXd& mergedPos);
         
@@ -144,9 +142,7 @@ namespace FracCuts{
                                  const std::vector<int>& incTris = std::vector<int>(),
                                  const Eigen::RowVector2d& initMergedPos = Eigen::RowVector2d()) const;
         // query incident edge of a vertex candidate
-        double computeLocalEDec(const std::pair<int, int>& edge,
-            const std::map<std::pair<int, int>, int>& edge2Tri, const std::vector<std::set<int>>& vNeighbor,
-            const std::map<std::pair<int, int>, int>& cohEIndex, Eigen::MatrixXd& newVertPos) const; //TODO: write this in a new class
+        double computeLocalEDec(const std::pair<int, int>& edge, Eigen::MatrixXd& newVertPos) const; //TODO: write this in a new class
         // minimize SD on the local stencil
         double computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
                                 std::map<int, Eigen::RowVector2d>& newVertPos,

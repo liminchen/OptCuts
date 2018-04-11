@@ -76,7 +76,7 @@ namespace FracCuts {
         Eigen::MatrixXd H;
         H.resize(1,2);
         for(int vI = 0; vI < mesh.V.rows(); vI++) {
-            if(!mesh.isBoundaryVert(mesh.edge2Tri, mesh.vNeighbor, vI)) {
+            if(!mesh.isBoundaryVert(vI)) {
                 H.row(0) = mesh.V.row(vI);
                 break;
             }

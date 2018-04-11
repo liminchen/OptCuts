@@ -446,7 +446,7 @@ namespace FracCuts {
         validSplit.resize(V_rest.rows());
         for(int vI = 0; vI < V_rest.rows(); vI++) {
             validSplit[vI].clear();
-            if(isBoundaryVert(edge2Tri, vNeighbor, vI)) {
+            if(isBoundaryVert(vI)) {
                 continue;
             }
             
@@ -605,7 +605,7 @@ namespace FracCuts {
                         vI_toSplit_post.emplace_back(triVInd[(eI + 1) % 3]);
                         tri_toSep.resize(tri_toSep.size() + 1);
                         boundaryEdge.resize(boundaryEdge.size() + 1);
-                        needSplit.push_back(isBoundaryVert(edge2Tri, vI_toSplit.back(), vI_toSplit_post.back(),
+                        needSplit.push_back(isBoundaryVert(vI_toSplit.back(), vI_toSplit_post.back(),
                                                               tri_toSep.back(), boundaryEdge.back()));
                     }
                 }
@@ -722,7 +722,7 @@ namespace FracCuts {
         bool modified = false;
         for(int vI = 0; vI < measure.size(); vI++) {
             if(measure[vI] > thres) {
-                if(isBoundaryVert(edge2Tri, vNeighbor, vI)) {
+                if(isBoundaryVert(vI)) {
                     // right now only on boundary vertices
                     int vI_interior = -1;
                     for(const auto& vI_neighbor : vNeighbor[vI]) {
@@ -752,7 +752,7 @@ namespace FracCuts {
                                   double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max,
                                   std::pair<double, double>& energyChanges_max) const
     {
-        const double filterExp_b = 0.5, filterMult_b = 1.0;
+        const double filterExp_b = 0.5, filterMult_b = 1.0; //TODO: better use ratio
         const double filterExp_in = 0.5; // smaller than 0.5 is not recommanded
         
         std::vector<int> bestCandVerts;
@@ -773,10 +773,10 @@ namespace FracCuts {
                         continue;
                     }
                     
-                    if(!isBoundaryVert(edge2Tri, vNeighbor, vI)) {
+                    if(!isBoundaryVert(vI)) {
                         bool connectToBound = false;
                         for(const auto& nbVI : vNeighbor[vI]) {
-                            if(isBoundaryVert(edge2Tri, vNeighbor, nbVI)) {
+                            if(isBoundaryVert(nbVI)) {
                                 connectToBound = true;
                                 break;
                             }
@@ -797,7 +797,7 @@ namespace FracCuts {
                         continue;
                     }
                     
-                    if(isBoundaryVert(edge2Tri, vNeighbor, vI)) {
+                    if(isBoundaryVert(vI)) {
                         //                        if(maxUnweightedEnergyValPerVert[vI] > energyVal) {
                         sortedCandVerts_b[-divGradPerVert[vI]] = vI;
                         //                        }
@@ -946,7 +946,7 @@ namespace FracCuts {
                 // boundary split
                 std::cout << "boundary split E_dec = " << EwDec_max << std::endl;
                 splitEdgeOnBoundary(std::pair<int, int>(path_max[0], path_max[1]),
-                                    newVertPos_max, edge2Tri, vNeighbor, cohEIndex);
+                                    newVertPos_max);
                 //TODO: process fractail here!
                 updateFeatures();
             }
@@ -1181,7 +1181,7 @@ namespace FracCuts {
                     // boundary split
                     std::cout << "boundary split E_dec = " << EwDec_max << std::endl;
                     splitEdgeOnBoundary(std::pair<int, int>(path_max[0], path_max[1]),
-                                        newVertPos_max, edge2Tri, vNeighbor, cohEIndex);
+                                        newVertPos_max);
                     //TODO: process fractail here!
                     updateFeatures();
                 }
@@ -1499,7 +1499,7 @@ namespace FracCuts {
         }
         double extremal = 0.0;
         for(int vI = 0; vI < vertScores.size(); vI++) {
-            if(!isBoundaryVert(edge2Tri, vNeighbor, vI)) {
+            if(!isBoundaryVert(vI)) {
                 if(extremal < vertScores[vI]) {
                     extremal = vertScores[vI];
                     vI_extremal = vI;
@@ -1527,7 +1527,7 @@ namespace FracCuts {
         double minDistToBound = __DBL_MAX__;
         int vI_minDistToBound = -1;
         for(int vI = 0; vI < nV; vI++) {
-            if(isBoundaryVert(edge2Tri, vNeighbor, vI)) {
+            if(isBoundaryVert(vI)) {
                 if(dist[vI] < minDistToBound) {
                     minDistToBound = dist[vI];
                     vI_minDistToBound = vI;
@@ -1559,12 +1559,12 @@ namespace FracCuts {
         }
         
         for(int pI = 1; pI + 1 < path.size(); pI++) {
-            assert(!isBoundaryVert(edge2Tri, vNeighbor, path[pI]) &&
+            assert(!isBoundaryVert(path[pI]) &&
                    "Boundary vertices detected on split path, please split multiple times!");
         }
         
-        bool isFromBound = isBoundaryVert(edge2Tri, vNeighbor, path[0]);
-        bool isToBound = isBoundaryVert(edge2Tri, vNeighbor, path.back());
+        bool isFromBound = isBoundaryVert(path[0]);
+        bool isToBound = isBoundaryVert(path.back());
         if(isFromBound || isToBound) {
             bool cutThrough = false;
             if(isFromBound && isToBound) {
@@ -1589,7 +1589,7 @@ namespace FracCuts {
                     newVertPos.resize(2, 2);
                     newVertPos << V.row(vInd_s), V.row(vInd_s);
                 }
-                splitEdgeOnBoundary(std::pair<int, int>(vInd_s, vInd_e), newVertPos, edge2Tri, vNeighbor, cohEIndex); //!!! make coh?
+                splitEdgeOnBoundary(std::pair<int, int>(vInd_s, vInd_e), newVertPos); //!!! make coh?
                 updateFeatures();
             }
         }
@@ -1656,7 +1656,7 @@ namespace FracCuts {
                 assert(edge2Tri.find(std::pair<int, int>(vInd_e, vInd_s)) != edge2Tri.end());
                 Eigen::Matrix2d newVertPos;
                 newVertPos << V.row(vInd_s), V.row(vInd_s);
-                splitEdgeOnBoundary(std::pair<int, int>(vInd_s, vInd_e), newVertPos, edge2Tri, vNeighbor, cohEIndex); //!!! make coh?
+                splitEdgeOnBoundary(std::pair<int, int>(vInd_s, vInd_e), newVertPos); //!!! make coh?
                 updateFeatures();
             }
         }
@@ -1826,7 +1826,7 @@ namespace FracCuts {
         
         absGaussianCurv = 0.0;
         for(int vI = 0; vI < V.rows(); vI++) {
-            if(!isBoundaryVert(edge2Tri, vNeighbor, vI)) {
+            if(!isBoundaryVert(vI)) {
                 absGaussianCurv += std::abs(gaussianCurv[vI]) * weights[vI];
             }
         }
@@ -2075,8 +2075,7 @@ namespace FracCuts {
     }
     
     bool TriangleSoup::findBoundaryEdge(int vI, const std::pair<int, int>& startEdge,
-                          const std::map<std::pair<int, int>, int>& edge2Tri,
-                          std::pair<int, int>& boundaryEdge)
+                                        std::pair<int, int>& boundaryEdge)
     {
         auto finder = edge2Tri.find(startEdge);
         assert(finder != edge2Tri.end());
@@ -2105,7 +2104,7 @@ namespace FracCuts {
         }
     }
     
-    bool TriangleSoup::isBoundaryVert(const std::map<std::pair<int, int>, int>& edge2Tri, int vI, int vI_neighbor,
+    bool TriangleSoup::isBoundaryVert(int vI, int vI_neighbor,
                                       std::vector<int>& tri_toSep, std::pair<int, int>& boundaryEdge, bool toBound) const
     {
 //        const auto inputEdgeTri = edge2Tri.find(toBound ? std::pair<int, int>(vI, vI_neighbor) :
@@ -2146,8 +2145,7 @@ namespace FracCuts {
         } while(1);
     }
     
-    bool TriangleSoup::isBoundaryVert(const std::map<std::pair<int, int>, int>& edge2Tri,
-                                      const std::vector<std::set<int>>& vNeighbor, int vI) const
+    bool TriangleSoup::isBoundaryVert(int vI) const
     {
         assert(vNeighbor.size() == V.rows());
         assert(vI < vNeighbor.size());
@@ -2171,7 +2169,7 @@ namespace FracCuts {
             // merge query
             assert(path_max.size() >= 3);
             for(const auto& pI : path_max) {
-                assert(isBoundaryVert(edge2Tri, vNeighbor, pI));
+                assert(isBoundaryVert(pI));
             }
             
             if(path_max.size() == 3) {
@@ -2180,7 +2178,7 @@ namespace FracCuts {
                 // closing up splitted diamond
                 for(const auto& nbVI : vNeighbor[path_max[0]]) {
                     if(nbVI != path_max[1]) {
-                        if(isBoundaryVert(edge2Tri, vNeighbor, nbVI)) {
+                        if(isBoundaryVert(nbVI)) {
                             if(vNeighbor[path_max[2]].find(nbVI) != vNeighbor[path_max[2]].end()) {
                                 seDec += (V_rest.row(path_max[0]) - V_rest.row(nbVI)).norm() / virtualRadius;
                             }
@@ -2217,7 +2215,7 @@ namespace FracCuts {
         // split:
         std::vector<int> umbrella;
         std::pair<int, int> boundaryEdge;
-        if(isBoundaryVert(edge2Tri, vI, *(vNeighbor[vI].begin()), umbrella, boundaryEdge, false)) {
+        if(isBoundaryVert(vI, *(vNeighbor[vI].begin()), umbrella, boundaryEdge, false)) {
             // boundary split
             double maxEwDec = -__DBL_MAX__;
             path_max.resize(2);
@@ -2229,9 +2227,9 @@ namespace FracCuts {
                     // interior edge
                     
                     Eigen::MatrixXd newVertPosI;
-                    const double SDDec = computeLocalEDec(edge, edge2Tri, vNeighbor, cohEIndex, newVertPosI);
+                    const double SDDec = computeLocalEDec(edge, newVertPosI);
                     
-                    // test overlap
+                    // test overlap locally
                     const Eigen::RowVector2d e = V.row(nbVI) - V.row(vI);
                     const Eigen::RowVector2d a = newVertPosI.row(1) - V.row(vI);
                     const Eigen::RowVector2d b = newVertPosI.row(0) - V.row(vI);
@@ -2254,7 +2252,7 @@ namespace FracCuts {
         else {
             // interior split
             for(const auto& nbVI : vNeighbor[vI]) {
-                if(isBoundaryVert(edge2Tri, vNeighbor, nbVI)) {
+                if(isBoundaryVert(nbVI)) {
                     energyChanges_max.first = __DBL_MAX__;
                     energyChanges_max.second = __DBL_MAX__;
                     assert(0 && "should have prevented this case outside");
@@ -2453,9 +2451,7 @@ namespace FracCuts {
         return eDec;
     }
     
-    double TriangleSoup::computeLocalEDec(const std::pair<int, int>& edge,
-        const std::map<std::pair<int, int>, int>& edge2Tri, const std::vector<std::set<int>>& vNeighbor,
-        const std::map<std::pair<int, int>, int>& cohEIndex, Eigen::MatrixXd& newVertPos) const
+    double TriangleSoup::computeLocalEDec(const std::pair<int, int>& edge, Eigen::MatrixXd& newVertPos) const
     {
         assert(vNeighbor.size() == V.rows());
         auto edgeTriIndFinder = edge2Tri.find(edge);
@@ -2465,13 +2461,13 @@ namespace FracCuts {
         
         int vI_boundary = edge.first, vI_interior = edge.second;
         bool cutThrough = false;
-        if(isBoundaryVert(edge2Tri, vNeighbor, edge.first)) {
-            if(isBoundaryVert(edge2Tri, vNeighbor, edge.second)) {
+        if(isBoundaryVert(edge.first)) {
+            if(isBoundaryVert(edge.second)) {
                 cutThrough = true;
             }
         }
         else {
-            assert(isBoundaryVert(edge2Tri, vNeighbor, edge.second) && "Input edge must attach mesh boundary!");
+            assert(isBoundaryVert(edge.second) && "Input edge must attach mesh boundary!");
             
             vI_boundary = edge.second;
             vI_interior = edge.first;
@@ -2496,12 +2492,12 @@ namespace FracCuts {
             
             std::vector<int> tri_toSep;
             std::pair<int, int> boundaryEdge;
-            isBoundaryVert(edge2Tri, vI_boundary, vI_interior, tri_toSep, boundaryEdge, toBound);
+            isBoundaryVert(vI_boundary, vI_interior, tri_toSep, boundaryEdge, toBound);
             assert(!tri_toSep.empty());
             if(cutThrough) {
                 std::vector<int> tri_interior;
                 std::pair<int, int> boundaryEdge_interior;
-                isBoundaryVert(edge2Tri, vI_interior, vI_boundary, tri_interior, boundaryEdge_interior, !toBound);
+                isBoundaryVert(vI_interior, vI_boundary, tri_interior, boundaryEdge_interior, !toBound);
                 for(const auto& triI : tri_interior) {
                     bool newTri = true;
                     for(const auto& triI_b : tri_toSep) {
@@ -2529,8 +2525,7 @@ namespace FracCuts {
     }
     
     void TriangleSoup::splitEdgeOnBoundary(const std::pair<int, int>& edge, const Eigen::MatrixXd& newVertPos,
-        std::map<std::pair<int, int>, int>& edge2Tri, std::vector<std::set<int>>& vNeighbor,
-        std::map<std::pair<int, int>, int>& cohEIndex, bool changeVertPos)
+                                           bool changeVertPos)
     {
         assert(vNeighbor.size() == V.rows());
         auto edgeTriIndFinder = edge2Tri.find(edge);
@@ -2540,14 +2535,14 @@ namespace FracCuts {
         
         bool duplicateBoth = false;
         int vI_boundary = edge.first, vI_interior = edge.second;
-        if(isBoundaryVert(edge2Tri, vNeighbor, edge.first)) {
-            if(isBoundaryVert(edge2Tri, vNeighbor, edge.second)) {
+        if(isBoundaryVert(edge.first)) {
+            if(isBoundaryVert(edge.second)) {
                 assert(newVertPos.rows() == 4);
                 duplicateBoth = true;
             }
         }
         else {
-            assert(isBoundaryVert(edge2Tri, vNeighbor, edge.second) && "Input edge must attach mesh boundary!");
+            assert(isBoundaryVert(edge.second) && "Input edge must attach mesh boundary!");
             
             vI_boundary = edge.second;
             vI_interior = edge.first;
@@ -2567,11 +2562,11 @@ namespace FracCuts {
         std::vector<int> tri_toSep[2];
         std::pair<int, int> boundaryEdge[2];
         for(int toBound = 0; toBound < 2; toBound++) {
-            isBoundaryVert(edge2Tri, vI_boundary, vI_interior, tri_toSep[1], boundaryEdge[1], toBound);
+            isBoundaryVert(vI_boundary, vI_interior, tri_toSep[1], boundaryEdge[1], toBound);
             assert(!tri_toSep[1].empty());
         }
         if(duplicateBoth) {
-            isBoundaryVert(edge2Tri, vI_interior, vI_boundary, tri_toSep[0], boundaryEdge[0], true);
+            isBoundaryVert(vI_interior, vI_boundary, tri_toSep[0], boundaryEdge[0], true);
             assert(!tri_toSep[0].empty());
         }
         
