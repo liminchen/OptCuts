@@ -45,7 +45,7 @@ namespace FracCuts
         }
     }
     
-    void CohesiveEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const
+    void CohesiveEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient, bool uniformWeight) const
     {
         gradient.resize(data.V.rows() * 2);
         gradient.setZero();
@@ -70,7 +70,7 @@ namespace FracCuts
                 
                 Eigen::RowVector4d difVec; difVec << xa - xc, xb - xd;
                 Eigen::Matrix4d m; m << P, P / 2.0, P / 2.0, P;
-                const double w = data.edgeLen[cohI] / 3.0;
+                const double w = (uniformWeight ? 1.0 : (data.edgeLen[cohI] / 3.0));
                 if(w * lambda * difVec * m * difVec.transpose() > tau) {
                     continue;
                 }
@@ -108,7 +108,7 @@ namespace FracCuts
         }
     }
     
-    void CohesiveEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr) const
+    void CohesiveEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr, bool uniformWeight) const
     {
         precondMtr.resize(data.V.rows() * 2, data.V.rows() * 2);
         precondMtr.reserve(data.V.rows() * 5 * 4);
@@ -130,7 +130,7 @@ namespace FracCuts
                 }
                 Eigen::RowVector4d difVec; difVec << xa - xc, xb - xd;
                 Eigen::Matrix4d m; m << P, P / 2.0, P / 2.0, P;
-                const double w = data.edgeLen[cohI] / 3.0;
+                const double w = (uniformWeight ? 1.0 : (data.edgeLen[cohI] / 3.0));
                 
                 //                if(w * lambda * difVec * m * difVec.transpose() > tau) {
                 //                    continue;
@@ -189,7 +189,7 @@ namespace FracCuts
         precondMtr.makeCompressed();
     }
     
-    void CohesiveEnergy::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const
+    void CohesiveEnergy::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian, bool uniformWeight) const
     {
         assert(0 && "no hessian computation for this energy");
     }

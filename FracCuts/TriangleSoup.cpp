@@ -36,9 +36,10 @@ namespace FracCuts {
     
     TriangleSoup::TriangleSoup(const Eigen::MatrixXd& V_mesh, const Eigen::MatrixXi& F_mesh,
                                const Eigen::MatrixXd& UV_mesh, const Eigen::MatrixXi& FUV_mesh,
-                               bool separateTri, double p_initSeamLen)
+                               bool separateTri, double p_initSeamLen, double p_areaThres_AM)
     {
         initSeamLen = p_initSeamLen;
+        areaThres_AM = p_areaThres_AM;
         
         bool multiComp = false; //TODO: detect whether the mesh is multi-component
         if(separateTri)
@@ -367,16 +368,28 @@ namespace FracCuts {
             const Eigen::RowVector3d normalVec = P2m1.cross(P3m1);
             
             triArea[triI] = 0.5 * normalVec.norm();
-            surfaceArea += triArea[triI];
-            triAreaSq[triI] = triArea[triI] * triArea[triI];
-            e0SqLen[triI] = P2m1.squaredNorm();
-            e1SqLen[triI] = P3m1.squaredNorm();
-            e0dote1[triI] = P2m1.dot(P3m1);
-            
-            e0SqLen_div_dbAreaSq[triI] = e0SqLen[triI] / 2. / triAreaSq[triI];
-            e1SqLen_div_dbAreaSq[triI] = e1SqLen[triI] / 2. / triAreaSq[triI];
-            e0dote1_div_dbAreaSq[triI] = e0dote1[triI] / 2. / triAreaSq[triI];
-            
+            if(triArea[triI] < areaThres_AM) {
+                // air mesh triangle degeneracy prevention
+                triArea[triI] = areaThres_AM;
+                surfaceArea += areaThres_AM;
+                triAreaSq[triI] = areaThres_AM * areaThres_AM;
+                e0SqLen[triI] = e1SqLen[triI] = 4.0 / std::sqrt(3.0) * areaThres_AM;
+                e0dote1[triI] = e0SqLen[triI] / 2.0;
+                
+                e0SqLen_div_dbAreaSq[triI] = e1SqLen_div_dbAreaSq[triI] = 2.0 / std::sqrt(3.0) / areaThres_AM;
+                e0dote1_div_dbAreaSq[triI] = e0SqLen_div_dbAreaSq[triI] / 2.0;
+            }
+            else {
+                surfaceArea += triArea[triI];
+                triAreaSq[triI] = triArea[triI] * triArea[triI];
+                e0SqLen[triI] = P2m1.squaredNorm();
+                e1SqLen[triI] = P3m1.squaredNorm();
+                e0dote1[triI] = P2m1.dot(P3m1);
+                
+                e0SqLen_div_dbAreaSq[triI] = e0SqLen[triI] / 2. / triAreaSq[triI];
+                e1SqLen_div_dbAreaSq[triI] = e1SqLen[triI] / 2. / triAreaSq[triI];
+                e0dote1_div_dbAreaSq[triI] = e0dote1[triI] / 2. / triAreaSq[triI];
+            }
             vertNormals[triVInd[0]] += normalVec;
             vertNormals[triVInd[1]] += normalVec;
             vertNormals[triVInd[2]] += normalVec;

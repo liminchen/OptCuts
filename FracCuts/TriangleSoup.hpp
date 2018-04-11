@@ -33,6 +33,9 @@ namespace FracCuts{
         Eigen::MatrixXi cohE; // cohesive edge pairs with the 4 end vertex indices based on V
         Eigen::MatrixXi initSeams; // initial cohesive edge pairs actually
         
+    public:
+        double areaThres_AM; // for preventing degeneracy of air mesh triangles
+        
     public: // owned features
         Eigen::VectorXi boundaryEdge; // 1: boundary edge, 0: interior edge
         Eigen::VectorXd edgeLen; // cohesive edge rest length, used as weights
@@ -70,7 +73,7 @@ namespace FracCuts{
         // V_mesh will be used to initialize restShape
         TriangleSoup(const Eigen::MatrixXd& V_mesh, const Eigen::MatrixXi& F_mesh,
                      const Eigen::MatrixXd& UV_mesh, const Eigen::MatrixXi& FUV_mesh = Eigen::MatrixXi(),
-                     bool separateTri = true, double p_initSeamLen = 0.0);
+                     bool separateTri = true, double p_initSeamLen = 0.0, double p_areaThres_AM = 0.0);
         
         TriangleSoup(Primitive primitive, double size = 1.0, double spacing = 0.1, bool separateTri = true);
         

@@ -33,10 +33,10 @@ namespace FracCuts {
         return needRefactorize;
     }
     
-    void Energy::computeEnergyVal(const TriangleSoup& data, double& energyVal) const
+    void Energy::computeEnergyVal(const TriangleSoup& data, double& energyVal, bool uniformWeight) const
     {
         Eigen::VectorXd energyValPerElem;
-        getEnergyValPerElem(data, energyValPerElem);
+        getEnergyValPerElem(data, energyValPerElem, uniformWeight);
         energyVal = energyValPerElem.sum();
     }
     
@@ -46,7 +46,7 @@ namespace FracCuts {
     }
     
     void Energy::computePrecondMtr(const TriangleSoup& data, Eigen::VectorXd* V,
-                                   Eigen::VectorXi* I, Eigen::VectorXi* J) const
+                                   Eigen::VectorXi* I, Eigen::VectorXi* J, bool uniformWeight) const
     {
         assert(0 && "please implement this method in your subclass!");
     }

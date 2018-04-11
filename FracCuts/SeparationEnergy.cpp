@@ -34,7 +34,7 @@ namespace FracCuts {
         }
     }
     
-    void SeparationEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const
+    void SeparationEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient, bool uniformWeight) const
     {
         const double normalizer_div = data.virtualRadius;
         
@@ -43,7 +43,7 @@ namespace FracCuts {
         for(int cohI = 0; cohI < data.cohE.rows(); cohI++)
         {
             if(!data.boundaryEdge[cohI]) {
-                const double w = data.edgeLen[cohI] / normalizer_div;
+                const double w = (uniformWeight ? 1.0 : (data.edgeLen[cohI] / normalizer_div));
                 const Eigen::Vector2d xamc = data.V.row(data.cohE(cohI, 0)) - data.V.row(data.cohE(cohI, 2));
                 const Eigen::Vector2d xbmd = data.V.row(data.cohE(cohI, 1)) - data.V.row(data.cohE(cohI, 3));
                 const double kG_ac = w * kernelGradient(xamc.squaredNorm());
@@ -60,13 +60,13 @@ namespace FracCuts {
         }
     }
     
-    void SeparationEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr) const
+    void SeparationEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr, bool uniformWeight) const
     {
-        computeHessian(data, precondMtr);
+        computeHessian(data, precondMtr, uniformWeight);
     }
     
     void SeparationEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::VectorXd* V,
-                                             Eigen::VectorXi* I, Eigen::VectorXi* J) const
+                                             Eigen::VectorXi* I, Eigen::VectorXi* J, bool uniformWeight) const
     {
         const double normalizer_div = data.virtualRadius;
         
@@ -90,7 +90,7 @@ namespace FracCuts {
                 //                dtddx_bd.resize(4);
                 //                dtddx_bd << 2 * xbmd, -2 * xbmd;
                 
-                const double w = data.edgeLen[cohI] / normalizer_div;
+                const double w = (uniformWeight ? 1.0 : (data.edgeLen[cohI] / normalizer_div));
                 
                 const double sqn_xamc = xamc.squaredNorm();
                 const Eigen::Matrix4d hessian_ac = (w * kernelGradient(sqn_xamc)) * dt2dd2x;
@@ -150,7 +150,7 @@ namespace FracCuts {
                                       fixedVertInd, 2, V, I, J);
     }
     
-    void SeparationEnergy::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const
+    void SeparationEnergy::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian, bool uniformWeight) const
     {
         //TODO: use the sparsity structure from last compute
         
@@ -180,7 +180,7 @@ namespace FracCuts {
 //                dtddx_bd.resize(4);
 //                dtddx_bd << 2 * xbmd, -2 * xbmd;
                 
-                const double w = data.edgeLen[cohI] / normalizer_div;
+                const double w = (uniformWeight ? 1.0 : (data.edgeLen[cohI] / normalizer_div));
                 
                 const double sqn_xamc = xamc.squaredNorm();
                 const Eigen::Matrix4d hessian_ac = (w * kernelGradient(sqn_xamc)) * dt2dd2x;

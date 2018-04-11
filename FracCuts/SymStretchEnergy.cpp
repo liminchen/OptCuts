@@ -371,7 +371,7 @@ namespace FracCuts {
         }
     }
     
-    void SymStretchEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const
+    void SymStretchEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient, bool uniformWeight) const
     {
         const double normalizer_div = data.surfaceArea;
         
@@ -394,7 +394,7 @@ namespace FracCuts {
                 4 / data.triAreaSq[triI] - U3m1.dot(U2m1) * data.e0dote1[triI] / 2 / data.triAreaSq[triI];
             
             const double areaRatio = data.triAreaSq[triI] / area_U / area_U / area_U;
-            const double w = data.triArea[triI] / normalizer_div;
+            const double w = (uniformWeight ? 1.0 : (data.triArea[triI] / normalizer_div));
             
             const Eigen::Vector2d edge_oppo1 = U3 - U2;
             const Eigen::Vector2d dLeft1 = areaRatio * Eigen::Vector2d(edge_oppo1[1], -edge_oppo1[0]);
@@ -419,10 +419,10 @@ namespace FracCuts {
         }
     }
     
-    void SymStretchEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr) const
+    void SymStretchEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr, bool uniformWeight) const
     {
 //        precondMtr = data.LaplacianMtr;
-        computeHessian(data, precondMtr);
+        computeHessian(data, precondMtr, uniformWeight);
 //        IglUtils::writeSparseMatrixToFile("/Users/mincli/Desktop/FracCuts/mtr", precondMtr, true);
         
 //        Eigen::BDCSVD<Eigen::MatrixXd> svd((Eigen::MatrixXd(precondMtr)));
@@ -435,7 +435,7 @@ namespace FracCuts {
     }
     
     void SymStretchEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::VectorXd* V,
-                                   Eigen::VectorXi* I, Eigen::VectorXi* J) const
+                                   Eigen::VectorXi* I, Eigen::VectorXi* J, bool uniformWeight) const
     {
         const double normalizer_div = data.surfaceArea;
         
@@ -455,7 +455,7 @@ namespace FracCuts {
             const double areaRatio = data.triAreaSq[triI] / area_U / area_U / area_U;
             const double dAreaRatio_div_dArea_mult = 3.0 / 2.0 * areaRatio / area_U;
             
-            const double w = data.triArea[triI] / normalizer_div;
+            const double w = (uniformWeight ? 1.0 : (data.triArea[triI] / normalizer_div));
             
             const double e0SqLen_div_dbAreaSq = data.e0SqLen_div_dbAreaSq[triI];
             const double e1SqLen_div_dbAreaSq = data.e1SqLen_div_dbAreaSq[triI];
@@ -549,7 +549,7 @@ namespace FracCuts {
                                       fixedVertInd, 2, V, I, J);
     }
     
-    void SymStretchEnergy::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const
+    void SymStretchEnergy::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian, bool uniformWeight) const
     {
         const double normalizer_div = data.surfaceArea;
         
@@ -577,7 +577,7 @@ namespace FracCuts {
             const double areaRatio = data.triAreaSq[triI] / area_U / area_U / area_U;
             const double dAreaRatio_div_dArea_mult = 3.0 / 2.0 * areaRatio / area_U;
             
-            const double w = data.triArea[triI] / normalizer_div;
+            const double w = (uniformWeight ? 1.0 : (data.triArea[triI] / normalizer_div));
             
             const double e0SqLen_div_dbAreaSq = data.e0SqLen_div_dbAreaSq[triI];
             const double e1SqLen_div_dbAreaSq = data.e1SqLen_div_dbAreaSq[triI];

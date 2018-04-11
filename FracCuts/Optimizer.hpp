@@ -11,6 +11,7 @@
 
 #include "Types.hpp"
 #include "Energy.hpp"
+#include "Scaffold.hpp"
 
 #include "PardisoSolver.hpp"
 
@@ -38,6 +39,9 @@ namespace FracCuts {
         double relGL2Tol, energyParamSum;
         TriangleSoup result; // intermediate results of each iteration
         TriangleSoup data_findExtrema; // intermediate results for deciding the cuts in each topology step
+        bool scaffolding; // whether to enable bijectivity parameterization
+        double w_scaf;
+        Scaffold scaffold; // air meshes to enforce bijectivity
         // constant precondition matrix for solving the linear system for search directions
         Eigen::SparseMatrix<double> precondMtr;
         Eigen::VectorXi I_mtr, J_mtr; // triplet representation
@@ -51,7 +55,9 @@ namespace FracCuts {
         double lastEDec;
         double targetGRes;
         std::vector<Eigen::VectorXd> gradient_ET;
+        Eigen::VectorXd gradient_scaffold;
         std::vector<double> energyVal_ET;
+        double energyVal_scaffold;
         
         std::ostringstream buffer_energyValPerIter;
         std::ostringstream buffer_gradientPerIter;
@@ -60,7 +66,7 @@ namespace FracCuts {
         
     public: // constructor and destructor
         Optimizer(const TriangleSoup& p_data0, const std::vector<Energy*>& p_energyTerms, const std::vector<double>& p_energyParams,
-                  int p_propagateFracture = 1, bool p_mute = false);
+                  int p_propagateFracture = 1, bool p_mute = false, bool p_scaffolding = false);
         ~Optimizer(void);
         
     public: // API
@@ -78,11 +84,15 @@ namespace FracCuts {
                             bool allowPropagate = true, bool allowInSplit = false);
         void setConfig(const TriangleSoup& config, int iterNum, int p_topoIter);
         void setPropagateFracture(bool p_prop);
+        void setScaffolding(bool p_scaffolding);
         
         void computeLastEnergyVal(void);
         
         void getGradientVisual(Eigen::MatrixXd& arrowVec) const;
         TriangleSoup& getResult(void);
+        const Scaffold& getScaffold(void) const;
+        const TriangleSoup& getAirMesh(void) const;
+        bool isScaffolding(void) const;
         const TriangleSoup& getData_findExtrema(void) const;
         int getIterNum(void) const;
         int getTopoIter(void) const;
@@ -101,14 +111,14 @@ namespace FracCuts {
         
         bool lineSearch(void);
 
-        void stepForward(TriangleSoup& data, double stepSize) const;
+        void stepForward(TriangleSoup& data, Scaffold& scaffoldData, double stepSize) const;
         
         void updateTargetGRes(void);
         
-        void computeEnergyVal(const TriangleSoup& data, double& energyVal);
-        void computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient);
-        void computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr);
-        void computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const;
+        void computeEnergyVal(const TriangleSoup& data, const Scaffold& scaffoldData, double& energyVal, bool excludeScaffold = false);
+        void computeGradient(const TriangleSoup& data, const Scaffold& scaffoldData, Eigen::VectorXd& gradient, bool excludeScaffold = false);
+        void computePrecondMtr(const TriangleSoup& data, const Scaffold& scaffoldData, Eigen::SparseMatrix<double>& precondMtr);
+        void computeHessian(const TriangleSoup& data, const Scaffold& scaffoldData, Eigen::SparseMatrix<double>& hessian) const;
         
         void initStepSize(const TriangleSoup& data, double& stepSize) const;
         

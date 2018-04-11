@@ -54,7 +54,7 @@ namespace FracCuts {
         }
     }
     
-    void ARAPEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient) const
+    void ARAPEnergy::computeGradient(const TriangleSoup& data, Eigen::VectorXd& gradient, bool uniformWeight) const
     {
         Eigen::MatrixXd cotVals;
         igl::cotmatrix_entries(data.V_rest, data.F, cotVals);
@@ -111,12 +111,12 @@ namespace FracCuts {
         }
     }
     
-    void ARAPEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr) const
+    void ARAPEnergy::computePrecondMtr(const TriangleSoup& data, Eigen::SparseMatrix<double>& precondMtr, bool uniformWeight) const
     {
         precondMtr = data.LaplacianMtr;
     }
     
-    void ARAPEnergy::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian) const
+    void ARAPEnergy::computeHessian(const TriangleSoup& data, Eigen::SparseMatrix<double>& hessian, bool uniformWeight) const
     {
         assert(0 && "no hessian computation for this energy");
     }

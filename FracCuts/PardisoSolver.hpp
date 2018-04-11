@@ -103,7 +103,6 @@ protected:
     int i, k;
     double ddum;          /* Double dummy */
     int idum;         /* Integer dummy. */
-    
 };
 
 

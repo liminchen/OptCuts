@@ -6,6 +6,7 @@
 #include "SeparationEnergy.hpp"
 #include "CohesiveEnergy.hpp"
 #include "GIF.hpp"
+#include "Timer.hpp"
 
 #include "Diagnostic.hpp"
 #include "MeshProcessing.hpp"
@@ -36,6 +37,9 @@ FracCuts::TriangleSoup triSoup_backup;
 FracCuts::Optimizer* optimizer;
 std::vector<FracCuts::Energy*> energyTerms;
 std::vector<double> energyParams;
+bool bijectiveParam = true;
+bool rand1PInitCut = false;
+//bool rand1PInitCut = true; // for fast prototyping
 double lambda_init;
 bool optimization_on = false;
 int iterNum = 0;
@@ -81,9 +85,9 @@ int showDistortion = 1; // 0: don't show; 1: SD energy value; 2: L2 stretch valu
 bool showTexture = true; // show checkerboard
 bool isLighting = false;
 bool showFracTail = true;
-clock_t ticksPast = 0, ticksPast_frac = 0, lastStart;
 double secPast = 0.0;
 time_t lastStart_world;
+Timer timer;
 bool offlineMode = false;
 bool saveInfo_postDraw = false;
 std::string infoName = "";
@@ -98,9 +102,7 @@ void proceedOptimization(int proceedNum = 1)
 {
     for(int proceedI = 0; (proceedI < proceedNum) && (!converged); proceedI++) {
         std::cout << "Iteration" << iterNum << ":" << std::endl;
-        lastStart = clock();
         converged = !optimizer->solve(1);
-        ticksPast += clock() - lastStart;
         iterNum = optimizer->getIterNum();
     }
 }
@@ -130,6 +132,18 @@ void updateViewerData_seam(const Eigen::MatrixXd& V)
                     V.row(triSoup[viewChannel]->cohE.row(eI)[1]), color.row(eI));
             }
         }
+        
+        // draw air mesh
+        if(optimizer->isScaffolding() && viewUV && (viewChannel == channel_result)) {
+            const Eigen::MatrixXd V_airMesh = optimizer->getAirMesh().V * texScale;
+            for(int triI = 0; triI < optimizer->getAirMesh().F.rows(); triI++) {
+                const Eigen::RowVector3i& triVInd = optimizer->getAirMesh().F.row(triI);
+                for(int eI = 0; eI < 3; eI++) {
+                    viewer.data.add_edges(V_airMesh.row(triVInd[eI]), V_airMesh.row(triVInd[(eI + 1) % 3]),
+                                          Eigen::RowVector3d::Zero());
+                }
+            }
+        }
     }
     else {
         viewer.core.show_lines = true;
@@ -145,6 +159,9 @@ void updateViewerData_distortion(void)
             energyTerms[0]->getEnergyValPerElem(*triSoup[viewChannel], distortionPerElem, true);
             Eigen::MatrixXd color_distortionVis;
             FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 8.5);
+            if(optimizer->isScaffolding() && viewUV && (viewChannel == channel_result)) {
+                optimizer->getScaffold().augmentFColorwithAirMesh(color_distortionVis);
+            }
             viewer.data.set_colors(color_distortionVis);
             break;
         }
@@ -158,6 +175,9 @@ void updateViewerData_distortion(void)
 //            FracCuts::IglUtils::mapScalarToColor(l2StretchPerElem, color_distortionVis, 1.0, 2.0);
             FracCuts::IglUtils::mapScalarToColor(l2StretchPerElem, color_distortionVis,
                 l2StretchPerElem.minCoeff(), l2StretchPerElem.maxCoeff());
+            if(optimizer->isScaffolding() && viewUV && (viewChannel == channel_result)) {
+                optimizer->getScaffold().augmentFColorwithAirMesh(color_distortionVis);
+            }
             viewer.data.set_colors(color_distortionVis);
             break;
         }
@@ -171,15 +191,21 @@ void updateViewerData_distortion(void)
 
 void updateViewerData(void)
 {
-    const Eigen::MatrixXd UV_vis = triSoup[viewChannel]->V * texScale;
+    Eigen::MatrixXd UV_vis = triSoup[viewChannel]->V * texScale;
     if(viewUV) {
+        Eigen::MatrixXi F_vis = triSoup[viewChannel]->F;
+        if(optimizer->isScaffolding() && (viewChannel == channel_result)) {
+            optimizer->getScaffold().augmentUVwithAirMesh(UV_vis, texScale);
+            optimizer->getScaffold().augmentFwithAirMesh(F_vis);
+        }
+        
         if((UV_vis.rows() != viewer.data.V.rows()) ||
-           (triSoup[viewChannel]->F.rows() != viewer.data.F.rows()))
+           (F_vis.rows() != viewer.data.F.rows()))
         {
             viewer.data.clear();
         }
-        viewer.data.set_mesh(UV_vis, triSoup[viewChannel]->F);
-        viewer.core.align_camera_center(UV_vis, triSoup[viewChannel]->F);
+        viewer.data.set_mesh(UV_vis, F_vis);
+        viewer.core.align_camera_center(UV_vis, F_vis);
         
         viewer.core.show_texture = false;
         viewer.core.lighting_factor = 0.0;
@@ -292,9 +318,8 @@ void saveInfoForPresent(const std::string fileName = "info.txt")
         << iterAmt_rollBack << " " << iterAmt_rollBack_topo << " "
         << lambda_init << " " << 1.0 - energyParams[0] << std::endl;
     
-    file << static_cast<double>(ticksPast) / CLOCKS_PER_SEC << " " <<
-        static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC << " " <<
-        secPast << std::endl;
+    file << "0.0 0.0 " << secPast << " " <<
+        timer.timing_total() << std::endl;
     
     double seamLen;
     if(energyParams[0] == 1.0) {
@@ -348,8 +373,6 @@ void toggleOptimization(void)
     else {
         std::cout << "pause optimization, press again to resume." << std::endl;
         viewer.core.is_animating = false;
-        std::cout << "Time past: " << static_cast<double>(ticksPast) / CLOCKS_PER_SEC << "s." << std::endl;
-        std::cout << "Time for fracture: " << static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC << "s." << std::endl;
         std::cout << "World Time:\nTime past: " << secPast << "s." << std::endl;
         secPast += difftime(time(NULL), lastStart_world);
     }
@@ -867,12 +890,8 @@ void converge_preDrawFunc(igl::viewer::Viewer& viewer)
     
     optimization_on = false;
     viewer.core.is_animating = false;
-    const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
-    const double timeUsed_frac = static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC;
-    std::cout << "optimization converged, with " << timeUsed << "s, where " <<
-    timeUsed_frac << "s is for fracture computation." << std::endl;
-    logFile << "optimization converged, with " << timeUsed << "s, where " <<
-    timeUsed_frac << "s is for fracture computation." << std::endl;
+    std::cout << "optimization converged, with " << secPast << "s." << std::endl;
+    logFile << "optimization converged, with " << secPast << "s." << std::endl;
     homoTransFile.close();
     outerLoopFinished = true;
 }
@@ -952,9 +971,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         
                         optimization_on = false;
                         viewer.core.is_animating = false;
-                        const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
-                        std::cout << "optimization converged, with " << timeUsed << "s." << std::endl;
-                        logFile << "optimization converged, with " << timeUsed << "s." << std::endl;
+                        std::cout << "optimization converged, with " << secPast << "s." << std::endl;
+                        logFile << "optimization converged, with " << secPast << "s." << std::endl;
                         homoTransFile.close();
                         outerLoopFinished = true;
                     }
@@ -981,12 +999,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         
                         optimization_on = false;
                         viewer.core.is_animating = false;
-                        const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
-                        const double timeUsed_frac = static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC;
-                        std::cout << "optimization converged, with " << timeUsed << "s, where " <<
-                        timeUsed_frac << "s is for fracture computation." << std::endl;
-                        logFile << "optimization converged, with " << timeUsed << "s, where " <<
-                        timeUsed_frac << "s is for fracture computation." << std::endl;
+                        std::cout << "optimization converged, with " << secPast << "s." << std::endl;
+                        logFile << "optimization converged, with " << secPast << "s." << std::endl;
                         homoTransFile.close();
                         outerLoopFinished = true;
                     }
@@ -995,9 +1009,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         
                         // continue to make geometry image cuts
                         homoTransFile << iterNum << std::endl;
-                        lastStart = clock();
                         assert(optimizer->createFracture(fracThres, false, false));
-                        ticksPast += clock() - lastStart;
                         converged = false;
                     }
                     optimizer->flushEnergyFileOutput();
@@ -1020,6 +1032,12 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                             time(&lastStart_world);
                             saved = true;
                         }
+                    }
+                    
+                    // if necessary, turn on scaffolding for random one point initial cut
+                    if(!optimizer->isScaffolding() && bijectiveParam && rand1PInitCut) {
+                        optimizer->setScaffolding(true);
+                        //TODO: other mode?
                     }
                     
                     double E_se; triSoup[channel_result]->computeSeamSparsity(E_se);
@@ -1069,11 +1087,9 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                                     (1.0 - energyParams[0]) * lastE_se;
                                 
                                 iterNum_lastTopo = iterNum;
-                                lastStart = clock();
                                 logFile << "boundary split VT " << triSoup[channel_result]->V_rest.rows() << std::endl;
                                 if(optimizer->createFracture(fracThres, false, !altBase)) {
                                     lastFractureIn = false;
-                                    ticksPast += clock() - lastStart;
                                     converged = false;
                                 }
                                 else {
@@ -1088,11 +1104,9 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                             // roll back and try interior split
                             saveInfo_postDraw = false;
                             iterNum_lastTopo = iterNum;
-                            lastStart = clock();
                             logFile << "interior split " << triSoup[channel_result]->V_rest.rows() << std::endl;
                             if(optimizer->createFracture(fracThres, false, !altBase, true)) {
                                 lastFractureIn = true;
-                                ticksPast += clock() - lastStart;
                                 converged = false;
                             }
                             else {
@@ -1126,10 +1140,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                             
                             iterNum_lastTopo = iterNum;
                             logFile << "boundary split V " << triSoup[channel_result]->V_rest.rows() << std::endl;
-                            lastStart = clock();
                             if(optimizer->createFracture(fracThres, false, !altBase)) {
                                 lastFractureIn = false;
-                                ticksPast += clock() - lastStart;
                                 converged = false;
                             }
                             else {
@@ -1156,12 +1168,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     
                     optimization_on = false;
                     viewer.core.is_animating = false;
-                    const double timeUsed = static_cast<double>(ticksPast) / CLOCKS_PER_SEC;
-                    const double timeUsed_frac = static_cast<double>(ticksPast_frac) / CLOCKS_PER_SEC;
-                    std::cout << "optimization converged, with " << timeUsed << "s, where " <<
-                    timeUsed_frac << "s is for fracture computation." << std::endl;
-                    logFile << "optimization converged, with " << timeUsed << "s, where " <<
-                    timeUsed_frac << "s is for fracture computation." << std::endl;
+                    std::cout << "optimization converged, with " << secPast << "s." << std::endl;
+                    logFile << "optimization converged, with " << secPast << "s." << std::endl;
                     homoTransFile.close();
                     outerLoopFinished = true;
                     
@@ -1350,6 +1358,16 @@ int main(int argc, char *argv[])
     }
     
     if(UV.rows() != 0) {
+//        //DEBUG
+//        // generate Tutte embedding using input seams
+//        Eigen::VectorXi bnd;
+//        igl::boundary_loop(FUV, bnd);
+//        Eigen::MatrixXd bnd_uv;
+//        FracCuts::IglUtils::map_vertices_to_circle(UV, bnd, bnd_uv);
+//        Eigen::SparseMatrix<double> A, M;
+//        FracCuts::IglUtils::computeUniformLaplacian(FUV, A);
+//        igl::harmonic(A, M, bnd, bnd_uv, 1, UV);
+        
         // with input UV
         triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV, FUV, startWithTriSoup));
         outputFolderPath += meshName + "_input_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +
@@ -1404,6 +1422,7 @@ int main(int argc, char *argv[])
     //            temp->farthestPointCut(); // open up a boundary for Tutte embedding
 //                temp->highCurvOnePointCut();
                 temp->onePointCut();
+                rand1PInitCut = true;
                 
                 igl::boundary_loop(temp->F, bnd);
                 assert(bnd.size());
@@ -1445,6 +1464,13 @@ int main(int argc, char *argv[])
 ////    triSoup = FracCuts::TriangleSoup(V[0], F[0], UV[0]);
 //    arap_solve(bc, arap_data, UV[0]);
     
+    // setup timer
+    timer.new_activity("topology");
+    timer.new_activity("matrixComputation");
+    timer.new_activity("matrixAssembly");
+    timer.new_activity("factorization");
+    timer.new_activity("backSolve");
+    
     // * Our approach
     texScale = 10.0 / (triSoup[0]->bbox.row(1) - triSoup[0]->bbox.row(0)).maxCoeff();
     if(lambda != 1.0) {
@@ -1464,10 +1490,9 @@ int main(int argc, char *argv[])
 //        energyTerms.back()->checkGradient(*triSoup[0]);
 //        energyTerms.back()->checkHessian(*triSoup[0]);
     }
-    optimizer = new FracCuts::Optimizer(*triSoup[0], energyTerms, energyParams, false);
-    lastStart = clock();
+    optimizer = new FracCuts::Optimizer(*triSoup[0], energyTerms, energyParams, 0, false, bijectiveParam && !rand1PInitCut); // for random one point initial cut, don't need air meshes in the beginning since it's impossible for a quad to intersect itself
+    //TODO: bijectivity for other mode?
     optimizer->precompute();
-    ticksPast += clock() - lastStart;
     triSoup.emplace_back(&optimizer->getResult());
     triSoup_backup = optimizer->getResult();
     triSoup.emplace_back(&optimizer->getData_findExtrema()); // for visualizing UV map for finding extrema
