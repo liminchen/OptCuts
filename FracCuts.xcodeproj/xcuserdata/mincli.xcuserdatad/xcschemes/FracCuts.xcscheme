@@ -64,7 +64,7 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/closed/cow_head.obj 0.025 16 3 test"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 /Applications/XAMPP/xamppfiles/htdocs/expResults/results20/chinese_lion_i_f10000_Tutte_0.025_42_OursFixed/finalResult_mesh.obj 0.025 16 3 test"
@@ -215,8 +215,8 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "2 /Users/mincli/Downloads/meshes/bone_noInputUV.obj 2"
-            isEnabled = "NO">
+            argument = "2 /Users/mincli/Desktop/meshes/test2025-209_separated.obj 2"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/bull.obj 0.025 1 0 test"

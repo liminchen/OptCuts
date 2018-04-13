@@ -30,8 +30,10 @@ extern Timer timer;
 
 namespace FracCuts {
     
-    Optimizer::Optimizer(const TriangleSoup& p_data0, const std::vector<Energy*>& p_energyTerms, const std::vector<double>& p_energyParams,
-        int p_propagateFracture, bool p_mute, bool p_scaffolding) :
+    Optimizer::Optimizer(const TriangleSoup& p_data0,
+                         const std::vector<Energy*>& p_energyTerms, const std::vector<double>& p_energyParams,
+                         int p_propagateFracture, bool p_mute, bool p_scaffolding,
+                         const Eigen::MatrixXd& UV_bnds, const Eigen::MatrixXi& E, const Eigen::VectorXi& bnd) :
         data0(p_data0), energyTerms(p_energyTerms), energyParams(p_energyParams)
     {
         assert(energyTerms.size() == energyParams.size());
@@ -73,9 +75,9 @@ namespace FracCuts {
         pardisoThreadAmt = 1; //TODO: use more threads!
         
         scaffolding = p_scaffolding;
-        if(scaffolding) {
-            scaffold = Scaffold(data0);
-        }
+        UV_bnds_scaffold = UV_bnds;
+        E_scaffold = E;
+        bnd_scaffold = bnd;
         w_scaf = energyParams[0] * 0.01;
     }
     
@@ -136,7 +138,13 @@ namespace FracCuts {
     
     void Optimizer::precompute(void)
     {
-        computePrecondMtr(data0, scaffold, precondMtr);
+        result = data0;
+        if(scaffolding) {
+            scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
+            result.scaffold = &scaffold;
+        }
+        
+        computePrecondMtr(result, scaffold, precondMtr);
         
         if(!pardisoThreadAmt) {
             cholSolver.analyzePattern(precondMtr);
@@ -161,7 +169,6 @@ namespace FracCuts {
         }
         
         lastEDec = 0.0;
-        result = data0;
         data_findExtrema = data0;
         updateTargetGRes();
         computeEnergyVal(result, scaffold, lastEnergyVal);
@@ -202,7 +209,8 @@ namespace FracCuts {
 //                    propagateFracture = 0;
                     // always perform the one decreasing E_w more
                     if(scaffolding) {
-                        scaffold = Scaffold(result);
+                        scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
+                        result.scaffold = &scaffold;
                     }
                 }
                 // for alternating propagation with lambda updates
@@ -212,7 +220,8 @@ namespace FracCuts {
             }
             else {
                 if(scaffolding) {
-                    scaffold = Scaffold(result);
+                    scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
+                    result.scaffold = &scaffold;
                 }
             }
         }
@@ -249,7 +258,8 @@ namespace FracCuts {
         globalIterNum = iterNum;
         result = config; //!!! is it able to copy all?
         if(scaffolding) {
-            scaffold = Scaffold(result);
+            scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
+            result.scaffold = &scaffold;
         }
         
         updateEnergyData();
@@ -263,6 +273,10 @@ namespace FracCuts {
     void Optimizer::setScaffolding(bool p_scaffolding)
     {
         scaffolding = p_scaffolding;
+        if(scaffolding) {
+            scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
+            result.scaffold = &scaffold;
+        }
     }
     
     void Optimizer::updateEnergyData(bool updateEVal, bool updateGradient, bool updateHessian)
@@ -372,7 +386,8 @@ namespace FracCuts {
 //            logFile << result.cohE << std::endl; //DEBUG
             
             if(scaffolding) {
-                scaffold = Scaffold(result);
+                scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
+                result.scaffold = &scaffold;
             }
             updateEnergyData(true, false, true);
             fractureInitiated = true;

@@ -21,6 +21,8 @@ namespace FracCuts {
     
     // a class for solving an optimization problem
     class Optimizer {
+        friend class TriangleSoup;
+        
     protected: // referenced data
         const TriangleSoup& data0; // initial guess
         const std::vector<Energy*>& energyTerms; // E_0, E_1, E_2, ...
@@ -59,6 +61,10 @@ namespace FracCuts {
         std::vector<double> energyVal_ET;
         double energyVal_scaffold;
         
+        Eigen::MatrixXd UV_bnds_scaffold;
+        Eigen::MatrixXi E_scaffold;
+        Eigen::VectorXi bnd_scaffold;
+        
         std::ostringstream buffer_energyValPerIter;
         std::ostringstream buffer_gradientPerIter;
         std::ofstream file_energyValPerIter;
@@ -66,7 +72,10 @@ namespace FracCuts {
         
     public: // constructor and destructor
         Optimizer(const TriangleSoup& p_data0, const std::vector<Energy*>& p_energyTerms, const std::vector<double>& p_energyParams,
-                  int p_propagateFracture = 1, bool p_mute = false, bool p_scaffolding = false);
+                  int p_propagateFracture = 1, bool p_mute = false, bool p_scaffolding = false,
+                  const Eigen::MatrixXd& UV_bnds = Eigen::MatrixXd(),
+                  const Eigen::MatrixXi& E = Eigen::MatrixXi(),
+                  const Eigen::VectorXi& bnd = Eigen::VectorXi());
         ~Optimizer(void);
         
     public: // API

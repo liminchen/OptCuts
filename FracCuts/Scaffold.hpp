@@ -21,12 +21,14 @@ namespace FracCuts {
     public:
         TriangleSoup airMesh; // tessellation of voided regions
         Eigen::VectorXi bnd, localVI2Global; // map between airMesh indices to augmented system indices
+        std::map<int, int> meshVI2AirMesh; // the inverse map of bnd
         int wholeMeshSize; // augmented system size
         
     public:
         Scaffold(void);
-        Scaffold(const TriangleSoup& mesh);
-        
+        Scaffold(const TriangleSoup& mesh, Eigen::MatrixXd UV_bnds = Eigen::MatrixXd(),
+                Eigen::MatrixXi E = Eigen::MatrixXi(), const Eigen::VectorXi& p_bnd = Eigen::VectorXi());
+
         // augment mesh gradient with air mesh gradient with parameter w_scaf
         void augmentGradient(Eigen::VectorXd& gradient, const Eigen::VectorXd& gradient_scaf, double w_scaf) const;
         
@@ -45,6 +47,11 @@ namespace FracCuts {
         void augmentUVwithAirMesh(Eigen::MatrixXd& UV, double scale) const;
         void augmentFwithAirMesh(Eigen::MatrixXi& F) const;
         void augmentFColorwithAirMesh(Eigen::MatrixXd& FColor) const;
+        
+        // get 1-ring airmesh loop for scaffolding optimization on local stencils
+        void get1RingAirLoop(int vI, const TriangleSoup& mesh,
+                             Eigen::MatrixXd& UV, Eigen::MatrixXi& E, Eigen::VectorXi& bnd,
+                             std::set<int>& loop_meshVI) const;
     };
 }
 

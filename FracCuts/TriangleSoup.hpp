@@ -21,6 +21,7 @@ namespace FracCuts{
         P_SQUARE,
         P_CYLINDER
     };
+    class Scaffold;
     
     // duplicate the vertices and edges of a mesh to separate its triangles,
     // adjacent triangles in the original mesh will have a cohesive edge structure to
@@ -34,6 +35,7 @@ namespace FracCuts{
         Eigen::MatrixXi initSeams; // initial cohesive edge pairs actually
         
     public:
+        const Scaffold* scaffold;
         double areaThres_AM; // for preventing degeneracy of air mesh triangles
         
     public: // owned features
@@ -99,7 +101,8 @@ namespace FracCuts{
         void highCurvOnePointCut(void);
         void farthestPointCut(void);
         void geomImgCut(TriangleSoup& data_findExtrema);
-        void cutPath(std::vector<int> path, bool makeCoh = false, int changePos = 0, const Eigen::MatrixXd& newVertPos = Eigen::MatrixXd());
+        void cutPath(std::vector<int> path, bool makeCoh = false, int changePos = 0,
+                     const Eigen::MatrixXd& newVertPos = Eigen::MatrixXd(), bool allowCutThrough = true);
         
         void computeSeamScore(Eigen::VectorXd& seamScore) const;
         void computeBoundaryLen(double& boundaryLen) const;
@@ -131,18 +134,23 @@ namespace FracCuts{
                             std::vector<int>& tri_toSep, std::pair<int, int>& boundaryEdge, bool toBound = true) const;
         bool isBoundaryVert(int vI) const;
         
+        void compute2DInwardNormal(int vI, Eigen::RowVector2d& normal);
+        
         void splitEdgeOnBoundary(const std::pair<int, int>& edge, const Eigen::MatrixXd& newVertPos,
-                                bool changeVertPos = true);
+                                bool changeVertPos = true, bool allowCutThrough = true);
         void mergeBoundaryEdges(const std::pair<int, int>& edge0, const std::pair<int, int>& edge1,
                                 const Eigen::RowVectorXd& mergedPos);
         
-        // query vertex candidate
+        // query vertex candidate for either split or merge
         double computeLocalEwDec(int vI, double lambda_t, std::vector<int>& path, Eigen::MatrixXd& newVertPos,
                                  std::pair<double, double>& energyChanges,
                                  const std::vector<int>& incTris = std::vector<int>(),
                                  const Eigen::RowVector2d& initMergedPos = Eigen::RowVector2d()) const;
-        // query incident edge of a vertex candidate
+        // query interior incident edge of a boundary vertex candidate
         double computeLocalEDec(const std::pair<int, int>& edge, Eigen::MatrixXd& newVertPos) const; //TODO: write this in a new class
+        double computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
+                                const std::vector<int>& splitPath, Eigen::MatrixXd& newVertPos,
+                                int maxIter = 100) const;
         // minimize SD on the local stencil
         double computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
                                 std::map<int, Eigen::RowVector2d>& newVertPos,

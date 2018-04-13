@@ -3,10 +3,10 @@ import subprocess
 from os import listdir
 from os.path import isfile, join
 
-meshFolderPath = '/Users/mincli/Downloads/meshes/'
+# meshFolderPath = '/Users/mincli/Downloads/meshes/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/needMoreTime/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/closed/'
-# meshFolderPath = '/Users/mincli/Downloads/meshes/test_/'
+meshFolderPath = '/Users/mincli/Downloads/meshes/test_/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/interiorSplitExp_/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/bijectivityExp_/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/small_/'
@@ -30,7 +30,7 @@ FracCutsPath = '/Users/mincli/Library/Developer/Xcode/DerivedData/FracCuts-agmha
 
 for inputModelNameI in onlyfiles:
 	# no prop, no filter
-	runCommand = priority + FracCutsPath + ' 0 ' + meshFolderPath + inputModelNameI + ' 0.025 44 3'
+	runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.025 44 3'
 	if subprocess.call([runCommand], shell=True):
 		continue
 
