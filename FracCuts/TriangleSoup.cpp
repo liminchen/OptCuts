@@ -2379,6 +2379,64 @@ namespace FracCuts {
             return EwDec_max;
         }
     }
+        
+    double TriangleSoup::computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
+                                          std::map<int, Eigen::RowVector2d>& newVertPos, int maxIter) const
+    {
+        assert(triangles.size() && freeVert.size());
+        
+        // construct local mesh
+        Eigen::MatrixXi localF;
+        localF.resize(triangles.size(), 3);
+        Eigen::MatrixXd localV_rest, localV;
+        std::set<int> fixedVert;
+        std::map<int, int> globalVI2local;
+        int localTriI = 0;
+        for(const auto triI : triangles) {
+            for(int vI = 0; vI < 3; vI++) {
+                int globalVI = F(triI, vI);
+                auto localVIFinder = globalVI2local.find(globalVI);
+                if(localVIFinder == globalVI2local.end()) {
+                    int localVI = static_cast<int>(localV_rest.rows());
+                    if(freeVert.find(globalVI) == freeVert.end()) {
+                        fixedVert.insert(localVI);
+                    }
+                    localV_rest.conservativeResize(localVI + 1, 3);
+                    localV_rest.row(localVI) = V_rest.row(globalVI);
+                    localV.conservativeResize(localVI + 1, 2);
+                    localV.row(localVI) = V.row(globalVI);
+                    localF(localTriI, vI) = localVI;
+                    globalVI2local[globalVI] = localVI;
+                }
+                else {
+                    localF(localTriI, vI) = localVIFinder->second;
+                }
+            }
+            localTriI++;
+        }
+        TriangleSoup localMesh(localV_rest, localF, localV, Eigen::MatrixXi(), false);
+        localMesh.resetFixedVert(fixedVert);
+        
+        // conduct optimization on local mesh
+        std::vector<FracCuts::Energy*> energyTerms(1, new SymStretchEnergy());
+        std::vector<double> energyParams(1, 1.0);
+        Optimizer optimizer(localMesh, energyTerms, energyParams, false, true);
+        optimizer.precompute();
+        optimizer.setRelGL2Tol(1.0e-4);
+        double initE = optimizer.getLastEnergyVal();
+        optimizer.solve(maxIter); //do not output, the other part
+        //            std::cout << "local opt " << optimizer.getIterNum() << " iters" << std::endl;
+        const double eDec = (initE - optimizer.getLastEnergyVal()) * localMesh.surfaceArea / surfaceArea; //!!! this should be written in a more general way, cause this way it only works for E_SD
+        
+        // get new vertex positions
+        newVertPos.clear();
+        for(const auto& vI_free : freeVert) {
+            newVertPos[vI_free] = optimizer.getResult().V.row(globalVI2local[vI_free]);
+        }
+        
+        delete energyTerms[0];
+        return eDec;
+    }
     
     double TriangleSoup::computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
                                           std::map<int, Eigen::RowVector2d>& newVertPos,

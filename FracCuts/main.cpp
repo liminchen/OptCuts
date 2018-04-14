@@ -215,7 +215,7 @@ void updateViewerData(void)
         viewer.data.set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 1.0));
         if(showFracTail) {
             for(const auto& tailVI : triSoup[viewChannel]->fracTail) {
-                viewer.data.add_points(UV_vis.row(tailVI), Eigen::RowVector3d(0.0, 0.0, 1.0));
+                viewer.data.add_points(UV_vis.row(tailVI), Eigen::RowVector3d(0.0, 0.0, 0.0));
             }
         }
     }
@@ -1520,7 +1520,7 @@ int main(int argc, char *argv[])
     viewer.core.orthographic = true;
     viewer.core.camera_zoom *= 1.9;
     viewer.core.animation_max_fps = 60.0;
-    viewer.core.point_size = 16.0f;
+    viewer.core.point_size = 10.0f;
     viewer.core.show_overlay = true;
     updateViewerData();
     viewer.launch();

@@ -148,14 +148,18 @@ namespace FracCuts{
                                  const Eigen::RowVector2d& initMergedPos = Eigen::RowVector2d()) const;
         // query interior incident edge of a boundary vertex candidate
         double computeLocalEDec(const std::pair<int, int>& edge, Eigen::MatrixXd& newVertPos) const; //TODO: write this in a new class
+        // boundary split
         double computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
                                 const std::vector<int>& splitPath, Eigen::MatrixXd& newVertPos,
                                 int maxIter = 100) const;
-        // minimize SD on the local stencil
+        // interior split
+        double computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
+                                std::map<int, Eigen::RowVector2d>& newVertPos, int maxIter = 100) const;
+        // minimize SD on the local stencil (merge)
         double computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
                                 std::map<int, Eigen::RowVector2d>& newVertPos,
-                                const std::map<int, int>& mergeVert = std::map<int, int>(),
-                                const Eigen::RowVector2d& initMergedPos = Eigen::RowVector2d(),
+                                const std::map<int, int>& mergeVert,
+                                const Eigen::RowVector2d& initMergedPos,
                                 int maxIter = 100) const;
     };
     
