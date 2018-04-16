@@ -1,12 +1,12 @@
 % !TeX root = OptCuts.tex
 
-\section{Overview}
+\section{Framework Overview}
 
 \subsection{A Discrete-Continuous Problem}
 
 Given an input triangle mesh of a 3D surface with $n_v$ vertices and its initial UV map with topology $T_0$ and coordinates $U_0 \in \mathcal{R}^{2n_v}$, we automatically search for
 \[ \argmin_{T,U} E_w(T,U) \]
-where $E_w(T,U) = E_s(T,U) + \lambda E_d(T,U)$ is the total energy combining both seam energy $E_s$ and distortion energy $E_d$ with a balancing factor $\lambda \in \mathcal{R^+}$.
+where $E_w(T,U) = E_s(T,U) + \lambda E_d(T,U)$ is the total energy combining both seam energy $E_s$ and distortion energy $E_d$ with a balancing factor $\lambda \in \mathcal{R^+}$. Notice that usually $E_d$ is smooth, while $E_s$ is defined to be non-differentiable, which gives us a discrete-continuous problem.
 
 \subsection{Joint Discrete-Continuous Search}
 
@@ -15,10 +15,16 @@ Instead of trying to solve an ill-conditioned real-valued optimization by approx
 In our framework, we alternate between descent steps and topology steps.
 Descent steps deal with the continuous search
 \[ \min_U E_d \]
-where $T$ is fixed and Newton-type method is applied with back-tracking line search (Section~\ref{}). Each descent step refers to one iteration of Newton-type method. 
-Topology steps deal with the discrete search. Each topology step searches for a neighboring topology based on the first-order reduction of $E_w$. The first-order in topology space refers to the local stencil around the editing seam edge.
+where $T$ is fixed and Newton-type method is applied with back-tracking line search (Section~\ref{sec:descentStep}). Each descent step refers to one iteration of Newton-type method.
+Topology steps deal with the discrete search (Section~\ref{sec:topologyStep}). Each topology step searches for a neighboring topology based on the first-order reduction they would cause in $E_w$. The first-order in topology space refers to the local stencil around the editing seam edge.
 
 By controlling the set of candidate neighboring topologies, we differ topology steps into two kinds: a step that searches from all meaningful neighboring topologies essentially find a search direction in topology space; and steps that searches only from topologies obtained by extending the last topological operation are in fact finding a topological step size for the current search direction. We call the latter kind as forward topological line search since we use it to progressively increase the topological step size to ensure sufficient $E_w$ decrease.
+
+As we ensure $E_w$ to be monotonically decreased in both the descent steps and topology steps, we can easily prove that the near-stationary point can be reached for any input within a bounded number of alternations.
+
+They key difference between our framework and previous two-pass methods is that, our seams are computed to directly improving the given distortion measurement rather than some approximated heuristics. Besides, since the problem is highly nonlinear, seams that benefits one region might be redundant due to the existance of another seam in a near or far region. Our framework is capable of removing those redundancy with our topology search, but the two-pass methods can not.
+
+\minchen{add section ref, not too much detail, more motivation!}
 
 \subsection{Self-Weighted Objective}
 
@@ -26,7 +32,7 @@ In order to automatically decide $\lambda$ and enable users to directly control 
 \[ \min_{T,U} E_s(T,U) \quad s.t. \quad E_d(T,U) - b_d \leq 0 \]
 Introducing $\lambda$ as a dual variable gives us
 \[ \min_{T,U} \max_{\lambda \in \mathcal{R^+}} E_s(T,U) + \lambda(E_d(T,U) - b_d) \]
-We solve it by adding a regularization term to make it smooth for $\lambda$, and alternatingly updating dual variable $\lambda$ and primal variables $T$ and $U$. \minchen{[TODO] more detail on how we start from infeasible state and finally converge to reasonably good results efficiently}
+We solve it by adding a regularization term to make it smooth for $\lambda$, and alternatingly updating dual variable $\lambda$ and primal variables $T$ and $U$ (Section~\ref{}). \minchen{[TODO] more detail on how we [start from infeasible state] and finally converge to [reasonably good] results efficiently}
  
 \subsection{Variations}
 
