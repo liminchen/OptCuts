@@ -1,15 +1,20 @@
-\section{Conclusions and Future Works}
+% !TeX root = OptCuts.tex
+
+\section{Conclusions}
 \label{sec:conclusion}
 
+Our method doesn't provide globally optimal solutions, the results are still locally optimal, but w.r.t. both seam placement and distortion, which is better than previous 2-pass methods that breaks the correlation between seam placement and distortion.
+
 \begin{itemize}
-\item Our method doesn't provide globally optimal solutions, the results are still locally optimal, but w.r.t. both seams and distortion, which is better than previous 2-pass methods that breaks the correlation between seams and distortion.
-\item take advantage of basic SIMD type of parallelism for accelerating query and improving results' quality by directly evaluating $f_v$ for neighbors and track multiple branches, very useful for practical implementations
-\item if the user won't mind getting a slightly different triangulation, we could also create fractures in the interior of an element and locally remesh the stencil
-\item start and solve in 3D by reducing curvature so that the need for locally injective initial embedding in parameterization problems could be eliminated, and the result is only "biased" by it's 3D shape, which is the most reasonable bias
-\item try conformal energy like MIPS
-\item \minchen{[TODO?] bijectivity}, seamless, and other augmentation of continuous energy?
-\item handle user preferences on seam placement
-\item seam smoothness, patch related discrete energy augmentation?
+\item take advantage of basic SIMD type parallelism for improving results' quality by directly evaluating $f_v$ for neighbors and track multiple branches, very useful for practical implementations
+\item multiple fracture
+\item control seam smoothness
+\item seamless parameterization
+\item given a symmetric shape, whether symmetrically triangulated or not, generate symmetric UV map
+\item if slightly modifying the triangulation is allowed, we could also create fractures in the interior of an element and locally remesh the stencil, which makes our method more triangulation and resolution invariance
+\item start with input surface and solve in 3D by reducing the curvature. In this way, the need for locally injective initial embedding in parameterization problems could be eliminated, and the result is only "biased" by it's 3D shape, which is the most reasonable bias
 \end{itemize}
 
-\section{Acknowledgements}
+In summary, we proposed a framework that tackles the problems related to both mesh topology and an energy function defined on the surface geometry, thus we expect our framework to be applied on more discrete-continuous geometry processing problems.
+
+\section*{Acknowledgements} 

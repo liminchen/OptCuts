@@ -7,49 +7,29 @@ Mesh parameterization is a critical task in computer graphics, with applications
 
 Given its broad applicability, it comes as not surprise that parameterization has been a focus of research in geometry processing.  Algorithms in this domain focus on two key aspects of the problem.  Particularly well-studied are \emph{geometric} techniques that assume a surface has already been cut into disk topology and now needs to be mapped into the plane while maintaining fixed connectivity; at this point parameterization becomes a real-valued optimization problem to preserve angles and areas while maintaining local or global injectivity.  In parallel with these, \emph{topological} algorithms find reasonable seams partitioning a surface into individual pieces that can be parameterized.  
 
-%The problem has been investigated a lot in the past two decades \minchen{cite some mesh parameterization papers}. The quality of a UV map is usually measured as it's isometric property, i.e. area and angle preservation, and whether there are element inversions \cite{Sander2001Texture,Sheffer2005ABFPP}. Thus, due to the curvature and topology of the surfaces, discontinuities (seams) need to be introduced to help obtain maps with acceptable isometry.
-%Previous works has been intensively focusing on two topics separately, that is, where to place seams \minchen{cite some seam placement papers}, and how to optimize for isometry (minimize distortion) with the seams provided \minchen{cite some distortion minimization papers}. Since the seam placement techniques are based on heuristics deduced from observation of the input shapes, they are not robust to all inputs and usually leads to suboptimal results.
-
 With a few notable exceptions, previous work treats seam placement and fixed-topology mapping as separate steps in the parameterization pipeline.  This is a key drawback, as seam placement and complexity have strong bearing on the best \emph{possible} geometric parameterization of each patch.  Coupling these problems requires navigating between two extremes:  A zero-distortion but topologically complex parameterization maps every triangle into the plane independently, while a high-distortion but topologically simple mapping might only require puncturing a few points in the input surface.
 
 % task and object
 In this paper, we propose a parameterization technique that couples topology and geometry named 
-%
-%We propose 
 {\em OptCuts}.
 OptCuts is 
 a joint discrete-continuous optimization framework that progressively updates seam placement between distortion minimization steps to search for the best UV map. 
 %
 We measure the trade-off between topological and geometric considerations by balancing the symmetric Dirichlet energy~\cite{Smith2015Bijective} with normalized seam length, reaching a parameterization that is near-stationary with respect to both seam placement and coordinate positions within a bounded number of iterations.
-%
-%We use a linear combination of symmetric Dirichlet energy~\cite{Smith2015Bijective} and normalized seam length as objective, of which the stationary w.r.t. both UV topology and coordinates are guaranteed to be reached within a bounded number of iterations per balancing factor, input model, and initial embedding.
 %\minchen{[NOTE] (Here stationary w.r.t. UV topology is only in the approximation sense, because there might still be basic topological operations that could decrease the objective but end up not chosen because it is filtered out or its locally evaluated energy decrease is not the largest one.)}
 
 % challenge
-\justin{I might suggest removing the following paragraph and putting it in the related work; no reason for a detailed criticism of their paper in the intro.} \minchen{
-Seams, due to its discontinuous property, is not intuitive to be considered in traditional distortion minimization frameworks. Moreover, in order for seams to be efficient, it needs to be sparse, which is another challenge for optimizing it with L2-type distortion energies. The recently published AutoCuts~\cite{Poranne2017Autocuts} model seam as a discontinuous energy using triangle soup data structure and jointly optimize it with distortion via homotopy optimization. We observed that initially placing seams on all the edges introduces multiple times of redundant degree of freedoms since during their solving process, most of the triangles keep the relative position to their neighbors. Besides, since the placement of seams highly depends on the homotopy path, AutoCuts requires a certain amount of user guidance, e.g. parameter tuning, cut suggestion, patch movement, in order to obtain good results.
-}
-
 In contrast to previous work that builds up a parameterization from disconnected triangle soup~\cite{Poranne2017Autocuts} or by cutting between points of maximal predicted distortion~\cite{Gu2002Geometry,Sheffer2002Seamster}, we optimize seams combinatorially, directly extending real-valued distortion minimization to the regime where seams can be introduced and removed. As distortion typically is reduced by line search in UV coordinate space, we accompany this with a secondary search procedure in ``topology space:'' We alternate between reducing stretch and introducing potential topological changes based on the first-order reduction they would cause in the summed distortion and seam length terms of the objective. %in each topology search iteration we first find a search direction that locally decrease the objective the most (in topology step, Section~\ref{sec:topologyStep}); and then we conduct a newly derived forward-tracking line search scheme alternated with distortion minimization iterations to decide the step-size (in descent step, Section~\ref{sec:descentStep}).% too much detail for intro
-
-% compared to Geometry Image and Seamster
-\justin{again this should go in related work}\minchen{
-Our framework is different from traditional seam cutting algorithms such as Geometry Image~\cite{Gu2002Geometry} and Seamster~\cite{Sheffer2002Seamster}, of which the core idea is to locate points of maximal currently predicted distortion and to add paths toward them. They do not perform well if no such obvious points exist, e.g. once distortion is distributed near-evenly across many surface points. Our framework in contrast searches for minimal cut elongation or shrinking steps that reduce the joint objective, thus we expect it to be more efficient in such settings (Figure~\ref{cases where there are not many obvious extremal points}).
-}
 
 % self-weighting
 %Although we acquire adaptivity to various inputs by normalizing the energy, %<-- not sure what this means
-%it is still not intuitive for users to directly communicate all expectations through a balancing factor in the objective. 
 From a practical perspective, it is difficult for non-technical users to choose coefficients trading off between distortion and seam length.  As an intuitive alternative, we re-cast our starting problem as a \emph{constrained} optimization seeking to minimize seam length subject to user-specified distortion bounds.  A few adjustments to the optimization technique allow us to tackle this rephrasing.
-%Consequently, we provide a constrained optimization formulation that seeks stationary w.r.t. both primal (UV coordinates and topology) and dual (balancing factor) variables subject to user specified distortion upper bounds (Section~\ref{sec:self_weighting}).
+%(Section~\ref{sec:self_weighting}).
 
 % experiments
-We demonstrate our framework's capabilities by comparing to AutoCuts~\cite{Poranne2017Autocuts} and some typical classic seam cutting methods~\cite{Gu2002Geometry,Sheffer2002Seamster}. %, including geometry image and Seamster (Section~\ref{sec:results}). 
+We demonstrate our framework's capabilities by comparing to AutoCuts~\cite{Poranne2017Autocuts} and some typical classic seam cutting methods~\cite{Gu2002Geometry,Sheffer2002Seamster}. % (Section~\ref{sec:results}). 
 Given the same initial UV map, we efficiently reach identical distortion bounds with shorter seam lengths. We also test on large-scale inputs to demonstrate scalability, and we use inputs with same shape but different triangulation to show that our method is stable to changes in mesh structure.
-%
-\justin{move to related work: Although OptCuts doesn't need any user assistance, it still allows users to communicate preferences on regional seam placement through edge weight painting (Figure~\ref{fig:edge_weight_painting}).
-In addition, our seams are optimal for the distortion energy used. For example, it creates different set of seams that benefit conformality more if conformal energy is used (Figure~\ref{results of our method with conformal distortion energy}).}
 
 % contribution
 \paragraph*{Contributions.} 
-We present a novel framework that jointly optimizes seam placement and distortion for mesh parameterization, including a constrained formulation allowing users to obtain UV maps with specified distortion bounds. Key to our method are topological search stragies as well as a dual variable treatment searching for optimal cuts with bounded distortion. Our framework is easily extended to handle global bijectivity and seamlessness. \justin{what do you mean by seamlessness?} We also demonstrate that our approach applies to other discrete-continuous geometry processing problems.% (Section~\ref{sec:conclusion}).
+We present a novel framework that jointly optimizes seam placement and distortion for mesh parameterization, \minchen{strengthen that "seam placement" refer not only to length, but also location? and distortion can be various kinds of distortion?} including a constrained formulation allowing users to obtain UV maps with specified distortion bounds. Key to our method are topological search strategies as well as a dual variable treatment searching for optimal cuts with bounded distortion. Our framework is easily extended to handle global bijectivity and seamlessness. \justin{what do you mean by seamlessness?} \minchen{I was thinking about global or seamless parameterization. What would be the most practical "seamless" property a user may want?} We also demonstrate that our approach applies to other discrete-continuous geometry processing problems.% (Section~\ref{sec:conclusion}).

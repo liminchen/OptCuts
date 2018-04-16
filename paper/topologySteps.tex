@@ -1,7 +1,9 @@
-\section{Topology Steps for Discrete Optimization}
+% !TeX root = DCSearch.tex
+
+\subsection{Topology Steps for Discrete Optimization}
 \label{sec:topologyStep}
 
-\subsection{Evaluating Topological Operations via Optimization on Local Stencils}
+\subsubsection{Evaluating Topological Operations via Optimization on Local Stencils}
 
 \begin{algorithm}[h]
 \SetAlgoLined
@@ -60,10 +62,6 @@ conduct the operation with largest $|\Delta E_{w,l}|$
 \end{algorithm}
 For boundary vertex that connects to another boundary, we free both the 2 boundary vertices while evaluating the local energy decrease.
 
-\minchen{[NOTE]
-Do we need to treat compressed region and stretched region differently in order to have less overlap?
-}
-
 \minchen{[TODO]
 Since we are using the local estimation to approximate true global energy decrease, it would be necessary to find a balance between accuracy and efficiency by weighing between size of local stencils and number of optimization iterations to run.
 }
@@ -72,7 +70,7 @@ Since we are using the local estimation to approximate true global energy decrea
 Seamster's selected high curvature vertices are set to be the leaf of the seam tree while necessary, while our interior splitting scheme seems to always allow fracture to be extended on both the 2 sides of a picked vertex, which seems suboptimal. However, instead of just trying to connect interior vertex to the boundary like geometry images, we still have the reason to preserve our current interior splits because we've seen results that holes in UV map will be needed as a better solution for resolving some interior distortion. What we need to do is to take Seamster's inspiration and improve our interior splitting scheme.
 }
 
-\subsection{Line Search in Topological Space}
+\subsubsection{Line Search in Topological Space}
 
 Once a fracture is initiated, it almost always be extended further in the later topology steps, which justifies the robustness of our method. To speed up the process, instead of waiting for another descent step and query all the filtered candidates again, we propagate this newly initiated fracture further in between the first several inner iterations of the following descent step.
 
@@ -99,11 +97,9 @@ After the fracture has been initiated, we first go to descent step to run an inn
 
 \minchen{[TODO] Write merge propagation}
 
-\minchen{[TODO] Improve current propagation scheme by developing analogous line search method}
-
 \minchen{[NOTE] Besides fracture propagation line search, increase the depth of querying fracture initiation did the same thing but with more computational cost. However, it could improve the results because it's more global! (Inspired by Seamster)}
 
-\subsection{Multiple Fracture Initiation}
+\subsubsection{Multiple Fracture Initiation}
 \minchen{[TODO]}
 
 Multiple fracture initiation would be redundant on a single cone-like region since only one fracture would be enough to release the distortion. However, initiating one fracture for each cone-like region within a single topology step would certainly accelerate the whole process.
@@ -115,5 +111,5 @@ method ref:
 S. Agmon. The relaxation method for linear inequalities
 I. Eremin. The relaxation method of solving systems of inequalities with convex functions on the left sides
 
-\paragraph{Forward Line Search} It is based on a kind of sufficient energy decrease criteria similar to Armijo rule in the continuous setting, where our epsilon term is the energy decrease of the previous PN iteration.
+\paragraph{Forward Topological Line Search} It is based on a kind of sufficient energy decrease criteria similar to Armijo rule in the continuous setting, where our epsilon term is the energy decrease of the previous PN iteration.
 To understand alternating lambda updates between PN iterations: lambda update changes the energy manifold, so it couldn’t be too frequent or the manifold can’t really be explored enough, nor it could be too seldom or it would be trapped in a local region.

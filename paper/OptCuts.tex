@@ -15,6 +15,10 @@
 \SetAlCapHSkip{0pt}
 \IncMargin{-\parindent}
 
+\usepackage{amsmath}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
 % Metadata Information
 \acmJournal{TOG}
 % \acmVolume{9}
@@ -140,7 +144,7 @@ Starting with an initial embedding, OptCuts alternates between topology steps an
 Since bounding distortion is more intuitive than balancing between objective terms, we also provide a constrained formulation seeking stationarity with respect to primal (UV coordinates and topology) and dual (balancing factor) variables subject to a user-specified distortion bound.
 % conclusion
 We demonstrate that OptCuts automatically produces high-quality UV maps without user assistance, and it can generate seams whose structure is informed by different types of distortion measurement and/or user preferences on regional seam placement.
-We show that our optimization framework also has the potential to handle global bijectivity and seamlessness.
+We show that our optimization framework also has the potential to handle global bijectivity, seamlessness, \minchen{and other discrete-continuous geometry processing problems}. \minchen{should we sell global bijectivity as a part of our main feature?}
 \end{abstract}
 
 
@@ -176,11 +180,9 @@ We show that our optimization framework also has the potential to handle global 
 
 \input{relatedWorks}
 
-\input{alternatingFramework}
+\input{overview}
 
-\input{descentSteps}
-
-\input{topologySteps}
+\input{DCSearch}
 
 \input{autoWeighting}
 

@@ -1,7 +1,9 @@
-\section{Descent Steps for Continuous Optimization}
+% !TeX root = DCSearch.tex
+
+\subsection{Descent Steps for Continuous Optimization}
 \label{sec:descentStep}
 
-\subsection{Newton-type Iterations}
+\subsubsection{Newton-type Iterations}
 
 \begin{algorithm}[h]
 \SetAlgoLined
@@ -32,14 +34,12 @@ By applying projected Newton method~\cite{Teran2005Robust}, our linear system in
 
 \minchen{[TODO] Fix a direction for the linear system to ensure definiteness. }
 
-\subsection{Potential Accelerations for Practical Use}
+\subsubsection{Potential Accelerations for Practical Use}
 
 Since our topological operations only change the mesh locally both on connectivity and coordinates, we could also update the Hessian or the decomposition locally after topology changes to save time. Besides, it's also interesting to try other Hessian approximation methods like L-BFGS \cite{Liu1989Limited} or composite majorization \cite{Shtengel2017Geometric} to explore further acceleration by finding a balance between computational cost and convergence rate.
 
 For convergence tolerance of descent steps, $||\nabla E_{SD}||^2 \leq 10^{-6}$ (note that our energy is normalized) works generally well for all input models judging from the initiated fracture in the following topology step. In fact more inexact solve performs well on most of the models with even $||\nabla E_{SD}||^2 \leq 10^{-4}$, but some may result in bad cuts, and there are also some models will result in even better cuts with $||\nabla E_{SD}||^2 \leq 10^{-8}$. Since we are conducting non-convex optimization, $||\nabla E_{SD}||^2$ is not always decreasing, which is also why we don't use Wolfe conditions for line search. The argument here for tolerance issue is that, it depends on whether we are truly in the infinitesimal region of a stationary. Some configuration with $||\nabla E_{SD}||^2 \leq 10^{-6}$ may still not inside the infinitesimal region of a stationary, where if optimization goes on, $||\nabla E_{SD}||^2$ will go up and then fall down again to the real stationary, which is understandable in non-convex optimization. Consequently, we apply an extra stopping criteria for descent steps, which depends on the relative energy decrease to resolve this issue. Combined with an appropriately small tolerance on $||\nabla E_{SD}||^2$, say $10^{-8}$, this extra stopping criteria ends descent steps early appropriately only while necessary that cut initiation is not affected but projected Newton iterations and thus time needed is much less, especially for highly curved surfaces. This won't lead to bad results like simply setting larger tolerance on $||\nabla E_{SD}||^2$ since it ensures that the local optimal infinitesimal region is reached. Note that the problem of just using small tolerance on $||\nabla E_{SD}||^2$ is that it would be very unnecessary for those highly curved surfaces, where stationary needs many projected Newton iterations to reach and it won't affect cut initation.
 
 \minchen{[NOTE]
-Another drawback of setting higher tolerance on $||\nabla E_{SD}||^2$ is that some initiated cuts may not increase $\nabla E_{SD}$ enough to restart descent step - it converges right after it started, which result in unwise following cut initiations. 
-[TODO]
-This inspires us to try picking the topological operation that will increase the gradient the most to perform.
+Another drawback of setting higher tolerance on $||\nabla E_{SD}||^2$ is that some initiated cuts may not increase $\nabla E_{SD}$ enough to restart descent step - it converges right after it started, which result in unwise following cut initiations.
 }

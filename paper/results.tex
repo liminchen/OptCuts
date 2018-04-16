@@ -1,16 +1,31 @@
+% !TeX root = OptCuts.tex
+
 \section{Results and Discussion}
 \label{sec:results}
 
-\href{http://www.cs.ubc.ca/labs/imager/dgp/FracCuts/expResults/}{click to see an index of all experiments done and all related documents}
+\subsection{Experiments}
 
-\minchen{[TODO] and [NOTE]:}
+\paragraph{Initial Embedding} For disk-topology surfaces, we map the longest boundary to a circle preserving edge length and obtain a Tutte embedding with uniform weights \minchen{[TODO] see whether using MVC weights converge faster}. For closed surfaces (including high-genus surfaces), we first apply some simple heuristics to obtain an initial seam, and then treat them as disk-topology surfaces. 
+The heuristics for genus-0 surfaces include farthest point cut and random/curvest one point cut \minchen{[TODO] decide one and add description, or use all?}; for high-genus surfaces, we follow Crane et al.~\shortcite{Crane:2013:DGP} to detect homology generators and then cut along all of them \minchen{[TODO]}.
+In order to show that we search for locally optimal UV maps regardless of the given initial embedding, we run our method starting from triangle soup and preliminary UV maps produced by other methods or by the users. The output maps are still with high quality (Figure~\ref{fig:bad_init_still_ends_well}) \minchen{[TODO]}.
 
-\begin{itemize}
-\item quality and timing comparison with previous methods, deal with closed surfaces by either starting from random rectangle embedding, basic heuristics like farthest points, or some learned prior (do figure out a best way for our algorithm to treat closed surfaces, potentially also higher genus surfaces?)
-\item show improvements starting from results given by previous methods
-\item how does triangulation affect our result? try same shape with different triangulation.
-\item scalability test
-\item given a symmetric shape, whether symmetrically triangulated or not, does our method preserve symmetry in UV space?
-\item there are seams being placed close to highly curved paths but not exactly aligning it, is it because our consideration is purely local or the placement is just better than human prefered results?
-\item do we encounter cases like there are several edges with almost equal estimated energy decrease and we pick from them by random factor?
-\end{itemize}
+\paragraph{Quality and Timing Comparisons} \minchen{[TODO], also provide detailed settings on the compared methods, and how much user assistance was needed for other methods?} We demonstrate our framework's capabilities by first comparing to AutoCuts~\cite{Poranne2017Autocuts} and two typical classic seam cutting methods~\cite{Gu2002Geometry,Sheffer2002Seamster}. Given the same input surface and initial UV map, we efficiently reach identical distortion bounds with shorter seam lengths (Figure~\ref{fig:QT_comp}). 
+When we change the settings in order to obtain nearly isometric UV maps, the quality of the seams by other methods drop drastically while our method keeps generating high-quality seams (Figure~\ref{fig:strict_bounds_comp}).
+
+\paragraph{Triangulation Invariance} \minchen{[TODO] not sure whether applicable}
+
+\paragraph{Scalability Test} \minchen{[TODO]}
+
+\subsection{Variations}
+
+Without changing the framework, simply reformulating $E_w = E_s + \lambda E_d$ according to different needs enables OptCuts to solve mesh parameterization problems in many variations:
+
+\paragraph{Global Bijectivity} \minchen{[DOING]} Augmenting our $E_s$ with a collision handling energy $E_b$ will easily achieve joint seam placement and bijective mesh parameterization. We show that by adding a scaffold mesh~\cite{Jiang2017Simplicial} to the voided regions of the UV map and preventing the scaffold mesh from degenerate, our method automatically generate high-quality bijective maps with optimal seams different from that of locally injective parameterization (Figure~\ref{fig:bijective_vs_injective}).
+
+\paragraph{Conformal Parameterization} \minchen{[TODO]} Using a conformal energy~\cite{Hormann2000MIPS,Sheffer2005ABFPP} for $E_s$ will achieve joint seam placement and conformal parameterization. Figure~\ref{fig:conformal_vs_isometry} shows some results with $E_s = E_{ABForMIPS}$~\cite{} compared to results with $E_s = E_{SD}$, where different seams are generated while our framework stays the same.
+
+\paragraph{Regional Seam Placement} \minchen{[TODO]} On the discrete side, if we reweight $E_{SL}$ with an edge prior provided by the user or an algorithm~\cite{} as
+\[ E_s = \hat{E}_{SL} = \sum_{i\in\mathcal{S}} w_{SL,i} E_{SL,i} \quad w_{SL,i} \in \mathcal{R^+} \]
+we could bias the seam placement towards regions e.g. where continuity is less in demand (Figure~\ref{fig:regional_seam_placement}).
+
+discoveries? like interior splits?
