@@ -562,4 +562,70 @@ namespace FracCuts {
         double angle = std::acos(std::max(-1.0, std::min(1.0, from.dot(to) / from.norm() / to.norm())));
         return ((from[0] * to[1] - from[1] * to[0] < 0.0) ? -angle : angle);
     }
+    
+    /////////////////////////////////////////////////////////////////
+    // 2D line segments intersection checking code
+    // based on Real-Time Collision Detection by Christer Ericson
+    // (Morgan Kaufmaan Publishers, 2005 Elvesier Inc)
+    double Signed2DTriArea(const Eigen::RowVector2d& a, const Eigen::RowVector2d& b, const Eigen::RowVector2d& c)
+    {
+        return (a[0] - c[0]) * (b[1] - c[1]) - (a[1] - c[1]) * (b[0] - c[0]);
+    }
+    
+    bool IglUtils::Test2DSegmentSegment(const Eigen::RowVector2d& a, const Eigen::RowVector2d& b,
+                                        const Eigen::RowVector2d& c, const Eigen::RowVector2d& d,
+                                        double eps)
+    {
+        double eps_quad = 0.0, eps_sq = 0.0;
+        if(eps) {
+            eps = std::abs(eps);
+            eps_sq = eps * eps * ((a-b).squaredNorm() + (c-d).squaredNorm()) / 2.0;
+            eps_quad = eps_sq * eps_sq;
+        }
+        
+        // signs of areas correspond to which side of ab points c and d are
+        double a1 = Signed2DTriArea(a,b,d); // Compute winding of abd (+ or -)
+        double a2 = Signed2DTriArea(a,b,c); // To intersect, must have sign opposite of a1
+        
+        // If c and d are on different sides of ab, areas have different signs
+        if( a1 * a2 <= eps_quad ) // require unsigned x & y values.
+        {
+            double a3 = Signed2DTriArea(c,d,a); // Compute winding of cda (+ or -)
+            double a4 = a3 + a2 - a1; // Since area is constant a1 - a2 = a3 - a4, or a4 = a3 + a2 - a1
+            
+            // Points a and b on different sides of cd if areas have different signs
+            if( a3 * a4 <= eps_quad )
+            {
+                if((std::abs(a1) <= eps_sq) && (std::abs(a2) <= eps_sq)) {
+                    // colinear
+                    const Eigen::RowVector2d ab = b - a;
+                    const double sqnorm_ab = ab.squaredNorm();
+                    const Eigen::RowVector2d ac = c - a;
+                    const Eigen::RowVector2d ad = d - a;
+                    double coef_c = ac.dot(ab) / sqnorm_ab;
+                    double coef_d = ad.dot(ab) / sqnorm_ab;
+                    assert(coef_c != coef_d);
+                    
+                    if(coef_c > coef_d) {
+                        std::swap(coef_c, coef_d);
+                    }
+                    
+                    if((coef_c > 1.0 + eps) || (coef_d < -eps)) {
+                        return false;
+                    }
+                    else {
+                        return true;
+                    }
+                }
+                else {
+                    // Segments intersect.
+                    return true;
+                }
+            }
+        }
+        
+        // Segments not intersecting
+        return false;
+    }
+    ////////////////////////////////////////////////////////////
 }

@@ -37,9 +37,10 @@ FracCuts::TriangleSoup triSoup_backup;
 FracCuts::Optimizer* optimizer;
 std::vector<FracCuts::Energy*> energyTerms;
 std::vector<double> energyParams;
+//bool bijectiveParam = false;
 bool bijectiveParam = true;
-bool rand1PInitCut = false;
-//bool rand1PInitCut = true; // for fast prototyping
+//bool rand1PInitCut = false;
+bool rand1PInitCut = true; // for fast prototyping
 double lambda_init;
 bool optimization_on = false;
 int iterNum = 0;

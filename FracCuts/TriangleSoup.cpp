@@ -2109,6 +2109,37 @@ namespace FracCuts {
         }
     }
     
+    bool TriangleSoup::insideTri(int triI, const Eigen::RowVector2d& pos) const
+    {
+        const Eigen::RowVector3i& triVInd = F.row(triI);
+        const Eigen::RowVector2d e01 = V.row(triVInd[1]) - V.row(triVInd[0]);
+        const Eigen::RowVector2d e02 = V.row(triVInd[2]) - V.row(triVInd[0]);
+        const Eigen::RowVector2d e0p = pos - V.row(triVInd[0]);
+        
+        // represent ep0 using e01 and e02
+        Eigen::Matrix2d A;
+        A << e01.transpose(), e02.transpose();
+        Eigen::Vector2d coef = A.colPivHouseholderQr().solve(e0p.transpose());
+        
+        // check inside
+        if((coef[0] >= 0.0) && (coef[1] >= 0.0) && (coef[0] + coef[1] <= 1.0)) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+        
+    bool TriangleSoup::insideUVRegion(const std::vector<int>& triangles, const Eigen::RowVector2d& pos) const
+    {
+        for(const auto& triI : triangles) {
+            if(insideTri(triI, pos)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     bool TriangleSoup::isBoundaryVert(int vI, int vI_neighbor,
                                       std::vector<int>& tri_toSep, std::pair<int, int>& boundaryEdge, bool toBound) const
     {
@@ -2201,11 +2232,13 @@ namespace FracCuts {
                 // zipper merge
                 double seDec = (V_rest.row(path_max[0]) - V_rest.row(path_max[1])).norm() / virtualRadius;
                 // closing up splitted diamond
+                bool closeup = false;
                 for(const auto& nbVI : vNeighbor[path_max[0]]) {
                     if(nbVI != path_max[1]) {
                         if(isBoundaryVert(nbVI)) {
                             if(vNeighbor[path_max[2]].find(nbVI) != vNeighbor[path_max[2]].end()) {
                                 seDec += (V_rest.row(path_max[0]) - V_rest.row(nbVI)).norm() / virtualRadius;
+                                closeup = true;
                             }
                             break;
                         }
@@ -2220,17 +2253,21 @@ namespace FracCuts {
                 mergeVert[path_max[0]] = path_max[2];
                 mergeVert[path_max[2]] = path_max[0];
                 std::map<int, Eigen::RowVector2d> newVertPos;
-                const double SDInc = -computeLocalEDec(incTris, freeVert, newVertPos, mergeVert, initMergedPos);
-                
-                auto finder = newVertPos.find(path_max[0]);
-                assert(finder != newVertPos.end());
-                newVertPos_max.resize(1, 2);
-                newVertPos_max.row(0) = finder->second;
-                
-                energyChanges_max.first = SDInc;
-                energyChanges_max.second = -seDec;
-                
-                return lambda_t * seDec - (1.0 - lambda_t) * SDInc;
+                const double SDInc = -computeLocalEDec(path_max, incTris, freeVert, newVertPos, mergeVert, initMergedPos, closeup);
+                if(SDInc == __DBL_MAX__) {
+                    return -__DBL_MAX__;
+                }
+                else {
+                    auto finder = newVertPos.find(path_max[0]);
+                    assert(finder != newVertPos.end());
+                    newVertPos_max.resize(1, 2);
+                    newVertPos_max.row(0) = finder->second;
+                    
+                    energyChanges_max.first = SDInc;
+                    energyChanges_max.second = -seDec;
+                    
+                    return lambda_t * seDec - (1.0 - lambda_t) * SDInc;
+                }
             }
             else {
                 assert(0 && "currently not considering \"interior\" merge!");
@@ -2438,13 +2475,15 @@ namespace FracCuts {
         return eDec;
     }
     
-    double TriangleSoup::computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
-                                          std::map<int, Eigen::RowVector2d>& newVertPos,
-                                          const std::map<int, int>& mergeVert,
-                                          const Eigen::RowVector2d& initMergedPos,
-                                          int maxIter) const
+    double TriangleSoup::computeLocalEDec(const std::vector<int>& path, const std::vector<int>& triangles,
+                                          const std::set<int>& freeVert, std::map<int, Eigen::RowVector2d>& newVertPos,
+                                          const std::map<int, int>& mergeVert, const Eigen::RowVector2d& initMergedPos,
+                                          bool closeup, int maxIter) const
     {
         assert(triangles.size() && freeVert.size());
+        assert(!mergeVert.empty());
+        
+        bool isBijective = ((!!scaffold) && (!closeup));
         
         // construct local mesh
         Eigen::MatrixXi localF;
@@ -2507,26 +2546,49 @@ namespace FracCuts {
         }
         TriangleSoup localMesh(localV_rest, localF, localV, Eigen::MatrixXi(), false);
         localMesh.resetFixedVert(fixedVert);
+//        localMesh.save("/Users/mincli/Desktop/meshes/test.obj");
+//        save("/Users/mincli/Desktop/meshes/test_full.obj");
+        
+        SymStretchEnergy SD;
+        double initE = 0.0;
+        for(const auto& triI : triangles) {
+            double energyValI;
+            SD.getEnergyValByElemID(*this, triI, energyValI);
+            initE += energyValI;
+        }
+        initE *= surfaceArea / localMesh.surfaceArea;
+        
+        // construct air mesh
+        Eigen::MatrixXd UV_bnds;
+        Eigen::MatrixXi E;
+        Eigen::VectorXi bnd;
+        if(isBijective) {
+            if(!scaffold->getCornerAirLoop(path, initMergedPos, UV_bnds, E, bnd)) {
+                // if initPos causes the composite loop to self-intersect, or the loop is totally inverted
+                // (potentially violating bijectivity), abandon this query
+                return -__DBL_MAX__;
+            }
+            
+            for(int bndI = 0; bndI < bnd.size(); bndI++) {
+                const auto finder = globalVI2local.find(bnd[bndI]);
+                assert(finder != globalVI2local.end());
+                bnd[bndI] = finder->second;
+            }
+        }
         
         // conduct optimization on local mesh
-        std::vector<FracCuts::Energy*> energyTerms(1, new SymStretchEnergy());
+        std::vector<FracCuts::Energy*> energyTerms(1, &SD);
         std::vector<double> energyParams(1, 1.0);
-        Optimizer optimizer(localMesh, energyTerms, energyParams, false, true);
+        Optimizer optimizer(localMesh, energyTerms, energyParams, 0, true, isBijective, UV_bnds, E, bnd);
         optimizer.precompute();
+        //        optimizer.result.save("/Users/mincli/Desktop/meshes/test" + std::to_string(splitPath[0]) + "-" + std::to_string(splitPath[1]) + "_optimized.obj");
+        //        optimizer.scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test0_AM.obj");
         optimizer.setRelGL2Tol(1.0e-4);
-        double initE = optimizer.getLastEnergyVal();
-        if(!mergeVert.empty()) {
-            initE = 0.0;
-            for(const auto& triI : triangles) {
-                double energyValI;
-                energyTerms[0]->getEnergyValByElemID(*this, triI, energyValI);
-                initE += energyValI;
-            }
-            initE *= surfaceArea / localMesh.surfaceArea;
-        }
         optimizer.solve(maxIter); //do not output, the other part
         //            std::cout << "local opt " << optimizer.getIterNum() << " iters" << std::endl;
-        const double eDec = (initE - optimizer.getLastEnergyVal()) * localMesh.surfaceArea / surfaceArea; //!!! this should be written in a more general way, cause this way it only works for E_SD
+        double curE;
+        optimizer.computeEnergyVal(optimizer.getResult(), optimizer.getScaffold(), curE, true);
+        const double eDec = (initE - curE) * localMesh.surfaceArea / surfaceArea; //!!! this should be written in a more general way, cause this way it only works for E_SD
         
         // get new vertex positions
         newVertPos.clear();
@@ -2534,7 +2596,6 @@ namespace FracCuts {
             newVertPos[vI_free] = optimizer.getResult().V.row(globalVI2local[vI_free]);
         }
         
-        delete energyTerms[0];
         return eDec;
     }
         
@@ -2615,67 +2676,68 @@ namespace FracCuts {
                 localMesh.splitEdgeOnBoundary(std::pair<int, int>(splitPath_local[0], splitPath_local[1]),
                                               Eigen::Matrix2d(), false, cutThrough);
 //                localMesh.save("/Users/mincli/Desktop/meshes/test" + std::to_string(splitPath[0]) + "-" + std::to_string(splitPath[1]) + "_afterSplit.obj");
+//                std::cout << splitPath[0] << "-" << splitPath[1] << std::endl;
                 
-                // separate the splitted vertices to leave room for airmesh
-                Eigen::RowVector2d splittedV[2] = {
-                    localMesh.V.row(splitPath_local[0]),
-                    localMesh.V.row(localMesh.V.rows() - 1 - cutThrough)
-                };
-                Eigen::RowVector2d sepDir_oneV[2];
-                localMesh.compute2DInwardNormal(splitPath_local[0], sepDir_oneV[0]);
-                localMesh.compute2DInwardNormal(localMesh.V.rows() - 1 - cutThrough, sepDir_oneV[1]);
-                Eigen::VectorXd sepDir[2] = {
-                    Eigen::VectorXd::Zero(localMesh.V.rows() * 2),
-                    Eigen::VectorXd::Zero(localMesh.V.rows() * 2)
-                };
-                sepDir[0].block(splitPath_local[0] * 2, 0, 2, 1) = sepDir_oneV[0].transpose();
-                sepDir[1].block((localMesh.V.rows() - 1 - cutThrough) * 2, 0, 2, 1) = sepDir_oneV[1].transpose();
-                const double eps_sep = (V.row(splitPath[1]) - V.row(splitPath[0])).squaredNorm() * 1.0e-4;
-                while((splittedV[0]-splittedV[1]).squaredNorm() < eps_sep) {
-                    for(int i = 0; i < 2; i++) {
-                        double stepSize_sep = 1.0;
-                        SD.initStepSize(localMesh, sepDir[i], stepSize_sep);
-                        splittedV[i] += 0.5 * stepSize_sep * sepDir_oneV[i];
-                    }
-                    localMesh.V.row(splitPath_local[0]) = splittedV[0];
-                    localMesh.V.row(localMesh.V.rows() - 1 - cutThrough) = splittedV[1];
-//                    //TODO: may update search dir, and accelerate
-//                    localMesh.compute2DInwardNormal(splitPath_local[0], sepDir_oneV[0]);
-//                    localMesh.compute2DInwardNormal(localMesh.V.rows() - 1, sepDir_oneV[1]);
-//                    sepDir[0].block(splitPath_local[0] * 2, 0, 2, 1) = sepDir_oneV[0].transpose();
-//                    sepDir[1].bottomRows(2) = sepDir_oneV[1].transpose();
-                }//TODO: maxIter?
-                assert(localMesh.checkInversion());
-                
-                if(cutThrough) {
-                    splittedV[0] = localMesh.V.row(splitPath_local[1]);
-                    splittedV[1] = localMesh.V.bottomRows(1);
-                    localMesh.compute2DInwardNormal(splitPath_local[1], sepDir_oneV[0]);
-                    localMesh.compute2DInwardNormal(localMesh.V.rows() - 1, sepDir_oneV[1]);
-                    sepDir[0] = sepDir[1] = Eigen::VectorXd::Zero(localMesh.V.rows() * 2);
-                    sepDir[0].block(splitPath_local[1] * 2, 0, 2, 1) = sepDir_oneV[0].transpose();
-                    sepDir[1].bottomRows(2) = sepDir_oneV[1].transpose();
+                if(scaffold) {
+                    // separate the splitted vertices to leave room for airmesh
+                    Eigen::RowVector2d splittedV[2] = {
+                        localMesh.V.row(splitPath_local[0]),
+                        localMesh.V.row(localMesh.V.rows() - 1 - cutThrough)
+                    };
+                    Eigen::RowVector2d sepDir_oneV[2];
+                    localMesh.compute2DInwardNormal(splitPath_local[0], sepDir_oneV[0]);
+                    localMesh.compute2DInwardNormal(localMesh.V.rows() - 1 - cutThrough, sepDir_oneV[1]);
+                    Eigen::VectorXd sepDir[2] = {
+                        Eigen::VectorXd::Zero(localMesh.V.rows() * 2),
+                        Eigen::VectorXd::Zero(localMesh.V.rows() * 2)
+                    };
+                    sepDir[0].block(splitPath_local[0] * 2, 0, 2, 1) = sepDir_oneV[0].transpose();
+                    sepDir[1].block((localMesh.V.rows() - 1 - cutThrough) * 2, 0, 2, 1) = sepDir_oneV[1].transpose();
+                    const double eps_sep = (V.row(splitPath[1]) - V.row(splitPath[0])).squaredNorm() * 1.0e-4;
                     while((splittedV[0]-splittedV[1]).squaredNorm() < eps_sep) {
                         for(int i = 0; i < 2; i++) {
                             double stepSize_sep = 1.0;
                             SD.initStepSize(localMesh, sepDir[i], stepSize_sep);
                             splittedV[i] += 0.5 * stepSize_sep * sepDir_oneV[i];
                         }
-                        localMesh.V.row(splitPath_local[1]) = splittedV[0];
-                        localMesh.V.bottomRows(1) = splittedV[1];
-                        //                    //TODO: may update search dir, and accelerate
+                        localMesh.V.row(splitPath_local[0]) = splittedV[0];
+                        localMesh.V.row(localMesh.V.rows() - 1 - cutThrough) = splittedV[1];
+    //                    //TODO: may update search dir, and accelerate
+    //                    localMesh.compute2DInwardNormal(splitPath_local[0], sepDir_oneV[0]);
+    //                    localMesh.compute2DInwardNormal(localMesh.V.rows() - 1, sepDir_oneV[1]);
+    //                    sepDir[0].block(splitPath_local[0] * 2, 0, 2, 1) = sepDir_oneV[0].transpose();
+    //                    sepDir[1].bottomRows(2) = sepDir_oneV[1].transpose();
                     }//TODO: maxIter?
-                }
-                assert(localMesh.checkInversion());
-//                std::cout << std::to_string(splitPath[0]) + "-" + std::to_string(splitPath[1]) << std::endl;
-//                localMesh.save("/Users/mincli/Desktop/meshes/test" + std::to_string(splitPath[0]) + "-" + std::to_string(splitPath[1]) + "_separated.obj");
+                    assert(localMesh.checkInversion());
+                    
+                    if(cutThrough) {
+                        splittedV[0] = localMesh.V.row(splitPath_local[1]);
+                        splittedV[1] = localMesh.V.bottomRows(1);
+                        localMesh.compute2DInwardNormal(splitPath_local[1], sepDir_oneV[0]);
+                        localMesh.compute2DInwardNormal(localMesh.V.rows() - 1, sepDir_oneV[1]);
+                        sepDir[0] = sepDir[1] = Eigen::VectorXd::Zero(localMesh.V.rows() * 2);
+                        sepDir[0].block(splitPath_local[1] * 2, 0, 2, 1) = sepDir_oneV[0].transpose();
+                        sepDir[1].bottomRows(2) = sepDir_oneV[1].transpose();
+                        while((splittedV[0]-splittedV[1]).squaredNorm() < eps_sep) {
+                            for(int i = 0; i < 2; i++) {
+                                double stepSize_sep = 1.0;
+                                SD.initStepSize(localMesh, sepDir[i], stepSize_sep);
+                                splittedV[i] += 0.5 * stepSize_sep * sepDir_oneV[i];
+                            }
+                            localMesh.V.row(splitPath_local[1]) = splittedV[0];
+                            localMesh.V.bottomRows(1) = splittedV[1];
+                            //                    //TODO: may update search dir, and accelerate
+                        }//TODO: maxIter?
+                    }
+                    assert(localMesh.checkInversion());
+    //                std::cout << std::to_string(splitPath[0]) + "-" + std::to_string(splitPath[1]) << std::endl;
+    //                localMesh.save("/Users/mincli/Desktop/meshes/test" + std::to_string(splitPath[0]) + "-" + std::to_string(splitPath[1]) + "_separated.obj");
                 
-                // prepare local air mesh boundary
-                if(scaffold) {
+                    // prepare local air mesh boundary
                     Eigen::MatrixXd UV_temp;
                     Eigen::VectorXi bnd_temp;
-                    std::set<int> loop_meshVI;
-                    scaffold->get1RingAirLoop(splitPath[0], *this, UV_temp, E, bnd_temp, loop_meshVI);
+                    std::set<int> loop_AMVI;
+                    scaffold->get1RingAirLoop(splitPath[0], UV_temp, E, bnd_temp, loop_AMVI);
                     int loopVAmt_beforeSplit = E.rows();
                     if(!cutThrough) {
                         E.bottomRows(1) << loopVAmt_beforeSplit - 1, loopVAmt_beforeSplit;
@@ -2704,12 +2766,12 @@ namespace FracCuts {
                         Eigen::MatrixXd UV_temp1;
                         Eigen::VectorXi bnd_temp1;
                         Eigen::MatrixXi E1;
-                        std::set<int> loop1_meshVI;
-                        scaffold->get1RingAirLoop(splitPath[1], *this, UV_temp1, E1, bnd_temp1, loop1_meshVI);
+                        std::set<int> loop1_AMVI;
+                        scaffold->get1RingAirLoop(splitPath[1], UV_temp1, E1, bnd_temp1, loop1_AMVI);
                         // avoid generating air mesh with duplicated vertices
                         //NOTE: this also avoid forming tiny charts
-                        for(const auto& i : loop1_meshVI) {
-                            if(loop_meshVI.find(i) != loop_meshVI.end()) {
+                        for(const auto& i : loop1_AMVI) {
+                            if(loop_AMVI.find(i) != loop_AMVI.end()) {
                                 return -__DBL_MAX__;
                             }
                         }
@@ -2778,7 +2840,7 @@ namespace FracCuts {
         }
         
         // conduct optimization on local mesh
-        std::vector<FracCuts::Energy*> energyTerms(1, new SymStretchEnergy());
+        std::vector<FracCuts::Energy*> energyTerms(1, &SD);
         std::vector<double> energyParams(1, 1.0);
         Optimizer optimizer(localMesh, energyTerms, energyParams, 0, true, !!scaffold, UV_bnds, E, bnd);
         optimizer.precompute();
@@ -2802,7 +2864,6 @@ namespace FracCuts {
             newVertPos.row(3) = optimizer.getResult().V.row(globalVI2local[splitPath[1]]);
         }
         
-        delete energyTerms[0];
         return eDec;
     }
     

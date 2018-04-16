@@ -94,6 +94,11 @@ namespace FracCuts {
                                       double param = 1.0);
         
         static double computeRotAngle(const Eigen::RowVector2d& from, const Eigen::RowVector2d& to);
+        
+        // test wether 2D segments ab intersect with cd
+        static bool Test2DSegmentSegment(const Eigen::RowVector2d& a, const Eigen::RowVector2d& b,
+                                         const Eigen::RowVector2d& c, const Eigen::RowVector2d& d,
+                                         double eps = 0.0);
     };
     
 }

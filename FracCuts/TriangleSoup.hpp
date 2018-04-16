@@ -35,7 +35,7 @@ namespace FracCuts{
         Eigen::MatrixXi initSeams; // initial cohesive edge pairs actually
         
     public:
-        const Scaffold* scaffold;
+        const Scaffold* scaffold = NULL;
         double areaThres_AM; // for preventing degeneracy of air mesh triangles
         
     public: // owned features
@@ -129,6 +129,9 @@ namespace FracCuts{
         bool findBoundaryEdge(int vI, const std::pair<int, int>& startEdge,
                               std::pair<int, int>& boundaryEdge);
         
+        bool insideTri(int triI, const Eigen::RowVector2d& pos) const;
+        bool insideUVRegion(const std::vector<int>& triangles, const Eigen::RowVector2d& pos) const;
+        
         // toBound = false indicate counter-clockwise
         bool isBoundaryVert(int vI, int vI_neighbor,
                             std::vector<int>& tri_toSep, std::pair<int, int>& boundaryEdge, bool toBound = true) const;
@@ -156,11 +159,10 @@ namespace FracCuts{
         double computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
                                 std::map<int, Eigen::RowVector2d>& newVertPos, int maxIter = 100) const;
         // minimize SD on the local stencil (merge)
-        double computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
-                                std::map<int, Eigen::RowVector2d>& newVertPos,
-                                const std::map<int, int>& mergeVert,
-                                const Eigen::RowVector2d& initMergedPos,
-                                int maxIter = 100) const;
+        double computeLocalEDec(const std::vector<int>& path, const std::vector<int>& triangles,
+                                const std::set<int>& freeVert, std::map<int, Eigen::RowVector2d>& newVertPos,
+                                const std::map<int, int>& mergeVert, const Eigen::RowVector2d& initMergedPos,
+                                bool closeup = false, int maxIter = 100) const;
     };
     
 }

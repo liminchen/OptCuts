@@ -7,6 +7,7 @@
 //
 
 #include "Scaffold.hpp"
+#include "IglUtils.hpp"
 
 #include <igl/triangle/triangulate.h>
 #include <igl/boundary_loop.h>
@@ -77,7 +78,12 @@ namespace FracCuts {
             }
             
             //TODO: handle multi-component UV map
-    //        igl::components(mesh.F, );
+            // what if some charts are only composed of boundary vertices?
+            // vertex fix for multiple charts during the linear solve?
+//            Eigen::VectorXi compI_V;
+//            igl::components(mesh.F, compI_V);
+//            for()
+            
             H.resize(1,2);
             for(int vI = 0; vI < mesh.V.rows(); vI++) {
                 if(!mesh.isBoundaryVert(vI)) {
@@ -95,6 +101,10 @@ namespace FracCuts {
                 UV_bnds.row(bndI) = mesh.V.row(bnd[bndI]);
                 meshVI2AirMesh[bnd[bndI]] = bndI;
             }
+            
+            //[NOTE] this option is for optimization on local stencil
+            // where there shouldn't be holes on the one-ring,
+            // so no processing for H
         }
         
         igl::triangle::triangulate(UV_bnds, E, H, "qYYQ", airMesh.V, airMesh.F); // "Y" for no Steiner points
@@ -128,7 +138,7 @@ namespace FracCuts {
         
         // tune edgeLen_eps and bounding box margin
         // line search only on E_UV? E_w condition only on E_UV? consider energy changes due to remeshing during optimization!
-        // add bijectivity to optimization on local stencil! filter out those want to overlap along edge! need to be careful with local query E
+        // add bijectivity to optimization on local stencil: interior split?
         // filter out operations that will cause overlap initially
         // fix bounding box?
     }
@@ -223,12 +233,10 @@ namespace FracCuts {
         FColor.bottomRows(airMesh.F.rows()) = Eigen::MatrixXd::Ones(airMesh.F.rows(), 3);
     }
     
-    void Scaffold::get1RingAirLoop(int vI, const TriangleSoup& mesh,
+    void Scaffold::get1RingAirLoop(int vI,
                                    Eigen::MatrixXd& UV, Eigen::MatrixXi& E, Eigen::VectorXi& bnd,
-                                   std::set<int>& loop_meshVI) const
+                                   std::set<int>& loop_AMVI) const
     {
-        assert(mesh.V.rows() + airMesh.V.rows() - this->bnd.size() == wholeMeshSize);
-        
         const auto finder = meshVI2AirMesh.find(vI);
         assert(finder != meshVI2AirMesh.end());
         assert(airMesh.isBoundaryVert(finder->second));
@@ -246,7 +254,7 @@ namespace FracCuts {
         }
         assert(!umbrella.empty());
         
-        loop_meshVI.clear();
+        loop_AMVI.clear();
         UV.resize(umbrella.size() + 2, 2);
         E.resize(umbrella.size() + 2, 2);
         bnd.resize(3);
@@ -256,23 +264,157 @@ namespace FracCuts {
                 if(airMesh.F(triI, vI) == finder->second) {
                     if(tI == 0) {
                         UV.row(1) = airMesh.V.row(finder->second);
-                        loop_meshVI.insert(finder->second);
+                        loop_AMVI.insert(finder->second);
                         E.row(0) << 0, 1;
                         bnd[1] = this->bnd[finder->second];
                         bnd[2] = this->bnd[airMesh.F(triI, (vI + 1) % 3)];
                     }
                     UV.row(tI + 2) = airMesh.V.row(airMesh.F(triI, (vI + 1) % 3));
-                    loop_meshVI.insert(airMesh.F(triI, (vI + 1) % 3));
+                    loop_AMVI.insert(airMesh.F(triI, (vI + 1) % 3));
                     E.row(tI + 1) << tI + 1, tI + 2;
                     if(tI + 1 == umbrella.size()) {
                         UV.row(0) = airMesh.V.row(airMesh.F(triI, (vI + 2) % 3));
-                        loop_meshVI.insert(airMesh.F(triI, (vI + 2) % 3));
+                        loop_AMVI.insert(airMesh.F(triI, (vI + 2) % 3));
                         E.row(tI + 2) << tI + 2, 0;
                         bnd[0] = this->bnd[airMesh.F(triI, (vI + 2) % 3)];
                     }
                     break;
                 }
             }
+        }
+    }
+    
+    bool Scaffold::getCornerAirLoop(const std::vector<int>& corner_mesh, const Eigen::RowVector2d& mergedPos,
+                                    Eigen::MatrixXd& UV, Eigen::MatrixXi& E, Eigen::VectorXi& bnd) const
+    {
+        assert(corner_mesh.size() == 3);
+        
+        // convert mesh vertex index to air mesh vertex index
+        std::vector<int> corner(3);
+        for(int i = 0; i < 3; i++) {
+            const auto finder = meshVI2AirMesh.find(corner_mesh[i]);
+            assert(finder != meshVI2AirMesh.end());
+            corner[i] = finder->second;
+        }
+        
+        // get incident triangles
+        std::set<int> incTris;
+        std::pair<int, int> boundaryEdge;
+        for(int vI = 0; vI < 3; vI++) {
+            std::vector<int> incTris_temp[2];
+            assert(airMesh.isBoundaryVert(corner[vI], *airMesh.vNeighbor[corner[vI]].begin(), incTris_temp[0], boundaryEdge, false));
+            incTris.insert(incTris_temp[0].begin(), incTris_temp[0].end());
+            
+            airMesh.isBoundaryVert(corner[vI], *airMesh.vNeighbor[corner[vI]].begin(), incTris_temp[1], boundaryEdge, true);
+            incTris.insert(incTris_temp[1].begin(), incTris_temp[1].end());
+            
+            assert(incTris_temp[0].size() + incTris_temp[1].size() > 0);
+        }
+        Eigen::MatrixXi F_inc;
+        F_inc.resize(incTris.size(), 3);
+        int fI = 0;
+        for(const auto& triI : incTris) {
+            F_inc.row(fI) = airMesh.F.row(triI);
+            fI++;
+        }
+//        std::cout << corner[0] << "," << corner[1] << "," << corner[2] << std::endl;std::cout << F_inc << std::endl;
+//        airMesh.save("/Users/mincli/Desktop/meshes/test_AM.obj", airMesh.V_rest, F_inc, airMesh.V);
+        
+        // compute outer loop and ensure no vertex duplication
+        std::vector<int> loop;
+        igl::boundary_loop(F_inc, loop);
+        std::set<int> testDuplication(loop.begin(), loop.end());
+        if(testDuplication.size() != loop.size()) {
+            assert(0 && "vertex duplication found in loop!");
+        }
+        
+        // eliminate merged vertices from loop
+        int startI = -1;
+        for(int vI = 0; vI < loop.size(); vI++) {
+            if(loop[vI] == corner[0]) {
+                if((loop[(vI - 1 + loop.size()) % loop.size()] == corner[1]) &&
+                   (loop[(vI - 2 + loop.size()) % loop.size()] == corner[2]))
+                {
+                    startI = vI;
+                    break;
+                }
+                else {
+                    assert(0 && "corner not found on air mesh boundary loop");
+                }
+            }
+        }
+        assert(startI >= 0);
+        int delI = (startI - 2 + loop.size()) % loop.size();
+        if(delI + 1 == loop.size()) {
+            loop.erase(loop.begin() + delI);
+            loop.erase(loop.begin());
+            startI = 0;
+        }
+        else {
+            loop.erase(loop.begin() + delI);
+            loop.erase(loop.begin() + delI);
+        }
+        if(startI < 3) {
+            startI = 0;
+        }
+        else {
+            startI -= 2;
+        }
+        
+        // sort loop
+        std::vector<int> loop_merged;
+        int beginI = (startI - 1 + loop.size()) % loop.size();
+        loop_merged.insert(loop_merged.end(), loop.begin() + beginI, loop.end());
+        loop_merged.insert(loop_merged.end(), loop.begin(), loop.begin() + beginI);
+        
+        // construct air mesh data
+        bnd.resize(3);
+        for(int i = 0; i < 3; i ++) {
+            assert(loop_merged[i] < this->bnd.size());
+            bnd[i] = this->bnd[loop_merged[i]];
+        }
+        
+        E.resize(loop_merged.size(), 2);
+        UV.resize(loop_merged.size(), 2);
+        for(int i = 0; i + 1 < loop_merged.size(); i++) {
+            UV.row(i) = airMesh.V.row(loop_merged[i]);
+            E.row(i) << i, i + 1;
+        }
+        E.bottomRows(1) << loop_merged.size() - 1, 0;
+        UV.bottomRows(1) = airMesh.V.row(loop_merged.back());
+        UV.row(1) = mergedPos;
+        
+        // check loop boundary intersection
+        for(int eJ = 2; eJ + 1 < E.rows(); eJ++) {
+            if(IglUtils::Test2DSegmentSegment(UV.row(E(0, 0)), UV.row(E(0, 1)),
+                                              UV.row(E(eJ, 0)), UV.row(E(eJ, 1))))
+            {
+                return false;
+            }
+        }
+        for(int eI = 1; eI + 2 < E.rows(); eI++) {
+            for(int eJ = eI + 2; eJ < E.rows(); eJ++) {
+                if(IglUtils::Test2DSegmentSegment(UV.row(E(eI, 0)), UV.row(E(eI, 1)),
+                                                  UV.row(E(eJ, 0)), UV.row(E(eJ, 1))))
+                {
+                    return false;
+                }
+            }
+        }
+        
+        // ensure the loop is not totally inverted
+        double rotAngle = 0.0;
+        for(int eI = 0; eI + 1 < E.rows(); eI++) {
+            rotAngle += IglUtils::computeRotAngle(UV.row(E(eI, 1)) - UV.row(E(eI, 0)),
+                                                  UV.row(E(eI + 1, 1)) - UV.row(E(eI + 1, 0)));
+        }
+        rotAngle += IglUtils::computeRotAngle(UV.row(E(E.rows() - 1, 1)) - UV.row(E(E.rows() - 1, 0)),
+                                              UV.row(E(0, 1)) - UV.row(E(0, 0)));
+        if(rotAngle > 0.0) {
+            return true;
+        }
+        else {
+            return false;
         }
     }
     

@@ -49,9 +49,12 @@ namespace FracCuts {
         void augmentFColorwithAirMesh(Eigen::MatrixXd& FColor) const;
         
         // get 1-ring airmesh loop for scaffolding optimization on local stencils
-        void get1RingAirLoop(int vI, const TriangleSoup& mesh,
+        void get1RingAirLoop(int vI,
                              Eigen::MatrixXd& UV, Eigen::MatrixXi& E, Eigen::VectorXi& bnd,
-                             std::set<int>& loop_meshVI) const;
+                             std::set<int>& loop_AMVI) const;
+        
+        bool getCornerAirLoop(const std::vector<int>& corner_mesh, const Eigen::RowVector2d& mergedPos,
+                              Eigen::MatrixXd& UV, Eigen::MatrixXi& E, Eigen::VectorXi& bnd) const;
     };
 }
 

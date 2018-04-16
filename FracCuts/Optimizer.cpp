@@ -203,6 +203,11 @@ namespace FracCuts {
             }
             globalIterNum++;
             timer.stop();
+//            //DEBUG
+//            if(globalIterNum > 282) {
+//                result.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_pre.obj");
+//                scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_pre_AM.obj");
+//            }
             
             if(propagateFracture > 0) {
                 if(!createFracture(lastEDec, propagateFracture)) {
@@ -224,6 +229,11 @@ namespace FracCuts {
                     result.scaffold = &scaffold;
                 }
             }
+//            //DEBUG
+//            if(globalIterNum > 282) {
+//                result.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_post.obj");
+//                scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_post_AM.obj");
+//            }
         }
         return 1;
     }
@@ -484,24 +494,17 @@ namespace FracCuts {
             testingScaffold = scaffold;
         }
         stepForward(testingData, testingScaffold, stepSize);
-//        double stepLen = (stepSize * searchDir).squaredNorm();
         double testingE;
 //        Eigen::VectorXd testingG;
         computeEnergyVal(testingData, testingScaffold, testingE);
 //        computeGradient(testingData, testingG);
-//        if(!mute) {
-//            logFile << "searchDir " << searchDir.norm() << std::endl;
-//            logFile << "testingE" << globalIterNum << " " << testingE << " > " << lastEnergyVal << " " << stepSize * c1m << std::endl;
-//            logFile << "testingG" << globalIterNum << " " << searchDir.dot(testingG) << " < " << c2m << std::endl;
-//        }
+        
 //        while((testingE > lastEnergyVal + stepSize * c1m) ||
 //              (searchDir.dot(testingG) < c2m)) // Wolfe condition
         while(testingE > lastEnergyVal + stepSize * c1m) // Armijo condition
 //        while(0)
         {
             stepSize /= 2.0;
-//            stepLen = (stepSize * searchDir).squaredNorm();
-//            if(stepLen < targetGRes) {
             if(stepSize == 0.0) {
                 stopped = true;
                 if(!mute) {
@@ -515,13 +518,15 @@ namespace FracCuts {
             computeEnergyVal(testingData, testingScaffold, testingE);
 //            computeGradient(testingData, testingG);
         }
-//        if(!mute) {
-//            logFile << "testingE" << globalIterNum << " " << testingE << " > " << lastEnergyVal << " " << stepSize * c1m << std::endl;
-//            logFile << "testingG" << globalIterNum << " " << searchDir.dot(testingG) << " < " << c2m << std::endl;
-//        }
+        if(!mute) {
+            std::cout << stepSize << "(armijo) ";
+        }
+
         while((!testingData.checkInversion()) ||
               ((scaffolding) && (!testingScaffold.airMesh.checkInversion())))
         {
+            assert(0 && "element inversion after armijo shouldn't happen!");
+            
             stepSize /= 2.0;
             if(stepSize == 0.0) {
                 assert(0 && "line search failed!");
@@ -532,6 +537,7 @@ namespace FracCuts {
             stepForward(testingData, testingScaffold, stepSize);
             computeEnergyVal(testingData, testingScaffold, testingE);
         }
+        
         result.V = testingData.V;
         if(scaffolding) {
             scaffold.airMesh.V = testingScaffold.airMesh.V;
@@ -540,8 +546,6 @@ namespace FracCuts {
         if(allowEDecRelTol && (lastEDec / lastEnergyVal / stepSize < 1.0e-6)) {
             // no prominent energy decrease, stop for accelerating the process
             stopped = true;
-//            std::cout << lastEDec << " " << lastEnergyVal << " " << stepSize << " " <<
-//                "no prominant energy decrease, optimization stops" << std::endl;
         }
         lastEnergyVal = testingE;
         
