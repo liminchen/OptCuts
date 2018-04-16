@@ -135,7 +135,7 @@ namespace FracCuts {
         void writeGradL2NormToFile(bool flush);
         
     public: // data access
-        double getLastEnergyVal(void) const;
+        double getLastEnergyVal(bool excludeScaffold = false) const;
     };
     
 }

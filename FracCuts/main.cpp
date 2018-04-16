@@ -38,9 +38,9 @@ FracCuts::Optimizer* optimizer;
 std::vector<FracCuts::Energy*> energyTerms;
 std::vector<double> energyParams;
 //bool bijectiveParam = false;
-bool bijectiveParam = true;
-//bool rand1PInitCut = false;
-bool rand1PInitCut = true; // for fast prototyping
+bool bijectiveParam = true; //TODO: set as arguments!
+bool rand1PInitCut = false;
+//bool rand1PInitCut = true; //!!! for fast prototyping
 double lambda_init;
 bool optimization_on = false;
 int iterNum = 0;
@@ -611,7 +611,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
     static bool firstReach = true;
     
     // measurement and energy value computation
-    const double E_SD = optimizer->getLastEnergyVal() / energyParams[0];
+    const double E_SD = optimizer->getLastEnergyVal(true) / energyParams[0];
     double E_se; triSoup[channel_result]->computeSeamSparsity(E_se);
     E_se /= triSoup[channel_result]->virtualRadius;
     double stretch_l2, stretch_inf, stretch_shear, compress_inf;
@@ -937,7 +937,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
             double measure_bound;
             switch(boundMeasureType) {
                 case 0:
-                    measure_bound = optimizer->getLastEnergyVal() / energyParams[0];
+                    measure_bound = optimizer->getLastEnergyVal(true) / energyParams[0];
                     break;
                     
                 case 1:
@@ -1043,8 +1043,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     
                     double E_se; triSoup[channel_result]->computeSeamSparsity(E_se);
                     E_se /= triSoup[channel_result]->virtualRadius;
-                    const double E_SD = optimizer->getLastEnergyVal() / energyParams[0];
-                    const double E_w = optimizer->getLastEnergyVal() +
+                    const double E_SD = optimizer->getLastEnergyVal(true) / energyParams[0];
+                    const double E_w = optimizer->getLastEnergyVal(true) +
                         (1.0 - energyParams[0]) * E_se;
                     std::cout << "E_w from " << lastE_w << " to " << E_w << std::endl;
                     
@@ -1083,8 +1083,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                                 
                                 triSoup[channel_result]->computeSeamSparsity(lastE_se);
                                 lastE_se /= triSoup[channel_result]->virtualRadius;
-                                lastE_SD = optimizer->getLastEnergyVal() / energyParams[0];
-                                lastE_w = optimizer->getLastEnergyVal() +
+                                lastE_SD = optimizer->getLastEnergyVal(true) / energyParams[0];
+                                lastE_w = optimizer->getLastEnergyVal(true) +
                                     (1.0 - energyParams[0]) * lastE_se;
                                 
                                 iterNum_lastTopo = iterNum;
@@ -1135,8 +1135,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                             iterNum_backUp = iterNum;
                             triSoup[channel_result]->computeSeamSparsity(lastE_se);
                             lastE_se /= triSoup[channel_result]->virtualRadius;
-                            lastE_SD = optimizer->getLastEnergyVal() / energyParams[0];
-                            lastE_w = optimizer->getLastEnergyVal() +
+                            lastE_SD = optimizer->getLastEnergyVal(true) / energyParams[0];
+                            lastE_w = optimizer->getLastEnergyVal(true) +
                                 (1.0 - energyParams[0]) * lastE_se;
                             
                             iterNum_lastTopo = iterNum;
@@ -1504,8 +1504,8 @@ int main(int argc, char *argv[])
         
         triSoup[channel_result]->computeSeamSparsity(lastE_se);
         lastE_se /= triSoup[channel_result]->virtualRadius;
-        lastE_SD = optimizer->getLastEnergyVal() / energyParams[0];
-        lastE_w = optimizer->getLastEnergyVal() + (1.0 - energyParams[0]) * lastE_se;
+        lastE_SD = optimizer->getLastEnergyVal(true) / energyParams[0];
+        lastE_w = optimizer->getLastEnergyVal(true) + (1.0 - energyParams[0]) * lastE_se;
         
         if(delta == 0.0) {
             altBase = true;

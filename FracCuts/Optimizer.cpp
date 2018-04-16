@@ -795,8 +795,8 @@ namespace FracCuts {
         //TODO: SCAFFOLDING
     }
     
-    double Optimizer::getLastEnergyVal(void) const
+    double Optimizer::getLastEnergyVal(bool excludeScaffold) const
     {
-        return lastEnergyVal;
+        return ((excludeScaffold && scaffolding) ? (lastEnergyVal - energyVal_scaffold) : lastEnergyVal);
     }
 }
