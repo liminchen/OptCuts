@@ -2,21 +2,9 @@
 
 \section{Joint Discrete-Continuous Search}
 
-To start with, we use symmetric Dirichlet energy~\cite{Smith2015Bijective} as our distortion energy, normalized by surface area:
-\[ E_d = E_{SD} = \frac{1}{\sum_{t\in\mathcal{F}} |A_t|} \sum_{t\in\mathcal{F}} |A_t|(\sigma_{t,1}^2 + \sigma_{t,2}^2 + \sigma_{t,1}^{-2} + \sigma_{t,2}^{-2}) \]
-where $\mathcal{F}$ is the set of all triangles, $|A_t|$ is the area of triangle $t$ on the input surface, and $\sigma_{t,i}$ is the $i$-th singular value of the deformation gradient of triangle $t$.
+\subsection{UV Topology Space}
 
-For seam energy, we simply use a normalized seam length:
-\[ E_s = E_{SL} = \frac{1}{\sqrt{(\sum_{t\in\mathcal{F}} |A_t|)/\pi}} \sum_{i \in \mathcal{S}} |e_i| \]
-where $\mathcal{S}$ is the set of all seam edges on the input surface, $|e_i|$ is the original length of edge $i$.
-
-With the energies normalized, our $E_w$ is invariant of coordinate scale and resolution for meshes with the same shape.
-
-However, seam sparsity usually leads to discontinuous energies w.r.t. UV coordinates $U \in \mathcal{R}^{2n_v}$, ($n_v$ is the number of vertices on the input mesh), which is non-trivial to be considered into existing distortion minimization routines. Instead of progressively approximating seam sparsity energy with a continuous counterpart applying homotopy optimization method as~\cite{Poranne2017Autocuts}, we handle this discrete energy in a combinatoric way - searching in the topological space.
-
-\subsection{Formulation}
-
-This topological space is a directed graph $G_T$ with its vertices $v_T \in V_T$ being all possible UV topologies of a given 3D surface, and its edges $e_T \in E_T$ are the basic topological operations conducted on a mesh such as vertex split, edge merge, etc, that can transform one UV topology to a nearby topology.
+The UV topology space we are searching in can be represented using a directed graph $G_T$ with its vertices $v_T \in V_T$ being all possible UV topologies of a given 3D surface, and its edges $e_T \in E_T$ are the basic topological operations conducted on a mesh such as vertex split, edge merge, etc, that can transform one UV topology to a nearby topology.
 
 Now, if we consider both distortion and seam in one objective $E_w$, we can define the value $f_v$ of vertex $v_{T,i}$ as 
 \[ f_v(v_{T,i}) = \min_{U_i} E_w \]
@@ -30,6 +18,16 @@ However, computing $f_v$ for one UV topology requires a whole continuous optimiz
 
 \subsection{Method}
 
+To start with, we use symmetric Dirichlet energy~\cite{Smith2015Bijective} as our distortion energy, normalized by surface area:
+\[ E_d = E_{SD} = \frac{1}{\sum_{t\in\mathcal{F}} |A_t|} \sum_{t\in\mathcal{F}} |A_t|(\sigma_{t,1}^2 + \sigma_{t,2}^2 + \sigma_{t,1}^{-2} + \sigma_{t,2}^{-2}) \]
+where $\mathcal{F}$ is the set of all triangles, $|A_t|$ is the area of triangle $t$ on the input surface, and $\sigma_{t,i}$ is the $i$-th singular value of the deformation gradient of triangle $t$.
+
+For seam energy, we simply use a normalized seam length:
+\[ E_s = E_{SL} = \frac{1}{\sqrt{(\sum_{t\in\mathcal{F}} |A_t|)/\pi}} \sum_{i \in \mathcal{S}} |e_i| \]
+where $\mathcal{S}$ is the set of all seam edges on the input surface, $|e_i|$ is the original length of edge $i$.
+
+With the energies normalized, our $E_w$ is invariant of coordinate scale and resolution for meshes with the same shape.
+
 We minimize $E_w$ by iteratively alternate between continuous optimization (in descent steps) and discrete optimization (in topology steps):
 \begin{itemize}
 \item In descent steps, we compute $\min_{U_i} E_{SD}$ given $v_{T,i}$ via projected Newton method~\cite{Teran2005Robust} so that we obtain
@@ -39,14 +37,15 @@ We minimize $E_w$ by iteratively alternate between continuous optimization (in d
 If after a descent step, $f_v(v_{T,i}) \geq f_v(v_{T,i-1})$ is detected, we stop the process by rolling back to $v_{T,i-1}$, which is the stationary of $E_w$ w.r.t. both UV topology (in an approximation sense) and coordinates that we are searching for.
 
 \subsection{Convergence}
+\label{sec:convergence}
 
 As our method is defined to guarantee convergence, we now analyze the convergence rate. First, it's easy to see that $E_w$ is monotonically decreasing looking at each end of descent steps. Now we look at descent step $i$ and $i+1$, from $E^i_w \geq E^{i+1}_w$ we have
 \[ E^i_{SD} - E^{i+1}_{SD} \geq \frac{\lambda}{1-\lambda} (E^{i+1}_{se} - E^i_{se}) \geq \frac{\lambda}{1-\lambda} \frac{1}{\sqrt{(\sum_t |A_t|)/\pi}} |e|_{min} \]
 if we now only consider splitting operations that keep increasing $E_{se}$. It's obvious that $E_{SD}$'s theoretical lower bound is defined to be $4$, so we have
 \[ n_{alter} \leq \frac{(1-\lambda)\sqrt{(\sum_t |A_t|)/\pi}}{\lambda|e|_{min}} (E^0_{SD} - 4) \]
-The most important hint we can read from this is, to accelerate convergence, we can move through multiple vertices on $G_T$ in each topology step to increase $E^{i+1}_{se} - E^i_{se}$. \minchen{[TODO] Consequently, we build an anologous line search method and allow multiple fracture initiation to be appropriately agressive when searching in the topological space and ensure that we won't fall into bad locally optimal UV topologies.}
+The most important hint we can read from this is, to accelerate convergence, we can move through multiple vertices on $G_T$ in each topology step to increase $E^{i+1}_{se} - E^i_{se}$.
 
-\minchen{[TODO] update the proof with merge operations}
+\minchen{[TODO] update the proof with merge operations?}
 
 \input{descentSteps}
 
