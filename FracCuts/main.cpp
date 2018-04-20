@@ -39,8 +39,8 @@ std::vector<FracCuts::Energy*> energyTerms;
 std::vector<double> energyParams;
 //bool bijectiveParam = false;
 bool bijectiveParam = true; //TODO: set as arguments!
-bool rand1PInitCut = false;
-//bool rand1PInitCut = true; //!!! for fast prototyping
+//bool rand1PInitCut = false;
+bool rand1PInitCut = true; //!!! for fast prototyping
 double lambda_init;
 bool optimization_on = false;
 int iterNum = 0;
@@ -874,15 +874,19 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
 void converge_preDrawFunc(igl::viewer::Viewer& viewer)
 {
     infoName = "finalResult";
-    // perform exact solve
-    //                            optimizer->setRelGL2Tol(1.0e-10);
-    optimizer->setAllowEDecRelTol(false);
-    //!! can recompute precondmtr if needed
-    converged = false;
-    optimizer->setPropagateFracture(false);
-    while(!converged) {
-        proceedOptimization(1000);
+    
+    if(!bijectiveParam) {
+        // perform exact solve
+//                            optimizer->setRelGL2Tol(1.0e-10);
+        optimizer->setAllowEDecRelTol(false);
+        //!! can recompute precondmtr if needed
+        converged = false;
+        optimizer->setPropagateFracture(false);
+        while(!converged) {
+            proceedOptimization(1000);
+        }
     }
+    
     secPast += difftime(time(NULL), lastStart_world);
     updateViewerData();
     

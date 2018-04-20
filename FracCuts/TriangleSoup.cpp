@@ -752,8 +752,8 @@ namespace FracCuts {
                                   double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max,
                                   std::pair<double, double>& energyChanges_max) const
     {
-        const double filterExp_b = 0.5, filterMult_b = 1.0; //TODO: better use ratio
-        const double filterExp_in = 0.5; // smaller than 0.5 is not recommanded
+        const double filterExp_b = 0.6, filterMult_b = 1.0; //TODO: better use ratio
+        const double filterExp_in = 0.6; // smaller than 0.5 is not recommanded
         
         std::vector<int> bestCandVerts;
         if(!propagate) {
@@ -916,6 +916,8 @@ namespace FracCuts {
         
         EwDec_max = EwDecs[candI_max];
         path_max = paths[candI_max];
+//        std::cout << path_max[0] << " " << path_max[1] << std::endl;
+//        std::cout << newVertPoses[candI_max] << std::endl;
         newVertPos_max = newVertPoses[candI_max];
         if(splitInterior) {
             energyChanges_max = energyChanges_iSplit[candI_max];
@@ -2197,7 +2199,7 @@ namespace FracCuts {
         return false;
     }
         
-    void TriangleSoup::compute2DInwardNormal(int vI, Eigen::RowVector2d& normal)
+    void TriangleSoup::compute2DInwardNormal(int vI, Eigen::RowVector2d& normal) const
     {
         std::vector<int> incTris[2];
         std::pair<int, int> boundaryEdge[2];
@@ -2698,7 +2700,7 @@ namespace FracCuts {
                         for(int i = 0; i < 2; i++) {
                             double stepSize_sep = 1.0;
                             SD.initStepSize(localMesh, sepDir[i], stepSize_sep);
-                            splittedV[i] += 0.5 * stepSize_sep * sepDir_oneV[i];
+                            splittedV[i] += 0.1 * stepSize_sep * sepDir_oneV[i];
                         }
                         localMesh.V.row(splitPath_local[0]) = splittedV[0];
                         localMesh.V.row(localMesh.V.rows() - 1 - cutThrough) = splittedV[1];
@@ -2722,16 +2724,16 @@ namespace FracCuts {
                             for(int i = 0; i < 2; i++) {
                                 double stepSize_sep = 1.0;
                                 SD.initStepSize(localMesh, sepDir[i], stepSize_sep);
-                                splittedV[i] += 0.5 * stepSize_sep * sepDir_oneV[i];
+                                splittedV[i] += 0.1 * stepSize_sep * sepDir_oneV[i];
                             }
                             localMesh.V.row(splitPath_local[1]) = splittedV[0];
                             localMesh.V.bottomRows(1) = splittedV[1];
                             //                    //TODO: may update search dir, and accelerate
                         }//TODO: maxIter?
+                        assert(localMesh.checkInversion());
                     }
-                    assert(localMesh.checkInversion());
     //                std::cout << std::to_string(splitPath[0]) + "-" + std::to_string(splitPath[1]) << std::endl;
-    //                localMesh.save("/Users/mincli/Desktop/meshes/test" + std::to_string(splitPath[0]) + "-" + std::to_string(splitPath[1]) + "_separated.obj");
+//                    localMesh.save("/Users/mincli/Desktop/meshes/test" + std::to_string(splitPath[0]) + "-" + std::to_string(splitPath[1]) + "_separated.obj");
                 
                     // prepare local air mesh boundary
                     Eigen::MatrixXd UV_temp;
@@ -2778,8 +2780,8 @@ namespace FracCuts {
                         int loopVAmt1_beforeSplit = E1.rows();
                         
                         UV_bnds.resize(loopVAmt_beforeSplit + loopVAmt1_beforeSplit + 2, 2);
-                        UV_bnds.bottomRows(UV_bnds.rows() - 8) << UV_temp.bottomRows(loopVAmt_beforeSplit - 3),
-                            UV_temp1.bottomRows(loopVAmt1_beforeSplit - 3);
+                        UV_bnds.bottomRows(UV_bnds.rows() - 8) << UV_temp1.bottomRows(loopVAmt1_beforeSplit - 3),
+                            UV_temp.bottomRows(loopVAmt_beforeSplit - 3);
                         //NOTE: former vertices will be filled with mesh coordinates while constructing the local air mesh
                         
                         bnd.resize(8);
@@ -2844,11 +2846,12 @@ namespace FracCuts {
         std::vector<double> energyParams(1, 1.0);
         Optimizer optimizer(localMesh, energyTerms, energyParams, 0, true, !!scaffold, UV_bnds, E, bnd);
         optimizer.precompute();
-//        optimizer.result.save("/Users/mincli/Desktop/meshes/test" + std::to_string(splitPath[0]) + "-" + std::to_string(splitPath[1]) + "_optimized.obj");
-//        optimizer.scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test0_AM.obj");
+//        optimizer.scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test" + std::to_string(splitPath[0]) + "-" + std::to_string(splitPath[1]) + "_separated_AM.obj");
         optimizer.setRelGL2Tol(1.0e-4);
         optimizer.solve(maxIter);
         //            std::cout << "local opt " << optimizer.getIterNum() << " iters" << std::endl;
+//        optimizer.result.save("/Users/mincli/Desktop/meshes/test" + std::to_string(splitPath[0]) + "-" + std::to_string(splitPath[1]) + "_optimized.obj");
+//        optimizer.scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test" + std::to_string(splitPath[0]) + "-" + std::to_string(splitPath[1]) + "_optimized_AM.obj");
         
         double curE;
         optimizer.computeEnergyVal(optimizer.getResult(), optimizer.getScaffold(), curE, true);

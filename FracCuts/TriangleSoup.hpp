@@ -137,7 +137,7 @@ namespace FracCuts{
                             std::vector<int>& tri_toSep, std::pair<int, int>& boundaryEdge, bool toBound = true) const;
         bool isBoundaryVert(int vI) const;
         
-        void compute2DInwardNormal(int vI, Eigen::RowVector2d& normal);
+        void compute2DInwardNormal(int vI, Eigen::RowVector2d& normal) const;
         
         void splitEdgeOnBoundary(const std::pair<int, int>& edge, const Eigen::MatrixXd& newVertPos,
                                 bool changeVertPos = true, bool allowCutThrough = true);

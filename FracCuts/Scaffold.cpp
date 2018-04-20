@@ -8,11 +8,12 @@
 
 #include "Scaffold.hpp"
 #include "IglUtils.hpp"
+#include "SymStretchEnergy.hpp"
 
 #include <igl/triangle/triangulate.h>
 #include <igl/boundary_loop.h>
 #include <igl/avg_edge_length.h>
-//#include <igl/components.h>
+#include <igl/components.h>
 
 namespace FracCuts {
     Scaffold::Scaffold(void)
@@ -48,14 +49,14 @@ namespace FracCuts {
                 curBndVAmt = E.rows();
             }
             
-            double avgELen = mesh.avgEdgeLen;
-            double minX = mesh.V.col(0).minCoeff() - avgELen;
-            double maxX = mesh.V.col(0).maxCoeff() + avgELen;
-            double minY = mesh.V.col(1).minCoeff() - avgELen;
-            double maxY = mesh.V.col(1).maxCoeff() + avgELen;
+            double margin = mesh.avgEdgeLen;
+            double minX = mesh.V.col(0).minCoeff() - margin;
+            double maxX = mesh.V.col(0).maxCoeff() + margin;
+            double minY = mesh.V.col(1).minCoeff() - margin;
+            double maxY = mesh.V.col(1).maxCoeff() + margin;
             // segment the bounding box:
-            int segAmtX = static_cast<int>((maxX - minX) / avgELen) / 2;
-            int segAmtY = static_cast<int>((maxY - minY) / avgELen) / 2;
+            int segAmtX = static_cast<int>((maxX - minX) / margin);
+            int segAmtY = static_cast<int>((maxY - minY) / margin);
             E.conservativeResize(E.rows() + (segAmtX + segAmtY) * 2, 2);
             for(int segI = bnd.size(); segI + 1 < E.rows(); segI++) {
                 E.row(segI) << segI, segI + 1;
@@ -77,18 +78,64 @@ namespace FracCuts {
                 UV_bnds.row(bnd.size() + 2 * segAmtX + segAmtY + segI) << minX, maxY - segI * stepY;
             }
             
-            //TODO: handle multi-component UV map
-            // what if some charts are only composed of boundary vertices?
-            // vertex fix for multiple charts during the linear solve?
-//            Eigen::VectorXi compI_V;
-//            igl::components(mesh.F, compI_V);
-//            for()
-            
-            H.resize(1,2);
-            for(int vI = 0; vI < mesh.V.rows(); vI++) {
-                if(!mesh.isBoundaryVert(vI)) {
-                    H.row(0) = mesh.V.row(vI);
-                    break;
+            // compute connected component of mesh
+            Eigen::VectorXi compI_V;
+            igl::components(mesh.F, compI_V);
+            // mark holes
+            std::set<int> processedComp;
+            for(int vI = 0; vI < compI_V.size(); vI++) {
+                if(processedComp.find(compI_V[vI]) == processedComp.end()) {
+                    H.conservativeResize(H.rows() + 1, 2);
+                    
+                    std::vector<int> incTris;
+                    std::pair<int, int> bEdge;
+                    if(mesh.isBoundaryVert(vI, *mesh.vNeighbor[vI].begin(), incTris, bEdge, false)) {
+                        // push vI a little bit inside mesh and then add into H
+                        // get all incident triangles
+                        std::vector<int> temp;
+                        mesh.isBoundaryVert(vI, *mesh.vNeighbor[vI].begin(), temp, bEdge, true);
+                        incTris.insert(incTris.end(), temp.begin(), temp.end());
+                        // construct local mesh
+                        Eigen::MatrixXi localF;
+                        localF.resize(incTris.size(), 3);
+                        Eigen::MatrixXd localV_rest, localV;
+                        std::map<int, int> globalVI2local;
+                        int localTriI = 0;
+                        for(const auto triI : incTris) {
+                            for(int vI = 0; vI < 3; vI++) {
+                                int globalVI = mesh.F(triI, vI);
+                                auto localVIFinder = globalVI2local.find(globalVI);
+                                if(localVIFinder == globalVI2local.end()) {
+                                    int localVI = static_cast<int>(localV_rest.rows());
+                                    localV_rest.conservativeResize(localVI + 1, 3);
+                                    localV_rest.row(localVI) = mesh.V_rest.row(globalVI);
+                                    localV.conservativeResize(localVI + 1, 2);
+                                    localV.row(localVI) = mesh.V.row(globalVI);
+                                    localF(localTriI, vI) = localVI;
+                                    globalVI2local[globalVI] = localVI;
+                                }
+                                else {
+                                    localF(localTriI, vI) = localVIFinder->second;
+                                }
+                            }
+                            localTriI++;
+                        }
+                        TriangleSoup localMesh(localV_rest, localF, localV, Eigen::MatrixXi(), false);
+                        // compute inward normal
+                        Eigen::RowVector2d sepDir_oneV;
+                        mesh.compute2DInwardNormal(vI, sepDir_oneV);
+                        Eigen::VectorXd sepDir = Eigen::VectorXd::Zero(localMesh.V.rows() * 2);
+                        sepDir.block(globalVI2local[vI] * 2, 0, 2, 1) = sepDir_oneV.transpose();
+                        double stepSize_sep = 1.0;
+                        SymStretchEnergy SD;
+                        SD.initStepSize(localMesh, sepDir, stepSize_sep);
+                        H.bottomRows(1) = mesh.V.row(vI) + 0.5 * stepSize_sep * sepDir_oneV;
+                    }
+                    else {
+                        H.bottomRows(1) = mesh.V.row(vI);
+                    }
+                    
+                    processedComp.insert(compI_V[vI]);
                 }
             }
         }
@@ -107,11 +154,11 @@ namespace FracCuts {
             // so no processing for H
         }
         
-        igl::triangle::triangulate(UV_bnds, E, H, "qYYQ", airMesh.V, airMesh.F); // "Y" for no Steiner points
+        igl::triangle::triangulate(UV_bnds, E, H, "qYQ", airMesh.V, airMesh.F); // "Y" for no Steiner points
         airMesh.V_rest.resize(airMesh.V.rows(), 3);
         airMesh.V_rest << airMesh.V, Eigen::VectorXd::Zero(airMesh.V.rows());
-        const double edgeLen_eps = mesh.avgEdgeLen * 0.5; // for preventing degenerate air mesh triangles
-        airMesh.areaThres_AM = std::sqrt(3.0) / 4.0 * edgeLen_eps * edgeLen_eps; //NOTE: different from what's used in [Jiang et al. 2017]
+        const double edgeLen_eps = mesh.avgEdgeLen * 0.5; //NOTE: different from what's used in [Jiang et al. 2017]
+        airMesh.areaThres_AM = std::sqrt(3.0) / 4.0 * edgeLen_eps * edgeLen_eps; // for preventing degenerate air mesh triangles
         airMesh.computeFeatures();
         
         localVI2Global = bnd;
@@ -136,8 +183,6 @@ namespace FracCuts {
             }
         }
         
-        // tune edgeLen_eps and bounding box margin
-        // line search only on E_UV? E_w condition only on E_UV? consider energy changes due to remeshing during optimization!
         // add bijectivity to optimization on local stencil: interior split?
         // filter out operations that will cause overlap initially
         // fix bounding box?
@@ -231,6 +276,13 @@ namespace FracCuts {
     {
         FColor.conservativeResize(FColor.rows() + airMesh.F.rows(), 3);
         FColor.bottomRows(airMesh.F.rows()) = Eigen::MatrixXd::Ones(airMesh.F.rows(), 3);
+        //DEBUG: for visualizing the distortion of air mesh triangles
+//        Eigen::VectorXd distortionPerElem;
+//        SymStretchEnergy SD;
+//        SD.getEnergyValPerElem(airMesh, distortionPerElem, true);
+//        Eigen::MatrixXd color_distortionVis;
+//        FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 8.5);
+//        FColor.bottomRows(airMesh.F.rows()) = color_distortionVis;
     }
     
     void Scaffold::get1RingAirLoop(int vI,

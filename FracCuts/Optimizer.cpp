@@ -204,9 +204,9 @@ namespace FracCuts {
             globalIterNum++;
             timer.stop();
 //            //DEBUG
-//            if(globalIterNum > 282) {
-//                result.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_pre.obj");
-//                scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_pre_AM.obj");
+//            if(globalIterNum > 120) {
+//                result.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_afterPN.obj");
+//                scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_afterPN_AM.obj");
 //            }
             
             if(propagateFracture > 0) {
@@ -229,11 +229,6 @@ namespace FracCuts {
                     result.scaffold = &scaffold;
                 }
             }
-//            //DEBUG
-//            if(globalIterNum > 282) {
-//                result.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_post.obj");
-//                scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_post_AM.obj");
-//            }
         }
         return 1;
     }
@@ -343,6 +338,11 @@ namespace FracCuts {
         if(propType == 0) {
             topoIter++;
         }
+//        //DEBUG
+//        if(globalIterNum > 520) {
+//            result.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_preTopo.obj");
+//            scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_preTopo_AM.obj");
+//        }
         
         timer.start(0);
         bool changed = false;
@@ -399,6 +399,12 @@ namespace FracCuts {
                 scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
                 result.scaffold = &scaffold;
             }
+//            //DEBUG
+//            if(globalIterNum > 520) {
+//                result.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_postTopo.obj");
+//                scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_postTopo_AM.obj");
+//            }
+            
             updateEnergyData(true, false, true);
             fractureInitiated = true;
             if((!mute) && (propType == 0)) {
@@ -486,12 +492,15 @@ namespace FracCuts {
             std::cout << "stepSize: " << stepSize << " -> ";
         }
         
+        double lastEnergyVal_scaffold = 0.0;
         const double m = searchDir.dot(gradient);
         const double c1m = 1.0e-4 * m;
         TriangleSoup testingData = result;
         Scaffold testingScaffold;
         if(scaffolding) {
             testingScaffold = scaffold;
+            computeEnergyVal(result, scaffold, lastEnergyVal); // this update is necessary since scaffold changes
+            lastEnergyVal_scaffold = energyVal_scaffold;
         }
         stepForward(testingData, testingScaffold, stepSize);
         double testingE;
@@ -543,7 +552,12 @@ namespace FracCuts {
             scaffold.airMesh.V = testingScaffold.airMesh.V;
         }
         lastEDec = lastEnergyVal - testingE;
+        if(scaffolding) {
+            lastEDec += (-lastEnergyVal_scaffold + energyVal_scaffold);
+        }
+//        lastEDec = (lastEnergyVal - testingE) / stepSize;
         if(allowEDecRelTol && (lastEDec / lastEnergyVal / stepSize < 1.0e-6)) {
+//        if(allowEDecRelTol && (lastEDec / lastEnergyVal < 1.0e-6)) {
             // no prominent energy decrease, stop for accelerating the process
             stopped = true;
         }
@@ -552,8 +566,8 @@ namespace FracCuts {
         if(!mute) {
             std::cout << stepSize << std::endl;
             std::cout << "stepLen = " << (stepSize * searchDir).squaredNorm() << std::endl;
-            std::cout << "E_cur_smooth = " << testingE << std::endl;
-            
+            std::cout << "E_cur_smooth = " << testingE - energyVal_scaffold << std::endl;
+
             if(!stopped) {
                 writeEnergyValToFile(false);
             }
@@ -683,7 +697,8 @@ namespace FracCuts {
         if(scaffolding && (!excludeScaffold)) {
             SymStretchEnergy SD;
             SD.computeEnergyVal(scaffoldData.airMesh, energyVal_scaffold, true);
-            energyVal += w_scaf / scaffold.airMesh.F.rows() * energyVal_scaffold;
+            energyVal_scaffold *= w_scaf / scaffold.airMesh.F.rows();
+            energyVal += energyVal_scaffold;
         }
     }
     void Optimizer::computeGradient(const TriangleSoup& data, const Scaffold& scaffoldData, Eigen::VectorXd& gradient, bool excludeScaffold)
@@ -797,6 +812,8 @@ namespace FracCuts {
     
     double Optimizer::getLastEnergyVal(bool excludeScaffold) const
     {
-        return ((excludeScaffold && scaffolding) ? (lastEnergyVal - energyVal_scaffold) : lastEnergyVal);
+        return ((excludeScaffold && scaffolding) ?
+                (lastEnergyVal - energyVal_scaffold) :
+                lastEnergyVal);
     }
 }
