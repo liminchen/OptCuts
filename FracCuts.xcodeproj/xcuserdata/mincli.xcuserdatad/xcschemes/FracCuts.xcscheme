@@ -75,8 +75,8 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "0 /Users/mincli/Downloads/meshes/closed/bunny.obj 0.025 6 1 test"
-            isEnabled = "NO">
+            argument = "0 /Users/mincli/Downloads/meshes/closed/bunny.obj 0.025 6 3 test"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/closed/sphere_uniRemesh.obj 0.025 1 0 test"
@@ -148,7 +148,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/male_body_i_f10000.obj 0.025 1 3 test"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/camel_vova_f10000.obj 0.025 1 3 test"

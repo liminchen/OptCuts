@@ -238,30 +238,45 @@ namespace FracCuts {
         rgb[1] = static_cast<int>((0x00ff00 & color) >> 8) / 255.0;
         rgb[2] = static_cast<int>(0x0000ff & color) / 255.0;
     }
-    void getColor(double scalar, double rgb[3], double center, double halfScale)
+    void getColor(double scalar, double rgb[3], double center, double halfScale, int opt = 0)
     {
-        static char32_t colorMap[2][100] = {
-            // red to blue
+        static char32_t colorMap[3][100] = {
+            // red to deep blue
             {0xdd0000,0xdc0005,0xdc0009,0xdb000e,0xda0012,0xd90015,0xd80018,0xd8001b,0xd7001e,0xd60021,0xd50023,0xd50026,0xd40028,0xd3002a,0xd2002d,0xd1002f,0xd00031,0xd00033,0xcf0036,0xce0038,0xcd003a,0xcc003c,0xcb003e,0xca0040,0xca0042,0xc90044,0xc80046,0xc70048,0xc6004a,0xc5004c,0xc4004e,0xc30050,0xc20052,0xc10054,0xc00056,0xbf0058,0xbe005a,0xbd005c,0xbc005e,0xbb0060,0xba0062,0xb80064,0xb70066,0xb60068,0xb5006a,0xb4006c,0xb3006e,0xb10070,0xb00072,0xaf0074,0xae0076,0xac0078,0xab007b,0xaa007d,0xa8007f,0xa70081,0xa50083,0xa40085,0xa20087,0xa10089,0x9f008b,0x9e008d,0x9c008f,0x9b0091,0x990093,0x970095,0x950097,0x940099,0x92009b,0x90009d,0x8e009f,0x8c00a1,0x8a00a4,0x8800a6,0x8600a8,0x8300aa,0x8100ac,0x7f00ae,0x7c00b0,0x7a00b2,0x7700b4,0x7400b6,0x7100b9,0x6f00bb,0x6b00bd,0x6800bf,0x6500c1,0x6100c3,0x5d00c5,0x5900c7,0x5500ca,0x5100cc,0x4c00ce,0x4600d0,0x4000d2,0x3900d4,0x3100d6,0x2800d9,0x1a00db,0x0000dd},
             
-            // red to green
-            {0xdd0000,0xdc0e00,0xdb1800,0xda1f00,0xda2500,0xd92a00,0xd82e00,0xd73200,0xd63600,0xd53a00,0xd43d00,0xd34000,0xd34300,0xd24600,0xd14900,0xd04b00,0xcf4e00,0xce5000,0xcd5300,0xcc5500,0xcb5700,0xca5900,0xc95c00,0xc85e00,0xc76000,0xc66200,0xc56400,0xc46600,0xc36800,0xc26a00,0xc16b00,0xbf6d00,0xbe6f00,0xbd7100,0xbc7300,0xbb7400,0xba7600,0xb97800,0xb77900,0xb67b00,0xb57d00,0xb47e00,0xb28000,0xb18100,0xb08300,0xaf8500,0xad8600,0xac8800,0xab8900,0xa98b00,0xa88c00,0xa68e00,0xa58f00,0xa39100,0xa29200,0xa09300,0x9f9500,0x9d9600,0x9c9800,0x9a9900,0x999a00,0x979c00,0x959d00,0x939f00,0x92a000,0x90a100,0x8ea300,0x8ca400,0x8aa500,0x88a700,0x86a800,0x84a900,0x82ab00,0x80ac00,0x7ead00,0x7cae00,0x79b000,0x77b100,0x74b200,0x72b400,0x6fb500,0x6db600,0x6ab700,0x67b900,0x64ba00,0x61bb00,0x5ebc00,0x5abd00,0x56bf00,0x53c000,0x4fc100,0x4ac200,0x45c400,0x40c500,0x3bc600,0x34c700,0x2dc800,0x24ca00,0x17cb00,0x00cc00}
+            // red to light green
+            {0xdd0000,0xdc0e00,0xdb1800,0xda1f00,0xda2500,0xd92a00,0xd82e00,0xd73200,0xd63600,0xd53a00,0xd43d00,0xd34000,0xd34300,0xd24600,0xd14900,0xd04b00,0xcf4e00,0xce5000,0xcd5300,0xcc5500,0xcb5700,0xca5900,0xc95c00,0xc85e00,0xc76000,0xc66200,0xc56400,0xc46600,0xc36800,0xc26a00,0xc16b00,0xbf6d00,0xbe6f00,0xbd7100,0xbc7300,0xbb7400,0xba7600,0xb97800,0xb77900,0xb67b00,0xb57d00,0xb47e00,0xb28000,0xb18100,0xb08300,0xaf8500,0xad8600,0xac8800,0xab8900,0xa98b00,0xa88c00,0xa68e00,0xa58f00,0xa39100,0xa29200,0xa09300,0x9f9500,0x9d9600,0x9c9800,0x9a9900,0x999a00,0x979c00,0x959d00,0x939f00,0x92a000,0x90a100,0x8ea300,0x8ca400,0x8aa500,0x88a700,0x86a800,0x84a900,0x82ab00,0x80ac00,0x7ead00,0x7cae00,0x79b000,0x77b100,0x74b200,0x72b400,0x6fb500,0x6db600,0x6ab700,0x67b900,0x64ba00,0x61bb00,0x5ebc00,0x5abd00,0x56bf00,0x53c000,0x4fc100,0x4ac200,0x45c400,0x40c500,0x3bc600,0x34c700,0x2dc800,0x24ca00,0x17cb00,0x00cc00},
+            
+            // blue to black to green
+            {0x1e90ff,0x1f8df9,0x218af3,0x2287ee,0x2383e8,0x2480e2,0x247ddc,0x257ad7,0x2577d1,0x2674cb,0x2671c6,0x276ec0,0x276bbb,0x2768b5,0x2765b0,0x2762aa,0x275fa5,0x275ca0,0x26599a,0x265695,0x265490,0x26518a,0x254e85,0x254b80,0x24487b,0x244576,0x234371,0x22406c,0x223d67,0x213b62,0x20385d,0x1f3558,0x1f3353,0x1e304f,0x1d2d4a,0x1c2b45,0x1b2841,0x1a263c,0x182338,0x172133,0x161e2f,0x151c2a,0x141926,0x121722,0x11151e,0x0f121a,0x0c0f16,0x090b11,0x05070b,0x020204,0x010200,0x030601,0x050a02,0x060e03,0x081104,0x0a1405,0x0c1606,0x0d1807,0x0f1a08,0x101d09,0x111f09,0x12210a,0x12230b,0x12250b,0x13280c,0x132a0c,0x132c0d,0x142e0d,0x14310e,0x14330e,0x14360e,0x15380e,0x153a0e,0x153d0e,0x153f0e,0x15420e,0x15440e,0x15470e,0x15490e,0x154c0e,0x154e0d,0x15510d,0x14530d,0x14560d,0x14580c,0x135b0c,0x135d0b,0x12600b,0x12630a,0x11650a,0x106809,0x0f6a08,0x0e6d07,0x0c7006,0x0b7206,0x097505,0x077804,0x057b02,0x027d01,0x008000}
         };
         
         scalar -= center;
         scalar /= halfScale;
         
-        if(scalar >= 1.0) {
-            splitRGB(colorMap[0][99], rgb);
-        }
-        else if(scalar >= 0.0){
-            splitRGB(colorMap[0][static_cast<int>(scalar * 100.0)], rgb);
-        }
-        else if(scalar > -1.0) {
-            splitRGB(colorMap[1][static_cast<int>(scalar * -100.0)], rgb);
-        }
-        else { // scalar <= -1.0
-            splitRGB(colorMap[1][99], rgb);
+        switch(opt) {
+            case 0:
+                if(scalar >= 1.0) {
+                    splitRGB(colorMap[0][99], rgb);
+                }
+                else if(scalar >= 0.0){
+                    splitRGB(colorMap[0][static_cast<int>(scalar * 100.0)], rgb);
+                }
+                else if(scalar > -1.0) {
+                    splitRGB(colorMap[1][static_cast<int>(scalar * -100.0)], rgb);
+                }
+                else { // scalar <= -1.0
+                    splitRGB(colorMap[1][99], rgb);
+                }
+                break;
+                
+            case 1:
+                splitRGB(colorMap[2][std::max(0, std::min(99, static_cast<int>(scalar * 100.0)))], rgb);
+                break;
+                
+            default:
+                assert(0 && "the given color option is not implemented!");
+                break;
         }
     }
     void IglUtils::mapScalarToColor_bin(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color, double thres)
@@ -280,12 +295,30 @@ namespace FracCuts {
             }
         }
     }
-    void IglUtils::mapScalarToColor(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color, double lowerBound, double upperBound)
+    void IglUtils::mapScalarToColor(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color,
+                                    double lowerBound, double upperBound, int opt)
     {
+        double center = 0.0, halfScale = 0.0;
+        switch (opt) {
+            case 0:
+                center = (upperBound + lowerBound) / 2.0;
+                halfScale = (upperBound - lowerBound) / 2.0;
+                break;
+                
+            case 1:
+                center = lowerBound;
+                halfScale = upperBound - lowerBound;
+                break;
+                
+            default:
+                assert(0 && "the given color option is not implemented!");
+                break;
+        }
+        
         color.resize(scalar.size(), 3);
         for(int elemI = 0; elemI < scalar.size(); elemI++) {
             double rgb[3];
-            getColor(scalar[elemI], rgb, (upperBound + lowerBound) / 2.0, (upperBound - lowerBound) / 2.0);
+            getColor(scalar[elemI], rgb, center, halfScale, opt);
             color.row(elemI) << rgb[0], rgb[1], rgb[2];
         }
     }
@@ -628,4 +661,45 @@ namespace FracCuts {
         return false;
     }
     ////////////////////////////////////////////////////////////
+    
+    void IglUtils::addThickEdge(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::MatrixXd& UV,
+                                Eigen::MatrixXd& seamColor, const Eigen::RowVector3d& color,
+                                const Eigen::RowVector3d& v0, const Eigen::RowVector3d& v1,
+                                double halfWidth, double texScale,
+                                bool UVorSurface, const Eigen::RowVector3d& normal)
+    {
+        if(UVorSurface) {
+            const Eigen::RowVector3d e = v1 - v0;
+            const Eigen::RowVector3d n = normal.normalized() * halfWidth;
+            const Eigen::RowVector3d bn = e.cross(normal).normalized() * halfWidth;
+            const int vAmt_old = V.rows();
+            V.conservativeResize(V.rows() + 8, 3);
+            V.bottomRows(8) << v0 - n - bn, v0 - n + bn, v0 + n + bn, v0 + n - bn,
+                v1 - n - bn, v1 - n + bn, v1 + n + bn, v1 + n - bn;
+            UV.conservativeResize(UV.rows() + 8, 2);
+            UV.bottomRows(8) = Eigen::MatrixXd::Ones(8, 2) * texScale;
+            F.conservativeResize(F.rows() + 6, 3);
+            F.bottomRows(6) << vAmt_old + 2, vAmt_old + 1, vAmt_old + 5,
+                vAmt_old + 2, vAmt_old + 5, vAmt_old + 6,
+                vAmt_old + 3, vAmt_old + 2, vAmt_old + 6,
+                vAmt_old + 3, vAmt_old + 6, vAmt_old + 7,
+                vAmt_old, vAmt_old + 3, vAmt_old + 7,
+                vAmt_old, vAmt_old + 7, vAmt_old + 4;
+            seamColor.conservativeResize(seamColor.rows() + 6, 3);
+            seamColor.bottomRows(6) << color, color, color, color, color, color;
+        }
+        else {
+            const Eigen::RowVector3d e = v1 - v0;
+            const Eigen::RowVector3d n = halfWidth * Eigen::RowVector3d(-e[1], e[0], 0.0).normalized();
+            const int vAmt_old = V.rows();
+            V.conservativeResize(V.rows() + 4, 3);
+            V.bottomRows(4) << v0 - n, v0 + n, v1 + n, v1 - n;
+            V.bottomRows(4).col(2) = Eigen::VectorXd::Ones(4) * halfWidth; // for depth test
+            F.conservativeResize(F.rows() + 2, 3);
+            F.bottomRows(2) << vAmt_old, vAmt_old + 1, vAmt_old + 2,
+                vAmt_old, vAmt_old + 2, vAmt_old + 3;
+            seamColor.conservativeResize(seamColor.rows() + 2, 3);
+            seamColor.bottomRows(2) << color, color;
+        }
+    }
 }

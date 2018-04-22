@@ -43,6 +43,7 @@ namespace FracCuts{
         Eigen::VectorXd edgeLen; // cohesive edge rest length, used as weights
         Eigen::SparseMatrix<double> LaplacianMtr; // 2 * V.rows() wide
         Eigen::VectorXd triArea; // triangle rest area
+        Eigen::MatrixXd triNormal;
         double surfaceArea;
         Eigen::VectorXd triAreaSq; // triangle rest squared area
         Eigen::VectorXd e0dote1; // triangle rest edge dot product

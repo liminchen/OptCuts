@@ -36,7 +36,8 @@ namespace FracCuts {
         static void map_vertices_to_circle(const Eigen::MatrixXd& V, const Eigen::VectorXi& bnd, Eigen::MatrixXd& UV);
         
         static void mapScalarToColor_bin(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color, double thres);
-        static void mapScalarToColor(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color, double lowerBound, double upperBound);
+        static void mapScalarToColor(const Eigen::VectorXd& scalar, Eigen::MatrixXd& color,
+                                     double lowerBound, double upperBound, int opt = 0);
         
         static void addBlockToMatrix(Eigen::SparseMatrix<double>& mtr, const Eigen::MatrixXd& block,
                                      const Eigen::VectorXi& index, int dim);
@@ -99,6 +100,12 @@ namespace FracCuts {
         static bool Test2DSegmentSegment(const Eigen::RowVector2d& a, const Eigen::RowVector2d& b,
                                          const Eigen::RowVector2d& c, const Eigen::RowVector2d& d,
                                          double eps = 0.0);
+        
+        static void addThickEdge(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::MatrixXd& UV,
+                                 Eigen::MatrixXd& seamColor, const Eigen::RowVector3d& color,
+                                 const Eigen::RowVector3d& v0, const Eigen::RowVector3d& v1,
+                                 double halfWidth, double texScale, bool UVorSurface = false,
+                                 const Eigen::RowVector3d& normal = Eigen::RowVector3d());
     };
     
 }

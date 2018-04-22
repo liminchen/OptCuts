@@ -81,6 +81,7 @@ int viewChannel = channel_result;
 bool viewUV = true; // view UV or 3D model
 double texScale = 1.0;
 bool showSeam = true;
+Eigen::MatrixXd seamColor;
 bool showBoundary = false;
 int showDistortion = 1; // 0: don't show; 1: SD energy value; 2: L2 stretch value;
 bool showTexture = true; // show checkerboard
@@ -108,33 +109,13 @@ void proceedOptimization(int proceedNum = 1)
     }
 }
 
-void updateViewerData_seam(const Eigen::MatrixXd& V)
+void updateViewerData_meshEdges(void)
 {
+    viewer.core.show_lines = !showSeam;
+    
+    viewer.data.set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
     if(showSeam) {
-        const double seamDistThres = 1.0e-2;
-        
-        viewer.core.show_lines = false;
-        Eigen::VectorXd seamScore;
-        triSoup[viewChannel]->computeSeamScore(seamScore);
-        Eigen::MatrixXd color;
-        FracCuts::IglUtils::mapScalarToColor_bin(seamScore, color, seamDistThres);
-        viewer.data.set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
-        for(int eI = 0; eI < triSoup[viewChannel]->cohE.rows(); eI++) {
-            if(seamScore[eI] > seamDistThres) {
-                viewer.data.add_edges(V.row(triSoup[viewChannel]->cohE.row(eI)[0]),
-                    V.row(triSoup[viewChannel]->cohE.row(eI)[1]), color.row(eI));
-                if(triSoup[viewChannel]->cohE.row(eI)[2] >= 0) {
-                    viewer.data.add_edges(V.row(triSoup[viewChannel]->cohE.row(eI)[2]),
-                        V.row(triSoup[viewChannel]->cohE.row(eI)[3]), color.row(eI));
-                }
-            }
-            else if((seamScore[eI] < 0.0) && showBoundary) {
-                viewer.data.add_edges(V.row(triSoup[viewChannel]->cohE.row(eI)[0]),
-                    V.row(triSoup[viewChannel]->cohE.row(eI)[1]), color.row(eI));
-            }
-        }
-        
-        // draw air mesh
+        // only draw air mesh edges
         if(optimizer->isScaffolding() && viewUV && (viewChannel == channel_result)) {
             const Eigen::MatrixXd V_airMesh = optimizer->getAirMesh().V * texScale;
             for(int triI = 0; triI < optimizer->getAirMesh().F.rows(); triI++) {
@@ -146,24 +127,58 @@ void updateViewerData_seam(const Eigen::MatrixXd& V)
             }
         }
     }
-    else {
-        viewer.core.show_lines = true;
-        viewer.data.set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
+}
+
+void updateViewerData_seam(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::MatrixXd& UV)
+{
+    if(showSeam) {
+        const double seamDistThres = 1.0e-2;
+        Eigen::VectorXd seamScore;
+        triSoup[viewChannel]->computeSeamScore(seamScore);
+        
+        const Eigen::VectorXd cohIndices = Eigen::VectorXd::LinSpaced(triSoup[viewChannel]->cohE.rows(),
+                                                                0, triSoup[viewChannel]->cohE.rows() - 1);
+        Eigen::MatrixXd color;
+        FracCuts::IglUtils::mapScalarToColor(cohIndices, color, 0, cohIndices.rows() - 1, 1);
+        
+        //TODO: seamscore only for autocuts
+        seamColor.resize(0, 3);
+        for(int eI = 0; eI < triSoup[viewChannel]->cohE.rows(); eI++) {
+            const Eigen::RowVector4i& cohE = triSoup[viewChannel]->cohE.row(eI);
+            const auto finder = triSoup[viewChannel]->edge2Tri.find(std::pair<int, int>(cohE[0], cohE[1]));
+            assert(finder != triSoup[viewChannel]->edge2Tri.end());
+            const Eigen::RowVector3d& sn = triSoup[viewChannel]->triNormal.row(finder->second);
+            if(seamScore[eI] > seamDistThres) {
+                // seam edge
+                FracCuts::IglUtils::addThickEdge(V, F, UV, seamColor, color.row(eI), V.row(cohE[0]), V.row(cohE[1]),
+                                                 triSoup[viewChannel]->avgEdgeLen * 0.1 * (viewUV ? texScale : 1.0),
+                                                 texScale, !viewUV, sn);
+                if(viewUV) {
+                    FracCuts::IglUtils::addThickEdge(V, F, UV, seamColor, color.row(eI), V.row(cohE[2]), V.row(cohE[3]),
+                                                     triSoup[viewChannel]->avgEdgeLen * 0.1 * (viewUV ? texScale : 1.0),
+                                                     texScale, !viewUV, sn);
+                }
+            }
+            else if((seamScore[eI] < 0.0) && showBoundary) {
+                // boundary edge
+                //TODO: debug!
+                FracCuts::IglUtils::addThickEdge(V, F, UV, seamColor, color.row(eI), V.row(cohE[0]), V.row(cohE[1]),
+                                                 triSoup[viewChannel]->avgEdgeLen * 0.1 * (viewUV ? texScale : 1.0),
+                                                 texScale, !viewUV, sn);
+            }
+        }
     }
 }
 
 void updateViewerData_distortion(void)
 {
+    Eigen::MatrixXd color_distortionVis;
+    
     switch(showDistortion) {
         case 1: { // show SD energy value
             Eigen::VectorXd distortionPerElem;
             energyTerms[0]->getEnergyValPerElem(*triSoup[viewChannel], distortionPerElem, true);
-            Eigen::MatrixXd color_distortionVis;
             FracCuts::IglUtils::mapScalarToColor(distortionPerElem, color_distortionVis, 4.0, 8.5);
-            if(optimizer->isScaffolding() && viewUV && (viewChannel == channel_result)) {
-                optimizer->getScaffold().augmentFColorwithAirMesh(color_distortionVis);
-            }
-            viewer.data.set_colors(color_distortionVis);
             break;
         }
             
@@ -172,33 +187,47 @@ void updateViewerData_distortion(void)
 //            triSoup[viewChannel]->computeL2StretchPerElem(l2StretchPerElem);
             dynamic_cast<FracCuts::SymStretchEnergy*>(energyTerms[0])->getDivGradPerElem(*triSoup[viewChannel], l2StretchPerElem);
 //            std::cout << l2StretchPerElem << std::endl; //DEBUG
-            Eigen::MatrixXd color_distortionVis;
 //            FracCuts::IglUtils::mapScalarToColor(l2StretchPerElem, color_distortionVis, 1.0, 2.0);
             FracCuts::IglUtils::mapScalarToColor(l2StretchPerElem, color_distortionVis,
                 l2StretchPerElem.minCoeff(), l2StretchPerElem.maxCoeff());
-            if(optimizer->isScaffolding() && viewUV && (viewChannel == channel_result)) {
-                optimizer->getScaffold().augmentFColorwithAirMesh(color_distortionVis);
-            }
-            viewer.data.set_colors(color_distortionVis);
             break;
         }
     
         case 0: {
-            viewer.data.set_colors(Eigen::RowVector3d(1.0, 1.0, 0.0));
+            color_distortionVis = Eigen::MatrixXd::Ones(triSoup[viewChannel]->F.rows(), 3);
+            color_distortionVis.col(2).setZero();
             break;
         }
+            
+        default:
+            assert(0 && "unknown distortion visualization option!");
+            break;
     }
+    
+    if(optimizer->isScaffolding() && viewUV && (viewChannel == channel_result)) {
+        optimizer->getScaffold().augmentFColorwithAirMesh(color_distortionVis);
+    }
+    
+    if(showSeam) {
+        color_distortionVis.conservativeResize(color_distortionVis.rows() + seamColor.rows(), 3);
+        color_distortionVis.bottomRows(seamColor.rows()) = seamColor;
+    }
+    
+    viewer.data.set_colors(color_distortionVis);
 }
 
 void updateViewerData(void)
 {
     Eigen::MatrixXd UV_vis = triSoup[viewChannel]->V * texScale;
+    Eigen::MatrixXi F_vis = triSoup[viewChannel]->F;
     if(viewUV) {
-        Eigen::MatrixXi F_vis = triSoup[viewChannel]->F;
         if(optimizer->isScaffolding() && (viewChannel == channel_result)) {
             optimizer->getScaffold().augmentUVwithAirMesh(UV_vis, texScale);
             optimizer->getScaffold().augmentFwithAirMesh(F_vis);
         }
+        UV_vis.conservativeResize(UV_vis.rows(), 3);
+        UV_vis.rightCols(1) = Eigen::VectorXd::Zero(UV_vis.rows());
+        updateViewerData_seam(UV_vis, F_vis, UV_vis);
         
         if((UV_vis.rows() != viewer.data.V.rows()) ||
            (F_vis.rows() != viewer.data.F.rows()))
@@ -211,7 +240,7 @@ void updateViewerData(void)
         viewer.core.show_texture = false;
         viewer.core.lighting_factor = 0.0;
 
-        updateViewerData_seam(UV_vis);
+        updateViewerData_meshEdges();
         
         viewer.data.set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 1.0));
         if(showFracTail) {
@@ -221,14 +250,17 @@ void updateViewerData(void)
         }
     }
     else {
-        if((triSoup[viewChannel]->V_rest.rows() != viewer.data.V.rows()) ||
+        Eigen::MatrixXd V_vis = triSoup[viewChannel]->V_rest;
+        updateViewerData_seam(V_vis, F_vis, UV_vis);
+        
+        if((V_vis.rows() != viewer.data.V.rows()) ||
            (UV_vis.rows() != viewer.data.V_uv.rows()) ||
-           (triSoup[viewChannel]->F.rows() != viewer.data.F.rows()))
+           (F_vis.rows() != viewer.data.F.rows()))
         {
             viewer.data.clear();
         }
-        viewer.data.set_mesh(triSoup[viewChannel]->V_rest, triSoup[viewChannel]->F);
-        viewer.core.align_camera_center(triSoup[viewChannel]->V_rest, triSoup[viewChannel]->F);
+        viewer.data.set_mesh(V_vis, F_vis);
+        viewer.core.align_camera_center(V_vis, F_vis);
         
         if(showTexture) {
             viewer.data.set_uv(UV_vis);
@@ -245,7 +277,7 @@ void updateViewerData(void)
             viewer.core.lighting_factor = 0.0;
         }
         
-        updateViewerData_seam(triSoup[viewChannel]->V_rest);
+        updateViewerData_meshEdges();
         
         viewer.data.set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 1.0));
         if(showFracTail) {

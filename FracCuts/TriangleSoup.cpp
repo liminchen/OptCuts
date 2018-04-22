@@ -346,6 +346,7 @@ namespace FracCuts {
         
 //        igl::cotmatrix_entries(V_rest, F, cotVals);
         
+        triNormal.resize(F.rows(), 3);
         triArea.resize(F.rows());
         surfaceArea = 0.0;
         triAreaSq.resize(F.rows());
@@ -367,6 +368,7 @@ namespace FracCuts {
             const Eigen::Vector3d P3m1 = P3 - P1;
             const Eigen::RowVector3d normalVec = P2m1.cross(P3m1);
             
+            triNormal.row(triI) = normalVec.normalized();
             triArea[triI] = 0.5 * normalVec.norm();
             if(triArea[triI] < areaThres_AM) {
                 // air mesh triangle degeneracy prevention
@@ -2456,16 +2458,52 @@ namespace FracCuts {
         TriangleSoup localMesh(localV_rest, localF, localV, Eigen::MatrixXi(), false);
         localMesh.resetFixedVert(fixedVert);
         
+        SymStretchEnergy SD;
+        double initE = 0.0;
+        for(const auto& triI : triangles) {
+            double energyValI;
+            SD.getEnergyValByElemID(*this, triI, energyValI);
+            initE += energyValI;
+        }
+        initE *= surfaceArea / localMesh.surfaceArea;
+        
+//        bool isBijective = !!scaffold;
+        bool isBijective = false;
+        
+        // construct air mesh
+        Eigen::MatrixXd UV_bnds;
+        Eigen::MatrixXi E;
+        Eigen::VectorXi bnd;
+//        if(isBijective) {
+//            // convert index from global to local
+//            // split local mesh, do not allow cut through
+//            // separate vertex
+//            if(!scaffold->getCornerAirLoop(path, initMergedPos, UV_bnds, E, bnd)) {
+//                // if initPos causes the composite loop to self-intersect, or the loop is totally inverted
+//                // (potentially violating bijectivity), abandon this query
+//                return -__DBL_MAX__;
+//            }
+//            
+//            for(int bndI = 0; bndI < bnd.size(); bndI++) {
+//                const auto finder = globalVI2local.find(bnd[bndI]);
+//                assert(finder != globalVI2local.end());
+//                bnd[bndI] = finder->second;
+//            }
+//        }
+        
         // conduct optimization on local mesh
-        std::vector<FracCuts::Energy*> energyTerms(1, new SymStretchEnergy());
+        std::vector<FracCuts::Energy*> energyTerms(1, &SD);
         std::vector<double> energyParams(1, 1.0);
-        Optimizer optimizer(localMesh, energyTerms, energyParams, false, true);
+        Optimizer optimizer(localMesh, energyTerms, energyParams, 0, true, isBijective, UV_bnds, E, bnd);
         optimizer.precompute();
+        //        optimizer.result.save("/Users/mincli/Desktop/meshes/test" + std::to_string(splitPath[0]) + "-" + std::to_string(splitPath[1]) + "_optimized.obj");
+        //        optimizer.scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test0_AM.obj");
         optimizer.setRelGL2Tol(1.0e-4);
-        double initE = optimizer.getLastEnergyVal();
         optimizer.solve(maxIter); //do not output, the other part
         //            std::cout << "local opt " << optimizer.getIterNum() << " iters" << std::endl;
-        const double eDec = (initE - optimizer.getLastEnergyVal()) * localMesh.surfaceArea / surfaceArea; //!!! this should be written in a more general way, cause this way it only works for E_SD
+        double curE;
+        optimizer.computeEnergyVal(optimizer.getResult(), optimizer.getScaffold(), curE, true);
+        const double eDec = (initE - curE) * localMesh.surfaceArea / surfaceArea; //!!! this should be written in a more general way, cause this way it only works for E_SD
         
         // get new vertex positions
         newVertPos.clear();
@@ -2473,7 +2511,6 @@ namespace FracCuts {
             newVertPos[vI_free] = optimizer.getResult().V.row(globalVI2local[vI_free]);
         }
         
-        delete energyTerms[0];
         return eDec;
     }
     
