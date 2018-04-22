@@ -48,7 +48,7 @@ int iterNum_lastTopo = 0;
 int iterAmt_rollBack = 0;
 int iterAmt_rollBack_topo = 0;
 int iterNum_backUp = 0;
-bool converged = false;
+int converged = 0;
 bool noValidOp = false;
 bool autoHomotopy = true;
 std::ofstream homoTransFile;
@@ -96,7 +96,7 @@ std::string infoName = "";
 bool isCapture3D = false;
 int capture3DI = 0;
 GifWriter GIFWriter;
-const uint32_t GIFDelay = 16; //*10ms
+const uint32_t GIFDelay = 10; //*10ms
 double GIFScale = 0.5;
 
 
@@ -104,7 +104,7 @@ void proceedOptimization(int proceedNum = 1)
 {
     for(int proceedI = 0; (proceedI < proceedNum) && (!converged); proceedI++) {
         std::cout << "Iteration" << iterNum << ":" << std::endl;
-        converged = !optimizer->solve(1);
+        converged = optimizer->solve(1);
         iterNum = optimizer->getIterNum();
     }
 }
@@ -1057,6 +1057,11 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                 case FracCuts::MT_OURS_FIXED:
                 case FracCuts::MT_OURS: {
                     infoName = std::to_string(iterNum);
+                    if(converged == 2) {
+                        converged = 0;
+                        return false;
+                    }
+                    
                     if((methodType == FracCuts::MT_OURS) && (measure_bound <= upperBound)) {
                         // save info once bound is reached for comparison
                         static bool saved = false;

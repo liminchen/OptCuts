@@ -180,6 +180,7 @@ namespace FracCuts {
     
     int Optimizer::solve(int maxIter)
     {
+        static bool lastPropagate = false;
         for(int iterI = 0; iterI < maxIter; iterI++)
         {
             timer.start(1);
@@ -193,12 +194,12 @@ namespace FracCuts {
                 // converged
                 lastEDec = 0.0;
                 globalIterNum++;
-                return 0;
+                return 1;
             }
             else {
                 if(solve_oneStep()) {
                     globalIterNum++;
-                    return 0;
+                    return 1;
                 }
             }
             globalIterNum++;
@@ -217,6 +218,14 @@ namespace FracCuts {
                         scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
                         result.scaffold = &scaffold;
                     }
+                    
+                    if(lastPropagate) {
+                        lastPropagate = false;
+                        return 2; // for saving screenshots
+                    }
+                }
+                else {
+                    lastPropagate = true;
                 }
                 // for alternating propagation with lambda updates
 //                if(createFracture(lastEDec, propagateFracture)) {
@@ -230,7 +239,7 @@ namespace FracCuts {
                 }
             }
         }
-        return 1;
+        return 0;
     }
     
     void Optimizer::updatePrecondMtrAndFactorize(void)
