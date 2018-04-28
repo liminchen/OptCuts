@@ -91,10 +91,10 @@ namespace FracCuts{
                         double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max,
                         std::pair<double, double>& energyChanges_max) const;
         bool splitEdge(double lambda_t, double EDecThres = 0.0, bool propagate = false, bool splitInterior = false);
-        void queryMerge(double lambda,
+        void queryMerge(double lambda, bool propagate,
                         double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max,
                         std::pair<double, double>& energyChanges_max);
-        bool mergeEdge(double lambda, double EDecThres);
+        bool mergeEdge(double lambda, double EDecThres, bool propagate);
         bool splitOrMerge(double lambda_t, double EDecThres, bool propagate, bool splitInterior,
                           bool& isMerge);
         

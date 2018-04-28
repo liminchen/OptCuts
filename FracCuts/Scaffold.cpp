@@ -49,7 +49,7 @@ namespace FracCuts {
                 curBndVAmt = E.rows();
             }
             
-            double margin = mesh.avgEdgeLen;
+            double margin = mesh.avgEdgeLen; //TODO: use boundary edge lengths of current UV map?
             double minX = mesh.V.col(0).minCoeff() - margin;
             double maxX = mesh.V.col(0).maxCoeff() + margin;
             double minY = mesh.V.col(1).minCoeff() - margin;
@@ -276,7 +276,7 @@ namespace FracCuts {
     {
         FColor.conservativeResize(FColor.rows() + airMesh.F.rows(), 3);
         FColor.bottomRows(airMesh.F.rows()) = Eigen::MatrixXd::Ones(airMesh.F.rows(), 3);
-        //DEBUG: for visualizing the distortion of air mesh triangles
+//        //DEBUG: for visualizing the distortion of air mesh triangles
 //        Eigen::VectorXd distortionPerElem;
 //        SymStretchEnergy SD;
 //        SD.getEnergyValPerElem(airMesh, distortionPerElem, true);

@@ -376,8 +376,8 @@ namespace FracCuts {
                         changed = result.splitEdge(1.0 - energyParams[0], stressThres, true, allowInSplit);
                         break;
                         
-                    case 2: //TODO: propagate merge, probably need to also update lambda in-between propagation!
-                        changed = result.mergeEdge(1.0 - energyParams[0], stressThres);
+                    case 2: // propagate merge [need to also update lambda in-between propagation?]
+                        changed = result.mergeEdge(1.0 - energyParams[0], stressThres, true);
 //                        changed = false;
                         isMerge = true;
                         break;
@@ -708,6 +708,9 @@ namespace FracCuts {
             SD.computeEnergyVal(scaffoldData.airMesh, energyVal_scaffold, true);
             energyVal_scaffold *= w_scaf / scaffold.airMesh.F.rows();
             energyVal += energyVal_scaffold;
+        }
+        else {
+            energyVal_scaffold = 0.0;
         }
     }
     void Optimizer::computeGradient(const TriangleSoup& data, const Scaffold& scaffoldData, Eigen::VectorXd& gradient, bool excludeScaffold)

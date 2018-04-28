@@ -923,7 +923,7 @@ namespace FracCuts {
         newVertPos_max = newVertPoses[candI_max];
         if(splitInterior) {
             energyChanges_max = energyChanges_iSplit[candI_max];
-            id_pickedISplit = candI_max;
+            id_pickedISplit = ((EwDec_max == -__DBL_MAX__) ? -1 : candI_max); //!!! shouldn't happen if scaffolding interior splits 
         }
         else {
             if(propagate) {
@@ -961,6 +961,7 @@ namespace FracCuts {
                 assert(!propagate);
                 std::cout << "interior split E_dec = " << EwDec_max << std::endl;
                 cutPath(path_max, true, 1, newVertPos_max);
+                logFile << "interior edge splitted" << std::endl;
                 fracTail.insert(path_max[0]);
                 fracTail.insert(path_max[2]);
                 curInteriorFracTails.first = path_max[0];
@@ -975,7 +976,7 @@ namespace FracCuts {
         }
     }
     
-    void TriangleSoup::queryMerge(double lambda,
+    void TriangleSoup::queryMerge(double lambda, bool propagate,
                                   double& localEwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max,
                                   std::pair<double, double>& energyChanges_max)
     {
@@ -984,7 +985,9 @@ namespace FracCuts {
         
         std::cout << "evaluate edge merge, " << cohE.rows() << " cohesive edge pairs." << std::endl;
         localEwDec_max = -__DBL_MAX__;
-        energyChanges_merge.resize(0);
+        if(!propagate) {
+            energyChanges_merge.resize(0);
+        }
         for(int cohI = 0; cohI < cohE.rows(); cohI++) {
             int forkVI = 0;
             if(cohE(cohI, 0) == cohE(cohI, 2)) {
@@ -1099,25 +1102,29 @@ namespace FracCuts {
             Eigen::MatrixXd newVertPos;
             std::pair<double, double> energyChanges;
             double localEwDec = computeLocalEwDec(0, lambda, path, newVertPos, energyChanges, triangles, mergedPos);
-            energyChanges_merge.emplace_back(energyChanges); //TODO: consider merge propagation
+            if(!propagate) {
+                energyChanges_merge.emplace_back(energyChanges);
+            }
             
             if(localEwDec > localEwDec_max) {
                 localEwDec_max = localEwDec;
                 newVertPos_max = newVertPos;
                 path_max = path;
                 energyChanges_max = energyChanges;
-                id_pickedMerge = static_cast<int>(energyChanges_merge.size()) - 1;
+                if(!propagate) {
+                    id_pickedMerge = static_cast<int>(energyChanges_merge.size()) - 1;
+                }
             }
         }
     }
     
-    bool TriangleSoup::mergeEdge(double lambda, double EDecThres)
+    bool TriangleSoup::mergeEdge(double lambda, double EDecThres, bool propagate)
     {
         double localEwDec_max;
         std::vector<int> path_max;
         Eigen::MatrixXd newVertPos_max;
         std::pair<double, double> energyChanges_max;
-        queryMerge(lambda, localEwDec_max, path_max, newVertPos_max,
+        queryMerge(lambda, propagate, localEwDec_max, path_max, newVertPos_max,
                    energyChanges_max);
         
         std::cout << "E_dec threshold = " << EDecThres << std::endl;
@@ -1158,7 +1165,7 @@ namespace FracCuts {
             querySplit(lambda_t, propagate, splitInterior,
                        EwDec_max_split, path_max_split, newVertPos_max_split,
                        energyChanes_split);
-            queryMerge(lambda_t, EwDec_max_merge, path_max_merge, newVertPos_max_merge,
+            queryMerge(lambda_t, propagate, EwDec_max_merge, path_max_merge, newVertPos_max_merge,
                        energyChanes_merge);
             
             if(EwDec_max_merge > EwDec_max_split) {
@@ -1188,6 +1195,7 @@ namespace FracCuts {
                     std::cout << "boundary split E_dec = " << EwDec_max << std::endl;
                     splitEdgeOnBoundary(std::pair<int, int>(path_max[0], path_max[1]),
                                         newVertPos_max);
+                    logFile << "boundary edge splitted" << std::endl;
                     //TODO: process fractail here!
                     updateFeatures();
                 }
@@ -1195,6 +1203,7 @@ namespace FracCuts {
                     // interior split
                     std::cout << "Interior split E_dec = " << EwDec_max << std::endl;
                     cutPath(path_max, true, 1, newVertPos_max);
+                    logFile << "interior edge splitted" << std::endl;
                     fracTail.insert(path_max[0]);
                     fracTail.insert(path_max[2]);
                     curInteriorFracTails.first = path_max[0];
@@ -2258,6 +2267,8 @@ namespace FracCuts {
                 mergeVert[path_max[2]] = path_max[0];
                 std::map<int, Eigen::RowVector2d> newVertPos;
                 const double SDInc = -computeLocalEDec(path_max, incTris, freeVert, newVertPos, mergeVert, initMergedPos, closeup);
+                energyChanges_max.first = SDInc;
+                energyChanges_max.second = -seDec;
                 if(SDInc == __DBL_MAX__) {
                     return -__DBL_MAX__;
                 }
@@ -2266,9 +2277,6 @@ namespace FracCuts {
                     assert(finder != newVertPos.end());
                     newVertPos_max.resize(1, 2);
                     newVertPos_max.row(0) = finder->second;
-                    
-                    energyChanges_max.first = SDInc;
-                    energyChanges_max.second = -seDec;
                     
                     return lambda_t * seDec - (1.0 - lambda_t) * SDInc;
                 }
@@ -2284,6 +2292,8 @@ namespace FracCuts {
         if(isBoundaryVert(vI, *(vNeighbor[vI].begin()), umbrella, boundaryEdge, false)) {
             // boundary split
             double maxEwDec = -__DBL_MAX__;
+            energyChanges_max.first = __DBL_MAX__;
+            energyChanges_max.second = __DBL_MAX__;
             path_max.resize(2);
             for(const auto& nbVI : vNeighbor[vI]) {
                 const std::pair<int, int> edge(vI, nbVI);
@@ -2337,6 +2347,8 @@ namespace FracCuts {
             
             path_max.resize(3);
             double EwDec_max = -__DBL_MAX__;
+            energyChanges_max.first = __DBL_MAX__;
+            energyChanges_max.second = __DBL_MAX__;
             std::set<int> freeVert;
             freeVert.insert(vI);
             std::map<int, Eigen::RowVector2d> newVertPosMap;
@@ -2376,33 +2388,38 @@ namespace FracCuts {
                     SDDec += computeLocalEDec(triangles, freeVert, newVertPosMap);
                     newVertPos.block(1, 0, 1, 2) = newVertPosMap[vI];
                     
-                    // test overlap
-                    //TODO: test on corners of non-moving vertices is unnecessary
-                    const Eigen::RowVector2d p0p1 = V.row(path[1]) - V.row(path[0]);
-                    const Eigen::RowVector2d p0nv0 = newVertPos.block(0, 0, 1, 2) - V.row(path[0]);
-                    const Eigen::RowVector2d p0nv1 = newVertPos.block(1, 0, 1, 2) - V.row(path[0]);
-                    const double ang_nv0p0p1 = IglUtils::computeRotAngle(p0nv0, p0p1);
-                    const double ang_p1p0nv1 = IglUtils::computeRotAngle(p0p1, p0nv1);
-                    if(ang_nv0p0p1 + ang_p1p0nv1 <= 0.0) {
-                        continue;
-                    }
-                    const Eigen::RowVector2d p2p1 = V.row(path[1]) - V.row(path[2]);
-                    const Eigen::RowVector2d p2nv0 = newVertPos.block(0, 0, 1, 2) - V.row(path[2]);
-                    const Eigen::RowVector2d p2nv1 = newVertPos.block(1, 0, 1, 2) - V.row(path[2]);
-                    const double ang_nv1p2p1 = IglUtils::computeRotAngle(p2nv1, p2p1);
-                    const double ang_p1p2nv0 = IglUtils::computeRotAngle(p2p1, p2nv0);
-                    if(ang_nv1p2p1 + ang_p1p2nv0 <= 0.0) {
-                        continue;
-                    }
-                    double ang_p0p1p2 = IglUtils::computeRotAngle(-p0p1, -p2p1);
-                    if(ang_p0p1p2 < 0.0) {
-                        ang_p0p1p2 += 2.0 * M_PI;
-                    }
-                    if(ang_p1p0nv1 + ang_nv1p2p1 >= ang_p0p1p2) {
-                        continue;
-                    }
-                    if(ang_p1p2nv0 + ang_nv0p0p1 >= 2.0 * M_PI - ang_p0p1p2) {
-                        continue;
+                    if(scaffold) {
+                        // test overlap
+                        const double eps_ang = 1.0e-3;
+                        const Eigen::RowVector2d p0p1 = V.row(path[1]) - V.row(path[0]);
+                        const Eigen::RowVector2d p0nv0 = newVertPos.block(0, 0, 1, 2) - V.row(path[0]);
+                        const Eigen::RowVector2d p0nv1 = newVertPos.block(1, 0, 1, 2) - V.row(path[0]);
+                        const double ang_nv0p0p1 = IglUtils::computeRotAngle(p0nv0, p0p1);
+                        const double ang_p1p0nv1 = IglUtils::computeRotAngle(p0p1, p0nv1);
+                        if(ang_nv0p0p1 + ang_p1p0nv1 <= eps_ang) {
+                            continue;
+                        }
+                        const Eigen::RowVector2d p2p1 = V.row(path[1]) - V.row(path[2]);
+                        const Eigen::RowVector2d p2nv0 = newVertPos.block(0, 0, 1, 2) - V.row(path[2]);
+                        const Eigen::RowVector2d p2nv1 = newVertPos.block(1, 0, 1, 2) - V.row(path[2]);
+                        const double ang_nv1p2p1 = IglUtils::computeRotAngle(p2nv1, p2p1);
+                        const double ang_p1p2nv0 = IglUtils::computeRotAngle(p2p1, p2nv0);
+                        if(ang_nv1p2p1 + ang_p1p2nv0 <= eps_ang) {
+                            continue;
+                        }
+                        // test on corners of non-moving vertices is unnecessary
+                        double ang_p0p1p2 = IglUtils::computeRotAngle(-p0p1, -p2p1);
+                        if(ang_p0p1p2 < 0.0) {
+                            ang_p0p1p2 += 2.0 * M_PI;
+                        }
+//                        assert(ang_p1p0nv1 + ang_nv1p2p1 < ang_p0p1p2 + eps_ang);
+                        if(ang_p1p0nv1 + ang_nv1p2p1 >= ang_p0p1p2) {
+                            continue;
+                        }
+//                        assert(ang_p1p2nv0 + ang_nv0p0p1 < 2.0 * M_PI - ang_p0p1p2 + eps_ang);
+                        if(ang_p1p2nv0 + ang_nv0p0p1 >= 2.0 * M_PI - ang_p0p1p2) {
+                            continue;
+                        }
                     }
                     
                     const double seInc = ((V_rest.row(path[0]) - V_rest.row(path[1])).norm() +

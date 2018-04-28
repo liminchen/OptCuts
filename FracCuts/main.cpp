@@ -151,11 +151,11 @@ void updateViewerData_seam(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::Matrix
             if(seamScore[eI] > seamDistThres) {
                 // seam edge
                 FracCuts::IglUtils::addThickEdge(V, F, UV, seamColor, color.row(eI), V.row(cohE[0]), V.row(cohE[1]),
-                                                 triSoup[viewChannel]->avgEdgeLen * 0.1 * (viewUV ? texScale : 1.0),
+                                                 triSoup[viewChannel]->virtualRadius * 0.005 * (viewUV ? texScale : 1.0),
                                                  texScale, !viewUV, sn);
                 if(viewUV) {
                     FracCuts::IglUtils::addThickEdge(V, F, UV, seamColor, color.row(eI), V.row(cohE[2]), V.row(cohE[3]),
-                                                     triSoup[viewChannel]->avgEdgeLen * 0.1 * (viewUV ? texScale : 1.0),
+                                                     triSoup[viewChannel]->virtualRadius * 0.005 * (viewUV ? texScale : 1.0),
                                                      texScale, !viewUV, sn);
                 }
             }
@@ -163,7 +163,7 @@ void updateViewerData_seam(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::Matrix
                 // boundary edge
                 //TODO: debug!
                 FracCuts::IglUtils::addThickEdge(V, F, UV, seamColor, color.row(eI), V.row(cohE[0]), V.row(cohE[1]),
-                                                 triSoup[viewChannel]->avgEdgeLen * 0.1 * (viewUV ? texScale : 1.0),
+                                                 triSoup[viewChannel]->virtualRadius * 0.005 * (viewUV ? texScale : 1.0),
                                                  texScale, !viewUV, sn);
             }
         }
@@ -242,7 +242,7 @@ void updateViewerData(void)
 
         updateViewerData_meshEdges();
         
-        viewer.data.set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 1.0));
+        viewer.data.set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 0.0));
         if(showFracTail) {
             for(const auto& tailVI : triSoup[viewChannel]->fracTail) {
                 viewer.data.add_points(UV_vis.row(tailVI), Eigen::RowVector3d(0.0, 0.0, 0.0));
@@ -279,10 +279,10 @@ void updateViewerData(void)
         
         updateViewerData_meshEdges();
         
-        viewer.data.set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 1.0));
+        viewer.data.set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 0.0));
         if(showFracTail) {
             for(const auto& tailVI : triSoup[viewChannel]->fracTail) {
-                viewer.data.add_points(triSoup[viewChannel]->V_rest.row(tailVI), Eigen::RowVector3d(0.0, 0.0, 1.0));
+                viewer.data.add_points(V_vis.row(tailVI), Eigen::RowVector3d(0.0, 0.0, 0.0));
             }
         }
     }
@@ -594,6 +594,9 @@ int computeOptPicked(const std::vector<std::pair<double, double>>& energyChanges
     
     double minEChange0 = __DBL_MAX__;
     for(int ecI = 0; ecI < energyChanges0.size(); ecI++) {
+        if((energyChanges0[ecI].first == __DBL_MAX__) || (energyChanges0[ecI].second == __DBL_MAX__)) {
+            continue;
+        }
         double EwChange = energyChanges0[ecI].first * (1.0 - lambda) + energyChanges0[ecI].second * lambda;
         if(EwChange < minEChange0) {
             minEChange0 = EwChange;
@@ -602,12 +605,16 @@ int computeOptPicked(const std::vector<std::pair<double, double>>& energyChanges
     
     double minEChange1 = __DBL_MAX__;
     for(int ecI = 0; ecI < energyChanges1.size(); ecI++) {
+        if((energyChanges1[ecI].first == __DBL_MAX__) || (energyChanges1[ecI].second == __DBL_MAX__)) {
+            continue;
+        }
         double EwChange = energyChanges1[ecI].first * (1.0 - lambda) + energyChanges1[ecI].second * lambda;
         if(EwChange < minEChange1) {
             minEChange1 = EwChange;
         }
     }
     
+    assert((minEChange0 != __DBL_MAX__) || (minEChange1 != __DBL_MAX__));
     return (minEChange0 > minEChange1);
 }
 
@@ -619,13 +626,16 @@ int computeBestCand(const std::vector<std::pair<double, double>>& energyChanges,
     double minEChange = __DBL_MAX__;
     int id_minEChange = -1;
     for(int ecI = 0; ecI < energyChanges.size(); ecI++) {
+        if((energyChanges[ecI].first == __DBL_MAX__) || (energyChanges[ecI].second == __DBL_MAX__)) {
+            continue;
+        }
         double EwChange = energyChanges[ecI].first * (1.0 - lambda) + energyChanges[ecI].second * lambda;
         if(EwChange < minEChange) {
             minEChange = EwChange;
             id_minEChange = ecI;
         }
     }
-    assert(id_minEChange >= 0);
+//    assert(id_minEChange >= 0);
     
     return id_minEChange;
 }
@@ -798,13 +808,18 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
     if((measure_bound <= upperBound) && firstReach) {
         firstReach = false;
         if(cancelMomentum) {
-            energyParams[0] = (E_se - lastE_se) / (lastE_SD - lastE_se - E_SD + E_se);
-            
-            if(energyParams[0] > 1.0 - eps_lambda) {
-                energyParams[0] = 1.0 - eps_lambda;
-            }
-            if(energyParams[0] < eps_lambda) {
-                energyParams[0] = eps_lambda;
+//            energyParams[0] = (E_se - lastE_se) / (lastE_SD - lastE_se - E_SD + E_se);
+//            
+//            if(energyParams[0] > 1.0 - eps_lambda) {
+//                energyParams[0] = 1.0 - eps_lambda;
+//            }
+//            if(energyParams[0] < eps_lambda) {
+//                energyParams[0] = eps_lambda;
+//            }
+            //!!! still not perfect, is it really necessary?
+            double newVal = (E_se - lastE_se) / (lastE_SD - lastE_se - E_SD + E_se);
+            if((newVal <= 1.0 - eps_lambda) && (newVal >= eps_lambda)) {
+                energyParams[0] = newVal;
             }
             
             optimizer->updateEnergyData(true, false, false);
@@ -1094,7 +1109,8 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         
                         // compute critical lambda
                         if(lastFractureIn) {
-                            criticalLambda_interiorOpt = (E_SD - lastE_SD) / (E_SD - lastE_SD - E_se + lastE_se);
+                            //!!! novalidop shouldn't happen if scaffolding interior split!!!
+                            criticalLambda_interiorOpt = (noValidOp ? 0.0 : ((E_SD - lastE_SD) / (E_SD - lastE_SD - E_se + lastE_se)));
                         }
                         else {
                             criticalLambda_boundaryOpt = (E_SD - lastE_SD) / (E_SD - lastE_SD - E_se + lastE_se);
@@ -1108,6 +1124,7 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                         iterNum = iterNum_backUp;
                         logFile << "iterNum roll back to " << iterNum << std::endl;
                         iterAmt_rollBack_topo++;
+                        noValidOp = false;
                         
                         if(lastFractureIn) {
                             // if the last topology operation is interior split
@@ -1562,7 +1579,7 @@ int main(int argc, char *argv[])
     viewer.core.orthographic = true;
     viewer.core.camera_zoom *= 1.9;
     viewer.core.animation_max_fps = 60.0;
-    viewer.core.point_size = 10.0f;
+    viewer.core.point_size = 15.0f; //TODO: make it adaptive
     viewer.core.show_overlay = true;
     updateViewerData();
     viewer.launch();
