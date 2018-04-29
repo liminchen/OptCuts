@@ -26,7 +26,7 @@ extern const std::string outputFolderPath;
 extern const bool fractureMode;
 
 extern std::ofstream logFile;
-extern Timer timer;
+extern Timer timer, timer_step;
 
 namespace FracCuts {
     
@@ -154,12 +154,17 @@ namespace FracCuts {
             }
         }
         else {
+            if(!mute) { timer_step.start(1); }
             pardisoSolver.set_type(pardisoThreadAmt, -2);
             pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
+            if(!mute) { timer_step.stop(); timer_step.start(2); }
             pardisoSolver.analyze_pattern();
+            if(!mute) { timer_step.stop(); }
             if(!needRefactorize) {
                 try {
+                    if(!mute) { timer_step.start(3); }
                     pardisoSolver.factorize();
+                    if(!mute) { timer_step.stop(); }
                 }
                 catch(std::exception e) {
                     IglUtils::writeSparseMatrixToFile(outputFolderPath + "mtr_factorizeFail", I_mtr, J_mtr, V_mtr, true);
@@ -183,7 +188,7 @@ namespace FracCuts {
         static bool lastPropagate = false;
         for(int iterI = 0; iterI < maxIter; iterI++)
         {
-            timer.start(1);
+            if(!mute) { timer.start(1); }
             computeGradient(result, scaffold, gradient);
             const double sqn_g = gradient.squaredNorm();
             if(!mute) {
@@ -194,16 +199,18 @@ namespace FracCuts {
                 // converged
                 lastEDec = 0.0;
                 globalIterNum++;
+                if(!mute) { timer.stop(); }
                 return 1;
             }
             else {
                 if(solve_oneStep()) {
                     globalIterNum++;
+                    if(!mute) { timer.stop(); }
                     return 1;
                 }
             }
             globalIterNum++;
-            timer.stop();
+            if(!mute) { timer.stop(); }
 //            //DEBUG
 //            if(globalIterNum > 120) {
 //                result.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_afterPN.obj");
@@ -261,8 +268,11 @@ namespace FracCuts {
             }
         }
         else {
+            if(!mute) { timer_step.start(1); }
             pardisoSolver.update_a(V_mtr);
+            if(!mute) { timer_step.stop(); timer_step.start(3); }
             pardisoSolver.factorize();
+            if(!mute) { timer_step.stop(); }
         }
     }
     
@@ -331,12 +341,15 @@ namespace FracCuts {
                 }
             }
             else {
-                pardisoSolver = PardisoSolver<Eigen::VectorXi, Eigen::VectorXd>(); //TODO: make it cheaper!
-                pardisoSolver.set_type(pardisoThreadAmt, -2);
+                if(!mute) { timer_step.start(1); }
                 pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
+                if(!mute) { timer_step.stop(); timer_step.start(2); }
                 pardisoSolver.analyze_pattern();
+                if(!mute) { timer_step.stop(); }
                 if(!needRefactorize) {
+                    if(!mute) { timer_step.start(3); }
                     pardisoSolver.factorize();
+                    if(!mute) { timer_step.stop(); }
                 }
             }
         }
@@ -414,7 +427,9 @@ namespace FracCuts {
 //                scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_postTopo_AM.obj");
 //            }
             
+            timer.start(3);
             updateEnergyData(true, false, true);
+            timer.stop();
             fractureInitiated = true;
             if((!mute) && (propType == 0)) {
                 writeEnergyValToFile(false);
@@ -452,17 +467,22 @@ namespace FracCuts {
             else {
                 if(!fractureInitiated) {
                     if(scaffolding) {
-                        pardisoSolver = PardisoSolver<Eigen::VectorXi, Eigen::VectorXd>(); //TODO: make it cheaper!
-                        pardisoSolver.set_type(pardisoThreadAmt, -2);
+                        if(!mute) { timer_step.start(1); }
                         pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
+                        if(!mute) { timer_step.stop(); timer_step.start(2); }
                         pardisoSolver.analyze_pattern();
+                        if(!mute) { timer_step.stop(); }
                     }
                     else {
+                        if(!mute) { timer_step.start(1); }
                         pardisoSolver.update_a(V_mtr);
+                        if(!mute) { timer_step.stop(); }
                     }
                 }
                 try {
+                    if(!mute) { timer_step.start(3); }
                     pardisoSolver.factorize();
+                    if(!mute) { timer_step.stop(); }
                 }
                 catch(std::exception e) {
                     IglUtils::writeSparseMatrixToFile(outputFolderPath + "mtr", I_mtr, J_mtr, V_mtr, true);
@@ -479,7 +499,9 @@ namespace FracCuts {
         }
         else {
             Eigen::VectorXd minusG = -gradient;
+            if(!mute) { timer_step.start(4); }
             pardisoSolver.solve(minusG, searchDir);
+            if(!mute) { timer_step.stop(); }
         }
         fractureInitiated = false;
         
@@ -730,6 +752,7 @@ namespace FracCuts {
     }
     void Optimizer::computePrecondMtr(const TriangleSoup& data, const Scaffold& scaffoldData, Eigen::SparseMatrix<double>& precondMtr)
     {
+        if(!mute) { timer_step.start(0); }
         if(pardisoThreadAmt) {
             I_mtr.resize(0);
             J_mtr.resize(0);
@@ -794,7 +817,7 @@ namespace FracCuts {
                 }
             }
         }
-        
+        if(!mute) { timer_step.stop(); }
 //        Eigen::BDCSVD<Eigen::MatrixXd> svd((Eigen::MatrixXd(precondMtr)));
 //        logFile << "singular values of precondMtr_E:" << std::endl << svd.singularValues() << std::endl;
 //        double det = 1.0;

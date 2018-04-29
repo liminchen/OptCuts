@@ -89,7 +89,7 @@ bool isLighting = false;
 bool showFracTail = true;
 double secPast = 0.0;
 time_t lastStart_world;
-Timer timer;
+Timer timer, timer_step;
 bool offlineMode = false;
 bool saveInfo_postDraw = false;
 std::string infoName = "";
@@ -351,8 +351,11 @@ void saveInfoForPresent(const std::string fileName = "info.txt")
         << iterAmt_rollBack << " " << iterAmt_rollBack_topo << " "
         << lambda_init << " " << 1.0 - energyParams[0] << std::endl;
     
-    file << "0.0 0.0 " << secPast << " " <<
-        timer.timing_total() << std::endl;
+    file << "0.0 0.0 " << timer.timing_total() << " " << secPast <<
+        " topo" << timer.timing(0) << " desc" << timer.timing(1) << " scaf" << timer.timing(2) << " enUp" << timer.timing(3) <<
+        " mtrComp" << timer_step.timing(0) << " mtrAssem" << timer_step.timing(1) << " symFac" << timer_step.timing(2) <<
+        " numFac" << timer_step.timing(3) << " backSolve" << timer_step.timing(4) << " bSplit" << timer_step.timing(5) <<
+        " iSplit" << timer_step.timing(6) << " cMerge" << timer_step.timing(7) << std::endl;
     
     double seamLen;
     if(energyParams[0] == 1.0) {
@@ -1525,10 +1528,18 @@ int main(int argc, char *argv[])
     
     // setup timer
     timer.new_activity("topology");
-    timer.new_activity("matrixComputation");
-    timer.new_activity("matrixAssembly");
-    timer.new_activity("factorization");
-    timer.new_activity("backSolve");
+    timer.new_activity("descent");
+    timer.new_activity("scaffolding");
+    timer.new_activity("energyUpdate");
+    
+    timer_step.new_activity("matrixComputation");
+    timer_step.new_activity("matrixAssembly");
+    timer_step.new_activity("symbolicFactorization");
+    timer_step.new_activity("numericalFactorization");
+    timer_step.new_activity("backSolve");
+    timer_step.new_activity("boundarySplit");
+    timer_step.new_activity("interiorSplit");
+    timer_step.new_activity("cornerMerge");
     
     // * Our approach
     texScale = 10.0 / (triSoup[0]->bbox.row(1) - triSoup[0]->bbox.row(0)).maxCoeff();

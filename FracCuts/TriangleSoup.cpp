@@ -10,6 +10,7 @@
 #include "IglUtils.hpp"
 #include "SymStretchEnergy.hpp"
 #include "Optimizer.hpp"
+#include "Timer.hpp"
 
 #include <igl/cotmatrix.h>
 #include <igl/avg_edge_length.h>
@@ -23,6 +24,7 @@
 #include <fstream>
 
 extern std::ofstream logFile;
+extern Timer timer_step;
 
 extern std::vector<std::pair<double, double>> energyChanges_bSplit, energyChanges_iSplit, energyChanges_merge;
 extern int id_pickedBSplit, id_pickedISplit, id_pickedMerge;
@@ -754,6 +756,8 @@ namespace FracCuts {
                                   double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max,
                                   std::pair<double, double>& energyChanges_max) const
     {
+        timer_step.start(5 + splitInterior);
+        
         const double filterExp_b = 0.6, filterMult_b = 1.0; //TODO: better use ratio
         const double filterExp_in = 0.6; // smaller than 0.5 is not recommanded
         
@@ -850,6 +854,7 @@ namespace FracCuts {
                     EwDec_max = -__DBL_MAX__;
                     path_max.resize(0);
                     newVertPos_max.resize(0, 2);
+                    timer_step.stop();
                     return;
                 }
                 else {
@@ -934,6 +939,8 @@ namespace FracCuts {
                 id_pickedBSplit = candI_max;
             }
         }
+            
+        timer_step.stop();
     }
     
     bool TriangleSoup::splitEdge(double lambda_t, double thres, bool propagate, bool splitInterior)
@@ -982,6 +989,7 @@ namespace FracCuts {
     {
         //TODO: local index updates in mergeBoundaryEdge()
         //TODO: parallelize the query
+        timer_step.start(7);
         
         std::cout << "evaluate edge merge, " << cohE.rows() << " cohesive edge pairs." << std::endl;
         localEwDec_max = -__DBL_MAX__;
@@ -1116,6 +1124,8 @@ namespace FracCuts {
                 }
             }
         }
+        
+        timer_step.stop();
     }
     
     bool TriangleSoup::mergeEdge(double lambda, double EDecThres, bool propagate)

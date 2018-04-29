@@ -215,6 +215,7 @@ void PardisoSolver<vectorTypeI,vectorTypeS>::set_pattern(const vectorTypeI &II_,
     //if the matrix is symmetric, only store upper triangular part
     if (is_symmetric && !is_upper_half)
     {
+        lower_triangular_ind.resize(0);
         lower_triangular_ind.reserve(II.size()/2 + numRows / 2 + 1);
         for (int i = 0; i<II.size();++i)
             if (II[i]<=JJ[i])

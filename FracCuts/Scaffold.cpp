@@ -9,11 +9,14 @@
 #include "Scaffold.hpp"
 #include "IglUtils.hpp"
 #include "SymStretchEnergy.hpp"
+#include "Timer.hpp"
 
 #include <igl/triangle/triangulate.h>
 #include <igl/boundary_loop.h>
 #include <igl/avg_edge_length.h>
 #include <igl/components.h>
+
+extern Timer timer;
 
 namespace FracCuts {
     Scaffold::Scaffold(void)
@@ -27,6 +30,7 @@ namespace FracCuts {
         Eigen::MatrixXd H;
         bool fixAMBoundary = false;
         if(E.rows() == 0) {
+            timer.start(2);
             std::vector<std::vector<int>> bnd_all;
             igl::boundary_loop(mesh.F, bnd_all);
             assert(bnd_all.size());
@@ -181,6 +185,10 @@ namespace FracCuts {
             for(int vI = bnd.size(); vI < UV_bnds.rows(); vI++) {
                 airMesh.fixedVert.insert(vI);
             }
+        }
+        
+        if(E.rows() == 0) {
+            timer.stop();
         }
         
         // add bijectivity to optimization on local stencil: interior split?
