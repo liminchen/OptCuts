@@ -275,6 +275,14 @@ namespace FracCuts {
         //!!! can be done in parallel
     }
     
+    void Scaffold::mergeFixedV(const std::set<int>& fixedV_mesh, std::set<int>& fixedV) const
+    {
+        fixedV = fixedV_mesh;
+        for(const auto& fixedV_scafVI : airMesh.fixedVert) {
+            fixedV.insert(localVI2Global[fixedV_scafVI]);
+        }
+    }
+    
     void Scaffold::augmentUVwithAirMesh(Eigen::MatrixXd& UV, double scale) const
     {
         int meshSize = UV.rows();

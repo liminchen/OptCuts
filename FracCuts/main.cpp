@@ -354,8 +354,8 @@ void saveInfoForPresent(const std::string fileName = "info.txt")
     file << "0.0 0.0 " << timer.timing_total() << " " << secPast <<
         " topo" << timer.timing(0) << " desc" << timer.timing(1) << " scaf" << timer.timing(2) << " enUp" << timer.timing(3) <<
         " mtrComp" << timer_step.timing(0) << " mtrAssem" << timer_step.timing(1) << " symFac" << timer_step.timing(2) <<
-        " numFac" << timer_step.timing(3) << " backSolve" << timer_step.timing(4) << " bSplit" << timer_step.timing(5) <<
-        " iSplit" << timer_step.timing(6) << " cMerge" << timer_step.timing(7) << std::endl;
+        " numFac" << timer_step.timing(3) << " backSolve" << timer_step.timing(4) << " lineSearch" << timer_step.timing(5) <<
+        " bSplit" << timer_step.timing(6) << " iSplit" << timer_step.timing(7) << " cMerge" << timer_step.timing(8) << std::endl;
     
     double seamLen;
     if(energyParams[0] == 1.0) {
@@ -1537,6 +1537,7 @@ int main(int argc, char *argv[])
     timer_step.new_activity("symbolicFactorization");
     timer_step.new_activity("numericalFactorization");
     timer_step.new_activity("backSolve");
+    timer_step.new_activity("lineSearch");
     timer_step.new_activity("boundarySplit");
     timer_step.new_activity("interiorSplit");
     timer_step.new_activity("cornerMerge");

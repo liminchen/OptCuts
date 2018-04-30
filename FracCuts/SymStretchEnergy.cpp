@@ -12,7 +12,7 @@
 #include <igl/cotmatrix.h>
 #include <igl/massmatrix.h>
 
-#include <tbb/tbb.h> // maybe beneficial for very large models
+#include <tbb/tbb.h>
 
 #include <limits>
 #include <fstream>
@@ -441,7 +441,10 @@ namespace FracCuts {
         
 //        std::cout << "computing entry value..." << std::endl;
 //        clock_t start = clock();
-        for(int triI = 0; triI < data.F.rows(); triI++) {
+        std::vector<Eigen::Matrix<double, 6, 6>> triHessians(data.F.rows());
+        std::vector<Eigen::VectorXi> vInds(data.F.rows());
+        tbb::parallel_for(0, (int)data.F.rows(), 1, [&](int triI) {
+//        for(int triI = 0; triI < data.F.rows(); triI++) {
             const Eigen::Vector3i& triVInd = data.F.row(triI);
             
             const Eigen::Vector2d& U1 = data.V.row(triVInd[0]);
@@ -484,7 +487,7 @@ namespace FracCuts {
             const Eigen::Vector2d dLeft3 = areaRatio * edge_oppo3_Ortho;
             const Eigen::Vector2d dRight3 = (e0SqLen_div_dbAreaSq * U3m1 - e0dote1_div_dbAreaSq * U2m1);
             
-            Eigen::Matrix<double, 6, 6> curHessian;
+            Eigen::Matrix<double, 6, 6>& curHessian = triHessians[triI];
             
             // compute second order derivatives for g_U1
             const Eigen::Matrix2d d2Left11 = dAreaRatio_div_dArea_mult * edge_oppo1_Ortho * edge_oppo1_Ortho.transpose();
@@ -529,13 +532,17 @@ namespace FracCuts {
             // project to nearest SPD matrix
             IglUtils::makePD(curHessian);
             
-            Eigen::VectorXi vInd = triVInd;
+            Eigen::VectorXi& vInd = vInds[triI];
+            vInd = triVInd;
             for(int vI = 0; vI < 3; vI++) {
                 if(data.fixedVert.find(vInd[vI]) != data.fixedVert.end()) {
                     vInd[vI] = -1;
                 }
             }
-            IglUtils::addBlockToMatrix(curHessian, vInd, 2, V, I, J);
+//        }
+        });
+        for(int triI = 0; triI < data.F.rows(); triI++) {
+            IglUtils::addBlockToMatrix(triHessians[triI], vInds[triI], 2, V, I, J);
         }
 //        std::cout << static_cast<double>(clock() - start) / CLOCKS_PER_SEC << "s" << std::endl;
         

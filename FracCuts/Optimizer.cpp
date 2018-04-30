@@ -143,6 +143,7 @@ namespace FracCuts {
             scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
             result.scaffold = &scaffold;
             scaffold.mergeVNeighbor(result.vNeighbor, vNeighbor_withScaf);
+            scaffold.mergeFixedV(result.fixedVert, fixedV_withScaf);
         }
         
         computePrecondMtr(result, scaffold, precondMtr);
@@ -158,7 +159,8 @@ namespace FracCuts {
             if(!mute) { timer_step.start(1); }
             pardisoSolver.set_type(pardisoThreadAmt, -2);
 //            pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
-            pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr, scaffolding ? vNeighbor_withScaf : result.vNeighbor);
+            pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr, scaffolding ? vNeighbor_withScaf : result.vNeighbor,
+                                      scaffolding ? fixedV_withScaf : result.fixedVert);
             if(!mute) { timer_step.stop(); timer_step.start(2); }
             pardisoSolver.analyze_pattern();
             if(!mute) { timer_step.stop(); }
@@ -227,6 +229,7 @@ namespace FracCuts {
                         scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
                         result.scaffold = &scaffold;
                         scaffold.mergeVNeighbor(result.vNeighbor, vNeighbor_withScaf);
+                        scaffold.mergeFixedV(result.fixedVert, fixedV_withScaf);
                     }
                     
                     if(lastPropagate) {
@@ -247,6 +250,7 @@ namespace FracCuts {
                     scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
                     result.scaffold = &scaffold;
                     scaffold.mergeVNeighbor(result.vNeighbor, vNeighbor_withScaf);
+                    scaffold.mergeFixedV(result.fixedVert, fixedV_withScaf);
                 }
             }
         }
@@ -290,6 +294,7 @@ namespace FracCuts {
             scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
             result.scaffold = &scaffold;
             scaffold.mergeVNeighbor(result.vNeighbor, vNeighbor_withScaf);
+            scaffold.mergeFixedV(result.fixedVert, fixedV_withScaf);
         }
         
         updateEnergyData();
@@ -307,6 +312,7 @@ namespace FracCuts {
             scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
             result.scaffold = &scaffold;
             scaffold.mergeVNeighbor(result.vNeighbor, vNeighbor_withScaf);
+            scaffold.mergeFixedV(result.fixedVert, fixedV_withScaf);
         }
     }
     
@@ -350,7 +356,8 @@ namespace FracCuts {
             else {
                 if(!mute) { timer_step.start(1); }
 //                pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
-                pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr, scaffolding ? vNeighbor_withScaf : result.vNeighbor);
+                pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr, scaffolding ? vNeighbor_withScaf : result.vNeighbor,
+                                          scaffolding ? fixedV_withScaf : result.fixedVert);
                 if(!mute) { timer_step.stop(); timer_step.start(2); }
                 pardisoSolver.analyze_pattern();
                 if(!mute) { timer_step.stop(); }
@@ -429,6 +436,7 @@ namespace FracCuts {
                 scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
                 result.scaffold = &scaffold;
                 scaffold.mergeVNeighbor(result.vNeighbor, vNeighbor_withScaf);
+                scaffold.mergeFixedV(result.fixedVert, fixedV_withScaf);
             }
 //            //DEBUG
 //            if(globalIterNum > 520) {
@@ -478,7 +486,8 @@ namespace FracCuts {
                     if(scaffolding) {
                         if(!mute) { timer_step.start(1); }
 //                        pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
-                        pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr, scaffolding ? vNeighbor_withScaf : result.vNeighbor);
+                        pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr, scaffolding ? vNeighbor_withScaf : result.vNeighbor,
+                                                  scaffolding ? fixedV_withScaf : result.fixedVert);
                         if(!mute) { timer_step.stop(); timer_step.start(2); }
                         pardisoSolver.analyze_pattern();
                         if(!mute) { timer_step.stop(); }
@@ -516,7 +525,9 @@ namespace FracCuts {
         }
         fractureInitiated = false;
         
+        if(!mute) { timer_step.start(5); }
         bool stopped = lineSearch();
+        if(!mute) { timer_step.stop(); }
         if(stopped) {
 //            IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_stopped_" + std::to_string(globalIterNum), precondMtr);
 //            logFile << "descent step stopped at overallIter" << globalIterNum << " for no prominent energy decrease." << std::endl;

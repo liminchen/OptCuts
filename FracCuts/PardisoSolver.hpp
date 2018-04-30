@@ -56,7 +56,8 @@ public:
     void set_pattern(const vectorTypeI &II,
                      const vectorTypeI &JJ,
                      const vectorTypeS &SS,
-                     const std::vector<std::set<int>>& vNeighbor);
+                     const std::vector<std::set<int>>& vNeighbor,
+                     const std::set<int>& fixedVert);
     void analyze_pattern();
     
     bool factorize();

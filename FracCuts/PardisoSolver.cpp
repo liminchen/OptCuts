@@ -318,8 +318,12 @@ template <typename vectorTypeI, typename vectorTypeS>
 void PardisoSolver<vectorTypeI,vectorTypeS>::set_pattern(const vectorTypeI &II_,
                                                          const vectorTypeI &JJ_,
                                                          const vectorTypeS &SS_,
-                                                         const std::vector<std::set<int>>& vNeighbor)
+                                                         const std::vector<std::set<int>>& vNeighbor,
+                                                         const std::set<int>& fixedVert)
 {
+    assert(II_.size() == JJ_.size());
+    assert(II_.size() == SS_.size());
+    
     numRows = static_cast<int>(vNeighbor.size()) * 2;
     ia.resize(vNeighbor.size() * 2 + 1);
     ia[0] = 1;
@@ -327,40 +331,48 @@ void PardisoSolver<vectorTypeI,vectorTypeS>::set_pattern(const vectorTypeI &II_,
     IJ2aI.resize(0);
     IJ2aI.resize(vNeighbor.size() * 2);
     for(int rowI = 0; rowI < vNeighbor.size(); rowI++) {
-        int nnz_rowI = 1;
-        int oldSize_ja = static_cast<int>(ja.size());
-        IJ2aI[rowI * 2][rowI * 2] = oldSize_ja;
-        IJ2aI[rowI * 2][rowI * 2 + 1] = oldSize_ja + 1;
-        ja.conservativeResize(ja.size() + 2);
-        ja.bottomRows(2) << rowI * 2 + 1, rowI * 2 + 2;
-        for(const auto& colI : vNeighbor[rowI]) {
-            if(colI > rowI) {
-                IJ2aI[rowI * 2][colI * 2] = static_cast<int>(ja.size());
-                IJ2aI[rowI * 2][colI * 2 + 1] = static_cast<int>(ja.size()) + 1;
-                ja.conservativeResize(ja.size() + 2);
-                ja.bottomRows(2) << colI * 2 + 1, colI * 2 + 2;
-                nnz_rowI++;
+        if(fixedVert.find(rowI) == fixedVert.end()) {
+            int oldSize_ja = static_cast<int>(ja.size());
+            IJ2aI[rowI * 2][rowI * 2] = oldSize_ja;
+            IJ2aI[rowI * 2][rowI * 2 + 1] = oldSize_ja + 1;
+            ja.conservativeResize(ja.size() + 2);
+            ja.bottomRows(2) << rowI * 2 + 1, rowI * 2 + 2;
+            
+            int nnz_rowI = 1;
+            for(const auto& colI : vNeighbor[rowI]) {
+                if(fixedVert.find(colI) == fixedVert.end()) {
+                    if(colI > rowI) {
+                        IJ2aI[rowI * 2][colI * 2] = static_cast<int>(ja.size());
+                        IJ2aI[rowI * 2][colI * 2 + 1] = static_cast<int>(ja.size()) + 1;
+                        ja.conservativeResize(ja.size() + 2);
+                        ja.bottomRows(2) << colI * 2 + 1, colI * 2 + 2;
+                        nnz_rowI++;
+                    }
+                }
             }
-        }
 
-        IJ2aI[rowI * 2 + 1] = IJ2aI[rowI * 2];
-        for(auto& IJ2aI_newRow : IJ2aI[rowI * 2 + 1]) {
-            IJ2aI_newRow.second += nnz_rowI * 2 - 1;
+            IJ2aI[rowI * 2 + 1] = IJ2aI[rowI * 2];
+            for(auto& IJ2aI_newRow : IJ2aI[rowI * 2 + 1]) {
+                IJ2aI_newRow.second += nnz_rowI * 2 - 1;
+            }
+            ja.conservativeResize(ja.size() + nnz_rowI * 2 - 1);
+            ja.bottomRows(nnz_rowI * 2 - 1) = ja.block(oldSize_ja + 1, 0, nnz_rowI * 2 - 1, 1);
+            
+            ia[rowI * 2 + 1] = ia[rowI * 2] + nnz_rowI * 2;
+            ia[rowI * 2 + 2] = ia[rowI * 2 + 1] + nnz_rowI * 2 - 1;
         }
-        ja.conservativeResize(ja.size() + nnz_rowI * 2 - 1);
-        ja.bottomRows(nnz_rowI * 2 - 1) = ja.block(oldSize_ja + 1, 0, nnz_rowI * 2 - 1, 1);
-        
-        ia[rowI * 2 + 1] = ia[rowI * 2] + nnz_rowI * 2;
-        ia[rowI * 2 + 2] = ia[rowI * 2 + 1] + nnz_rowI * 2 - 1;
+        else {
+            int oldSize_ja = static_cast<int>(ja.size());
+            IJ2aI[rowI * 2][rowI * 2] = oldSize_ja;
+            IJ2aI[rowI * 2 + 1][rowI * 2 + 1] = oldSize_ja + 1;
+            ja.conservativeResize(oldSize_ja + 2);
+            ja.bottomRows(2) << rowI * 2 + 1, rowI * 2 + 2;
+            ia[rowI * 2 + 1] = ia[rowI * 2] + 1;
+            ia[rowI * 2 + 2] = ia[rowI * 2 + 1] + 1;
+        }
     }
     
-    a.setZero(ja.size());
-    for(int tripletI = 0; tripletI < II_.size(); tripletI++) {
-        int i = II_[tripletI], j = JJ_[tripletI];
-        if(i <= j) {
-            a[IJ2aI[i][j]] += SS_[tripletI];
-        }
-    }
+    update_a(II_, JJ_, SS_);
     
 #ifdef PLOTS_PARDISO
     printf("ia: ");
@@ -385,14 +397,19 @@ void PardisoSolver<vectorTypeI,vectorTypeS>::update_a(const vectorTypeI &II_,
                                                       const vectorTypeI &JJ_,
                                                       const vectorTypeS &SS_)
 {
-    //NOTE: this function alone is slower than Roi's version,
-    //but since we do set_pattern more often, the needed iis and
-    //lowertriangularInd are not cheap to comptue
+    //TODO: fast indices!!
+    
+    assert(II_.size() == JJ_.size());
+    assert(II_.size() == SS_.size());
+    
     a.setZero(ja.size());
     for(int tripletI = 0; tripletI < II_.size(); tripletI++) {
         int i = II_[tripletI], j = JJ_[tripletI];
         if(i <= j) {
-            a[IJ2aI[i][j]] += SS_[tripletI];
+            assert(i < IJ2aI.size());
+            const auto finder = IJ2aI[i].find(j);
+            assert(finder != IJ2aI[i].end());
+            a[finder->second] += SS_[tripletI];
         }
     }
 }

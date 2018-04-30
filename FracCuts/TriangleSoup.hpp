@@ -81,7 +81,7 @@ namespace FracCuts{
         TriangleSoup(Primitive primitive, double size = 1.0, double spacing = 0.1, bool separateTri = true);
         
     public: // API
-        void computeFeatures(bool multiComp = false, bool resetFixedV = true);
+        void computeFeatures(bool multiComp = false, bool resetFixedV = false);
         void updateFeatures(void);
         void resetFixedVert(const std::set<int>& p_fixedVert);
         

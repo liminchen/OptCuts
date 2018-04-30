@@ -201,7 +201,7 @@ namespace FracCuts {
             }
         }
         
-        computeFeatures();
+        computeFeatures(false, true);
     }
     
     void initCylinder(double r1_x, double r1_y, double r2_x, double r2_y, double height, int circle_res, int height_resolution,
@@ -292,7 +292,7 @@ namespace FracCuts {
             *this = TriangleSoup(V_rest, F, V);
         }
         else {
-            computeFeatures();
+            computeFeatures(false, true);
         }
         initSeamLen = 0.0;
     }
@@ -756,7 +756,7 @@ namespace FracCuts {
                                   double& EwDec_max, std::vector<int>& path_max, Eigen::MatrixXd& newVertPos_max,
                                   std::pair<double, double>& energyChanges_max) const
     {
-        timer_step.start(5 + splitInterior);
+        timer_step.start(6 + splitInterior);
         
         const double filterExp_b = 0.6, filterMult_b = 1.0; //TODO: better use ratio
         const double filterExp_in = 0.6; // smaller than 0.5 is not recommanded
@@ -989,7 +989,7 @@ namespace FracCuts {
     {
         //TODO: local index updates in mergeBoundaryEdge()
         //TODO: parallelize the query
-        timer_step.start(7);
+        timer_step.start(8);
         
         std::cout << "evaluate edge merge, " << cohE.rows() << " cohesive edge pairs." << std::endl;
         localEwDec_max = -__DBL_MAX__;
