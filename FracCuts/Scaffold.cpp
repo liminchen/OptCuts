@@ -29,7 +29,9 @@ namespace FracCuts {
 
         Eigen::MatrixXd H;
         bool fixAMBoundary = false;
+        bool countTime = false;
         if(E.rows() == 0) {
+            countTime = true;
             timer.start(2);
             std::vector<std::vector<int>> bnd_all;
             igl::boundary_loop(mesh.F, bnd_all);
@@ -187,7 +189,7 @@ namespace FracCuts {
             }
         }
         
-        if(E.rows() == 0) {
+        if(countTime) {
             timer.stop();
         }
         
