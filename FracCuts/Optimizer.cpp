@@ -552,7 +552,9 @@ namespace FracCuts {
             computeEnergyVal(result, scaffold, lastEnergyVal); // this update is necessary since scaffold changes
             lastEnergyVal_scaffold = energyVal_scaffold;
         }
-        stepForward(result, scaffold, stepSize);
+        Eigen::MatrixXd resultV0 = result.V;
+        Eigen::MatrixXd scaffoldV0 = scaffold.airMesh.V;
+        stepForward(resultV0, scaffoldV0, result, scaffold, stepSize);
         double testingE;
 //        Eigen::VectorXd testingG;
         computeEnergyVal(result, scaffold, testingE);
@@ -573,7 +575,7 @@ namespace FracCuts {
                 break;
             }
             
-            stepForward(result, scaffold, -stepSize);
+            stepForward(resultV0, scaffoldV0, result, scaffold, stepSize);
             computeEnergyVal(result, scaffold, testingE);
 //            computeGradient(testingData, testingG);
         }
@@ -593,7 +595,7 @@ namespace FracCuts {
                 break;
             }
             
-            stepForward(result, scaffold, -stepSize);
+            stepForward(resultV0, scaffoldV0, result, scaffold, stepSize);
             computeEnergyVal(result, scaffold, testingE);
         }
         
@@ -622,8 +624,10 @@ namespace FracCuts {
         return stopped;
     }
     
-    void Optimizer::stepForward(TriangleSoup& data, Scaffold& scaffoldData, double stepSize) const
+    void Optimizer::stepForward(const Eigen::MatrixXd& dataV0, const Eigen::MatrixXd& scaffoldV0,
+                                TriangleSoup& data, Scaffold& scaffoldData, double stepSize) const
     {
+        assert(dataV0.rows() == data.V.rows());
         if(scaffolding) {
             assert(data.V.rows() + scaffoldData.airMesh.V.rows() - scaffoldData.bnd.size() == searchDir.size() / 2);
         }
@@ -633,11 +637,11 @@ namespace FracCuts {
         assert(data.V.rows() == result.V.rows());
         
         for(int vI = 0; vI < data.V.rows(); vI++) {
-            data.V(vI, 0) += stepSize * searchDir[vI * 2];
-            data.V(vI, 1) += stepSize * searchDir[vI * 2 + 1];
+            data.V(vI, 0) = dataV0(vI, 0) + stepSize * searchDir[vI * 2];
+            data.V(vI, 1) = dataV0(vI, 1) + stepSize * searchDir[vI * 2 + 1];
         }
         if(scaffolding) {
-            scaffoldData.stepForward(searchDir, stepSize);
+            scaffoldData.stepForward(scaffoldV0, searchDir, stepSize);
         }
     }
     

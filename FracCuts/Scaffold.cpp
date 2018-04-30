@@ -251,15 +251,16 @@ namespace FracCuts {
         searchDir_airMesh.bottomRows(airSystemSize) = searchDir.bottomRows(airSystemSize);
     }
     
-    void Scaffold::stepForward(const Eigen::VectorXd& searchDir, double stepSize)
+    void Scaffold::stepForward(const Eigen::MatrixXd& V0, const Eigen::VectorXd& searchDir, double stepSize)
     {
         assert(searchDir.size() / 2 == wholeMeshSize);
+        assert(V0.rows() == airMesh.V.rows());
 
         Eigen::VectorXd searchDir_airMesh;
         wholeSearchDir2airMesh(searchDir, searchDir_airMesh);
         for(int vI = 0; vI < airMesh.V.rows(); vI++) {
-            airMesh.V(vI, 0) += stepSize * searchDir_airMesh[vI * 2];
-            airMesh.V(vI, 1) += stepSize * searchDir_airMesh[vI * 2 + 1];
+            airMesh.V(vI, 0) = V0(vI, 0) + stepSize * searchDir_airMesh[vI * 2];
+            airMesh.V(vI, 1) = V0(vI, 1) + stepSize * searchDir_airMesh[vI * 2 + 1];
         }
     }
     

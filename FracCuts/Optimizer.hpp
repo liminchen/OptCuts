@@ -122,7 +122,8 @@ namespace FracCuts {
         
         bool lineSearch(void);
 
-        void stepForward(TriangleSoup& data, Scaffold& scaffoldData, double stepSize) const;
+        void stepForward(const Eigen::MatrixXd& dataV0, const Eigen::MatrixXd& scaffoldV0,
+                         TriangleSoup& data, Scaffold& scaffoldData, double stepSize) const;
         
         void updateTargetGRes(void);
         
