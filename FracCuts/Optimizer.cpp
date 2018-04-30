@@ -548,17 +548,14 @@ namespace FracCuts {
         double lastEnergyVal_scaffold = 0.0;
         const double m = searchDir.dot(gradient);
         const double c1m = 1.0e-4 * m;
-        TriangleSoup testingData = result;
-        Scaffold testingScaffold;
         if(scaffolding) {
-            testingScaffold = scaffold;
             computeEnergyVal(result, scaffold, lastEnergyVal); // this update is necessary since scaffold changes
             lastEnergyVal_scaffold = energyVal_scaffold;
         }
-        stepForward(testingData, testingScaffold, stepSize);
+        stepForward(result, scaffold, stepSize);
         double testingE;
 //        Eigen::VectorXd testingG;
-        computeEnergyVal(testingData, testingScaffold, testingE);
+        computeEnergyVal(result, scaffold, testingE);
 //        computeGradient(testingData, testingG);
         
 //        while((testingE > lastEnergyVal + stepSize * c1m) ||
@@ -576,16 +573,16 @@ namespace FracCuts {
                 break;
             }
             
-            stepForward(testingData, testingScaffold, stepSize);
-            computeEnergyVal(testingData, testingScaffold, testingE);
+            stepForward(result, scaffold, -stepSize);
+            computeEnergyVal(result, scaffold, testingE);
 //            computeGradient(testingData, testingG);
         }
         if(!mute) {
             std::cout << stepSize << "(armijo) ";
         }
 
-        while((!testingData.checkInversion()) ||
-              ((scaffolding) && (!testingScaffold.airMesh.checkInversion())))
+        while((!result.checkInversion()) ||
+              ((scaffolding) && (!scaffold.airMesh.checkInversion())))
         {
             assert(0 && "element inversion after armijo shouldn't happen!");
             
@@ -596,14 +593,10 @@ namespace FracCuts {
                 break;
             }
             
-            stepForward(testingData, testingScaffold, stepSize);
-            computeEnergyVal(testingData, testingScaffold, testingE);
+            stepForward(result, scaffold, -stepSize);
+            computeEnergyVal(result, scaffold, testingE);
         }
         
-        result.V = testingData.V;
-        if(scaffolding) {
-            scaffold.airMesh.V = testingScaffold.airMesh.V;
-        }
         lastEDec = lastEnergyVal - testingE;
         if(scaffolding) {
             lastEDec += (-lastEnergyVal_scaffold + energyVal_scaffold);
@@ -640,11 +633,11 @@ namespace FracCuts {
         assert(data.V.rows() == result.V.rows());
         
         for(int vI = 0; vI < data.V.rows(); vI++) {
-            data.V(vI, 0) = result.V(vI, 0) + stepSize * searchDir[vI * 2];
-            data.V(vI, 1) = result.V(vI, 1) + stepSize * searchDir[vI * 2 + 1];
+            data.V(vI, 0) += stepSize * searchDir[vI * 2];
+            data.V(vI, 1) += stepSize * searchDir[vI * 2 + 1];
         }
         if(scaffolding) {
-            scaffoldData.stepForward(scaffold.airMesh, searchDir, stepSize);
+            scaffoldData.stepForward(searchDir, stepSize);
         }
     }
     
