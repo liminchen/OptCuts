@@ -64,6 +64,7 @@ namespace FracCuts {
         Eigen::MatrixXd UV_bnds_scaffold;
         Eigen::MatrixXi E_scaffold;
         Eigen::VectorXi bnd_scaffold;
+        std::vector<std::set<int>> vNeighbor_withScaf;
         
         std::ostringstream buffer_energyValPerIter;
         std::ostringstream buffer_gradientPerIter;

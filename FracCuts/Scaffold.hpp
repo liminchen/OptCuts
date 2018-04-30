@@ -43,6 +43,8 @@ namespace FracCuts {
         // stepForward air mesh using augmented searchDir
         void stepForward(const TriangleSoup& airMesh0, const Eigen::VectorXd& searchDir, double stepSize);
         
+        void mergeVNeighbor(const std::vector<std::set<int>>& vNeighbor_mesh, std::vector<std::set<int>>& vNeighbor) const;
+        
         // for rendering purpose:
         void augmentUVwithAirMesh(Eigen::MatrixXd& UV, double scale) const;
         void augmentFwithAirMesh(Eigen::MatrixXi& F) const;

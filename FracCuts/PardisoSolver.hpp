@@ -9,6 +9,7 @@
 #define _PardisoSolver__
 
 #include <vector>
+#include <set>
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
@@ -52,6 +53,10 @@ public:
     void set_pattern(const vectorTypeI &II,
                      const vectorTypeI &JJ,
                      const vectorTypeS &SS);
+    void set_pattern(const vectorTypeI &II,
+                     const vectorTypeI &JJ,
+                     const vectorTypeS &SS,
+                     const std::vector<std::set<int>>& vNeighbor);
     void analyze_pattern();
     
     bool factorize();
@@ -60,6 +65,9 @@ public:
                Eigen::VectorXd &result);
     
     void update_a(const vectorTypeS &SS);
+    void update_a(const vectorTypeI &II,
+                  const vectorTypeI &JJ,
+                  const vectorTypeS &SS);
     
 protected:
     //vector that indicates which of the elements II,JJ input will be
@@ -71,6 +79,8 @@ protected:
     std::vector<Eigen::VectorXi> iis;
     Eigen::VectorXd a;
     int numRows;
+    
+    std::vector<std::map<int, int>> IJ2aI;
     
     //pardiso stuff
     /*

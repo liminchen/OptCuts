@@ -142,6 +142,7 @@ namespace FracCuts {
         if(scaffolding) {
             scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
             result.scaffold = &scaffold;
+            scaffold.mergeVNeighbor(result.vNeighbor, vNeighbor_withScaf);
         }
         
         computePrecondMtr(result, scaffold, precondMtr);
@@ -156,7 +157,8 @@ namespace FracCuts {
         else {
             if(!mute) { timer_step.start(1); }
             pardisoSolver.set_type(pardisoThreadAmt, -2);
-            pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
+//            pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
+            pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr, scaffolding ? vNeighbor_withScaf : result.vNeighbor);
             if(!mute) { timer_step.stop(); timer_step.start(2); }
             pardisoSolver.analyze_pattern();
             if(!mute) { timer_step.stop(); }
@@ -224,6 +226,7 @@ namespace FracCuts {
                     if(scaffolding) {
                         scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
                         result.scaffold = &scaffold;
+                        scaffold.mergeVNeighbor(result.vNeighbor, vNeighbor_withScaf);
                     }
                     
                     if(lastPropagate) {
@@ -243,6 +246,7 @@ namespace FracCuts {
                 if(scaffolding) {
                     scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
                     result.scaffold = &scaffold;
+                    scaffold.mergeVNeighbor(result.vNeighbor, vNeighbor_withScaf);
                 }
             }
         }
@@ -269,7 +273,8 @@ namespace FracCuts {
         }
         else {
             if(!mute) { timer_step.start(1); }
-            pardisoSolver.update_a(V_mtr);
+//            pardisoSolver.update_a(V_mtr);
+            pardisoSolver.update_a(I_mtr, J_mtr, V_mtr);
             if(!mute) { timer_step.stop(); timer_step.start(3); }
             pardisoSolver.factorize();
             if(!mute) { timer_step.stop(); }
@@ -284,6 +289,7 @@ namespace FracCuts {
         if(scaffolding) {
             scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
             result.scaffold = &scaffold;
+            scaffold.mergeVNeighbor(result.vNeighbor, vNeighbor_withScaf);
         }
         
         updateEnergyData();
@@ -300,6 +306,7 @@ namespace FracCuts {
         if(scaffolding) {
             scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
             result.scaffold = &scaffold;
+            scaffold.mergeVNeighbor(result.vNeighbor, vNeighbor_withScaf);
         }
     }
     
@@ -342,7 +349,8 @@ namespace FracCuts {
             }
             else {
                 if(!mute) { timer_step.start(1); }
-                pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
+//                pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
+                pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr, scaffolding ? vNeighbor_withScaf : result.vNeighbor);
                 if(!mute) { timer_step.stop(); timer_step.start(2); }
                 pardisoSolver.analyze_pattern();
                 if(!mute) { timer_step.stop(); }
@@ -420,6 +428,7 @@ namespace FracCuts {
             if(scaffolding) {
                 scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
                 result.scaffold = &scaffold;
+                scaffold.mergeVNeighbor(result.vNeighbor, vNeighbor_withScaf);
             }
 //            //DEBUG
 //            if(globalIterNum > 520) {
@@ -468,14 +477,16 @@ namespace FracCuts {
                 if(!fractureInitiated) {
                     if(scaffolding) {
                         if(!mute) { timer_step.start(1); }
-                        pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
+//                        pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr);
+                        pardisoSolver.set_pattern(I_mtr, J_mtr, V_mtr, scaffolding ? vNeighbor_withScaf : result.vNeighbor);
                         if(!mute) { timer_step.stop(); timer_step.start(2); }
                         pardisoSolver.analyze_pattern();
                         if(!mute) { timer_step.stop(); }
                     }
                     else {
                         if(!mute) { timer_step.start(1); }
-                        pardisoSolver.update_a(V_mtr);
+//                        pardisoSolver.update_a(V_mtr);
+                        pardisoSolver.update_a(I_mtr, J_mtr, V_mtr);
                         if(!mute) { timer_step.stop(); }
                     }
                 }

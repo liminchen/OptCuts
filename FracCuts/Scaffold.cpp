@@ -262,6 +262,19 @@ namespace FracCuts {
         }
     }
     
+    void Scaffold::mergeVNeighbor(const std::vector<std::set<int>>& vNeighbor_mesh, std::vector<std::set<int>>& vNeighbor) const
+    {
+        vNeighbor = vNeighbor_mesh;
+        vNeighbor.resize(wholeMeshSize);
+        for(int scafVI = 0; scafVI < airMesh.vNeighbor.size(); scafVI++) {
+            auto& neighbors = vNeighbor[localVI2Global[scafVI]];
+            for(const auto& nb_scafVI : airMesh.vNeighbor[scafVI]) {
+                neighbors.insert(localVI2Global[nb_scafVI]);
+            }
+        }
+        //!!! can be done in parallel
+    }
+    
     void Scaffold::augmentUVwithAirMesh(Eigen::MatrixXd& UV, double scale) const
     {
         int meshSize = UV.rows();
