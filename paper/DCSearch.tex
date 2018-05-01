@@ -12,7 +12,11 @@ and the weights $f_e$ of edge $e_{T,m}$ from $v_{T,i}$ to $v_{T,j}$ as
 \[ f_e(e_{T,m}) = f_v(v_{T,j}) - f_v(v_{T,i}) \]
 Thus our problem could be restated as to search for a $v_{T,i}$ in $G_T$ where all edges started from it satisfies $f_e \geq 0$.
 
-\minchen{However, computing $f_v$ for one UV topology requires a whole continuous optimization process, and even the number of neighbors of one UV topology is in the scale of $n_v$. Consequently, we construct a single search path on $G_T$ by iteratively finding a search direction and decide the step size via a forward line search. progressively introducing or removing seams on the UV map, and we only estimate $f_e$ on a local stencil of $U$ for a filtered set of neighbors on $G_T$ so that the whole process of continuous optimization is only conducted while necessary.}
+However, computing $f_v$ for one UV topology requires a whole continuous optimization process, and even the number of neighbors of one UV topology is in the scale of $n_v$. This in practice prevents us from treating our problem as a usual graph search one. Consequently, we construct a single search path on $G_T$ and only approximate the value of $f_v$ in a topological first-order manner to guide the search.
+
+\minchen{
+by iteratively finding a search direction and decide the step size via a forward line search. progressively introducing or removing seams on the UV map, and we only estimate $f_e$ on a local stencil of $U$ for a filtered set of neighbors on $G_T$ so that the whole process of continuous optimization is only conducted while necessary.
+}
 
 \minchen{
 We minimize $E_w$ by iteratively alternate between continuous optimization (in descent steps) and discrete optimization (in topology steps):
@@ -36,8 +40,6 @@ where $\mathcal{S}$ is the set of all seam edges on the input surface, $|e_i|$ i
 
 With the energies normalized, our $E_w$ is invariant of coordinate scale and resolution for meshes with the same shape.
 
-
-
 \input{descentSteps}
 
 \input{topologySteps}
@@ -45,7 +47,7 @@ With the energies normalized, our $E_w$ is invariant of coordinate scale and res
 \subsection{Convergence}
 \label{sec:convergence}
 
-As our method is defined to guarantee convergence, we now analyze the convergence rate. First, it's easy to see that $E_w$ is monotonically decreasing looking at each end of descent steps. Now we look at descent step $i$ and $i+1$, from $E^i_w \geq E^{i+1}_w$ we have
+As our method is defined to guarantee convergence, we now analyze the convergence rate. First, it is easy to see that $E_w$ is monotonically decreasing looking at each end of descent steps \minchen{[NOTE] might change to abandon roll back}. Now we look at descent step $i$ and $i+1$, from $E^i_w \geq E^{i+1}_w$ we have
 \[ E^i_{SD} - E^{i+1}_{SD} \geq \frac{\lambda}{1-\lambda} (E^{i+1}_{se} - E^i_{se}) \geq \frac{\lambda}{1-\lambda} \frac{1}{\sqrt{(\sum_t |A_t|)/\pi}} |e|_{min} \]
 if we now only consider splitting operations that keep increasing $E_{se}$. It's obvious that $E_{SD}$'s theoretical lower bound is defined to be $4$, so we have
 \[ n_{alter} \leq \frac{(1-\lambda)\sqrt{(\sum_t |A_t|)/\pi}}{\lambda|e|_{min}} (E^0_{SD} - 4) \]

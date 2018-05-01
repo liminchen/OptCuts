@@ -3,43 +3,35 @@
 \subsection{Descent Steps for Continuous Search}
 \label{sec:descentStep}
 
+\minchen{high level functionality of descent step}
+
 \subsubsection{Newton-type Iterations}
 
 \begin{algorithm}[h]
 \SetAlgoLined
-\KwData{Input model, UV coordinates $U$, UV topology $v_T$}
-\KwResult{$\arg\!\min_U E_{SD}$ given $v_T$}
-\For{each descent step inner iteration $j$}{
-	compute $E_{SD}$ gradient $g^j$\;
-	\If{$||g^j||^2 < 10^{-8}$ or $|E^j_{SD} - E^{j-1}_{SD}|/E^{j-1}_{SD} < 10^{-6}\alpha^{j-1}$}{
-		break\;
-	}
+\KwData{Input surface, $U_{j}$, $T_{j}$}
+\KwResult{$U^a_{j}$}
 
-	compute $E_{SD}$ Hessian proxy $P^j$ using projected Newton \cite{Teran2005Robust}\;
-	solve for search direction $p^j$ ($P^j p^j = -g^j$) using PARDISO \cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver\;
-	compute initial step size $\alpha^j_0$ by avoiding element inversion \cite{Smith2015Bijective}\;
-	backtracking line search with Armijo rule \cite{Armijo1966Minimization} to obtain $\alpha^j$\;
-	update $U^{j+1} = U^j + \alpha^j p^j$, $E^{j+1}_{SD} = E_{SD}(U^{j+1}, v_T)$\;
-	% read current\;
-	% \eIf{understand}{
-	% go to next section\;
-	% current section becomes this one\;
-	% }{
-	% go back to the beginning of current section\;
-	% }
+compute $E_{SD}$ gradient $g^{j} = \nabla E_{SD}(T_{j}, U_{j})$\;
+\If{$||g^{j}||^2 < 10^{-8}$}{
+	converge\;
 }
-\caption{Descent Steps}
-\end{algorithm}
-By applying projected Newton method~\cite{Teran2005Robust}, our linear system in each iteration is symmetric and semi-definite, so we use symmetric indefinite solver on it.
+compute $E_{SD}$ Hessian proxy $P^j$\;
+solve for search direction $p^j$ ($P^j p^j = -g^j$)\;
+compute initial step size $\alpha^j_0$\;
+back-tracking line search with Armijo rule to obtain $\alpha^j$\;
+update $U^a_{j} = U_j + \alpha^j p^j$, $E^{j,a}_{SD} = E_{SD}(U^a_{j}, T_{j})$\;
+\If{$|E^{j,a}_{SD} - E^{j}_{SD}|/E^{j}_{SD} < 10^{-6}\alpha^{j}$}{
+	stop\;
+}
 
-\minchen{[TODO] Fix a direction for the linear system to ensure definiteness. }
+\caption{Descent Step $j$}
+\end{algorithm}
+By applying projected Newton method~\cite{Teran2005Robust}, our linear system in each iteration is symmetric and semi-definite, so we use PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver to solve it \minchen{[TODO] change to use SPD solver by fixing a direction to ensure definiteness}. We followed Smith and Schaefer~\shortcite{Smith2015Bijective} to initialize step size $\alpha^j_0$ that avoids element inversion. Then we conduct back-tracking line search with Armijo rule~\cite{Armijo1966Minimization} to ensure sufficient energy decrease.
+
+Besides a relatively small tolerance on $g^j$ for convergence detection, we apply another relative energy decrease criteria to appropriately stop the process while necessary. This is better than setting a larger gradient tolerance since our energy is highly nonlinear, thus only when the gradient is small enough, we can ensure that the true local optimum infinitesimal region has been reached. \minchen{[NOTE] might not be necessary if we end descent step right after we have no appropriate elongation of topology step size.}
 
 \subsubsection{Potential Accelerations for Practical Use}
 
-Since our topological operations only change the mesh locally both on connectivity and coordinates, we could also update the Hessian or the decomposition locally after topology changes to save time. Besides, it's also interesting to try other Hessian approximation methods like L-BFGS \cite{Liu1989Limited} or composite majorization \cite{Shtengel2017Geometric} to explore further acceleration by finding a balance between computational cost and convergence rate.
+Since our topological operations only change the mesh locally both on connectivity and coordinates, we could also update the Hessian or the decomposition locally after topology changes to save time. Besides, it's also interesting to try other Hessian approximation methods like L-BFGS~\cite{Liu1989Limited} or composite majorization~\cite{Shtengel2017Geometric} to explore further acceleration by finding a balance between computational cost and convergence rate.
 
-For convergence tolerance of descent steps, $||\nabla E_{SD}||^2 \leq 10^{-6}$ (note that our energy is normalized) works generally well for all input models judging from the initiated fracture in the following topology step. In fact more inexact solve performs well on most of the models with even $||\nabla E_{SD}||^2 \leq 10^{-4}$, but some may result in bad cuts, and there are also some models will result in even better cuts with $||\nabla E_{SD}||^2 \leq 10^{-8}$. Since we are conducting non-convex optimization, $||\nabla E_{SD}||^2$ is not always decreasing, which is also why we don't use Wolfe conditions for line search. The argument here for tolerance issue is that, it depends on whether we are truly in the infinitesimal region of a stationary. Some configuration with $||\nabla E_{SD}||^2 \leq 10^{-6}$ may still not inside the infinitesimal region of a stationary, where if optimization goes on, $||\nabla E_{SD}||^2$ will go up and then fall down again to the real stationary, which is understandable in non-convex optimization. Consequently, we apply an extra stopping criteria for descent steps, which depends on the relative energy decrease to resolve this issue. Combined with an appropriately small tolerance on $||\nabla E_{SD}||^2$, say $10^{-8}$, this extra stopping criteria ends descent steps early appropriately only while necessary that cut initiation is not affected but projected Newton iterations and thus time needed is much less, especially for highly curved surfaces. This won't lead to bad results like simply setting larger tolerance on $||\nabla E_{SD}||^2$ since it ensures that the local optimal infinitesimal region is reached. Note that the problem of just using small tolerance on $||\nabla E_{SD}||^2$ is that it would be very unnecessary for those highly curved surfaces, where stationary needs many projected Newton iterations to reach and it won't affect cut initation.
-
-\minchen{[NOTE]
-Another drawback of setting higher tolerance on $||\nabla E_{SD}||^2$ is that some initiated cuts may not increase $\nabla E_{SD}$ enough to restart descent step - it converges right after it started, which result in unwise following cut initiations.
-}
