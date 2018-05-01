@@ -6,7 +6,7 @@
 
 Given an input triangle mesh of a 3D surface with $n_v$ vertices and its initial UV map with topology $T_0$ and coordinates $U_0 \in \mathcal{R}^{2n_v}$, we automatically search for
 \[ \argmin_{T,U} E_w(T,U) \]
-where $E_w(T,U) = E_s(T,U) + \lambda E_d(T,U)$ is the total energy combining both seam energy $E_s$ and distortion energy $E_d$ with a balancing factor $\lambda \in \mathcal{R^+}$. Notice that usually $E_d$ is smooth, while $E_s$ is defined to be non-differentiable, which gives us a discrete-continuous problem.
+where $E_w(T,U) = E_s(T) + \lambda E_d(T,U)$ is the total energy combining both seam energy $E_s$ and distortion energy $E_d$ with a balancing factor $\lambda \in \mathcal{R^+}$. Notice that usually $E_d$ is smooth, while $E_s$ is defined to be non-differentiable, which gives us a discrete-continuous problem.
 
 \paragraph{Joint Discrete-Continuous Search}
 
@@ -25,13 +25,13 @@ Since we ensure $E_w$ to be monotonically decreased in both the descent steps an
 \paragraph{Self-Weighted Objective}
 
 In order to automatically decide $\lambda$ and enable users to directly control the distortion they expect for the output UV map, we formulate a constrained optimization seeking to minimize seam energy $E_s$ subject to user-specified distortion bounds $b_d$:
-\[ \min_{T,U} E_s(T,U) \quad s.t. \quad E_d(T,U) - b_d \leq 0 \]
+\[ \min_{T,U} E_s(T) \quad s.t. \quad E_d(T,U) - b_d \leq 0 \]
 Introducing $\lambda$ as a dual variable gives us
-\[ \min_{T,U} \max_{\lambda \in \mathcal{R^+}} E_s(T,U) + \lambda(E_d(T,U) - b_d) \]
+\[ \min_{T,U} \max_{\lambda \in \mathcal{R^+}} E_s(T) + \lambda(E_d(T,U) - b_d) \]
 We solve it by adding a regularization term to make it smooth for $\lambda$, and alternatingly updating dual variable $\lambda$ and primal variables $T$ and $U$ (Section~\ref{sec:self_weighting}).
 
 The challenge here is that the initial embedding we start from is usually with high distortion, thus infeasible, and the quality of the output seams is highly affected by the $\lambda$ updating scheme. \minchen{[TODO] briefly describe what we do after finalized}
  
 \paragraph{Variations}
 
-When defining the total energy $E_w(T,U) = E_s(T,U) + \lambda E_d(T,U)$ for our discrete-continuous problem, the continuous energy $E_d(T,U)$ can be any kinds of distortion energy, measuring either isometry or conformality, and it can also be augmented with energies enforcing extra features such as bijectivity or seamlessness. This is also true for the discrete energy $E_s(T,U)$, which can be any energy related to seams, such as length, regional preference, smoothness, etc. The key is that with all these variations (we show some of them in Section~\ref{sec:results_variations}), our framework stays the same, and it efficiently generates optimal seams for the specific $E_w$. Moreover, we believe our framework can be applied to other discrete-continuous geometry processing problems, where $E_s$ can be any energy related to mesh topology, and $E_d$ can be any energy defined on the surface geometry.
+When defining the total energy $E_w(T,U) = E_s(T) + \lambda E_d(T,U)$ for our discrete-continuous problem, the continuous energy $E_d(T,U)$ can be any kinds of distortion energy, measuring either isometry or conformality, and it can also be augmented with energies enforcing extra features such as bijectivity or seamlessness. This is also true for the discrete energy $E_s(T)$, which can be any energy related to seams, such as length, regional preference, smoothness, etc. The key is that with all these variations (we show some of them in Section~\ref{sec:results_variations}), our framework stays the same, and it efficiently generates optimal seams for the specific $E_w$. Moreover, we believe our framework can be applied to other discrete-continuous geometry processing problems, where $E_s$ can be any energy related to mesh topology, and $E_d$ can be any energy defined on the surface geometry.

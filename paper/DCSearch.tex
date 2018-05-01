@@ -4,19 +4,27 @@
 
 \subsection{UV Topology Space}
 
-The UV topology space we are searching in can be represented using a directed graph $G_T$ with its vertices $v_T \in V_T$ being all possible UV topologies of a given 3D surface, and its edges $e_T \in E_T$ are the basic topological operations conducted on a mesh such as vertex split, edge merge, etc, that can transform one UV topology to a nearby topology.
+The UV topology space we are searching in can be represented using a directed graph $G_T$ with its vertices $v_T \in V_T$ being all possible UV topologies of a given 3D surface, and its edges $e_T \in E_T$ are the basic topological operations conducted on the UV map that can transform one UV topology to a nearby topology. Currently we support boundary and interior vertex split, and corner vertex merge operation.
 
-Now, if we consider both distortion and seam in one objective $E_w$, we can define the value $f_v$ of vertex $v_{T,i}$ as 
-\[ f_v(v_{T,i}) = \min_{U_i} E_w \]
-and the weights $f_w$ of edge $e_{T,m}$ from $v_{T,i}$ to $v_{T,j}$ could just be defined as 
-\[ f_w(e_{T,m}) = f_v(v_{T,j}) - f_v(v_{T,i}) \]
-Thus our problem could be written as
-\[ \min_{U, v_T} E_w \]
-which could be stated as to search for a $v_{T,i}$ on $G_T$ where all edges connected to it satisfies $f_w \geq 0$. 
+We define the value $f_v$ of vertex $v_{T,i}$ as 
+\[ f_v(v_{T,i}) = \min_{U} E_w(T_i, U) = E_s(T_i) + \min_{U} E_d(T_i, U) \]
+and the weights $f_e$ of edge $e_{T,m}$ from $v_{T,i}$ to $v_{T,j}$ as 
+\[ f_e(e_{T,m}) = f_v(v_{T,j}) - f_v(v_{T,i}) \]
+Thus our problem could be restated as to search for a $v_{T,i}$ in $G_T$ where all edges started from it satisfies $f_e \geq 0$.
 
-However, computing $f_v$ for one UV topology requires a whole continuous optimization process, and even the number of neighbors of one UV topology is in the scale of $n_v$. Consequently, we construct a single search path on $G_T$ by progressively introducing or removing seams on the UV map, and we only estimate $f_w$ on a local stencil of $U$ for a filtered set of neighbors on $G_T$ so that the whole process of continuous optimization is only conducted while necessary.
+\minchen{However, computing $f_v$ for one UV topology requires a whole continuous optimization process, and even the number of neighbors of one UV topology is in the scale of $n_v$. Consequently, we construct a single search path on $G_T$ by iteratively finding a search direction and decide the step size via a forward line search. progressively introducing or removing seams on the UV map, and we only estimate $f_e$ on a local stencil of $U$ for a filtered set of neighbors on $G_T$ so that the whole process of continuous optimization is only conducted while necessary.}
 
-\subsection{Method}
+\minchen{
+We minimize $E_w$ by iteratively alternate between continuous optimization (in descent steps) and discrete optimization (in topology steps):
+\begin{itemize}
+\item In descent steps, we compute $\min_{U_i} E_{SD}$ given $v_{T,i}$ via projected Newton method~\cite{Teran2005Robust} so that we obtain
+\[ f_v(v_{T,i}) = E_{se,i} + \min_{U_i} E_{SD} \]
+\item In topology steps, we estimate $f_v(v_{T,j})$ for a filtered set of neighbors of $v_{T,i}$ on a local stencil of $U$ as $\hat{f}_v$ and move onto the neighbor $v_{T,i+1}$ with smallest $\hat{f}_v$.
+\end{itemize}
+If after a descent step, $f_v(v_{T,i}) \geq f_v(v_{T,i-1})$ is detected, we stop the process by rolling back to $v_{T,i-1}$, which is the stationary of $E_w$ w.r.t. both UV topology (in an approximation sense) and coordinates that we are searching for.
+}
+
+\subsection{Energy Definition}
 
 To start with, we use symmetric Dirichlet energy~\cite{Smith2015Bijective} as our distortion energy, normalized by surface area:
 \[ E_d = E_{SD} = \frac{1}{\sum_{t\in\mathcal{F}} |A_t|} \sum_{t\in\mathcal{F}} |A_t|(\sigma_{t,1}^2 + \sigma_{t,2}^2 + \sigma_{t,1}^{-2} + \sigma_{t,2}^{-2}) \]
@@ -28,13 +36,11 @@ where $\mathcal{S}$ is the set of all seam edges on the input surface, $|e_i|$ i
 
 With the energies normalized, our $E_w$ is invariant of coordinate scale and resolution for meshes with the same shape.
 
-We minimize $E_w$ by iteratively alternate between continuous optimization (in descent steps) and discrete optimization (in topology steps):
-\begin{itemize}
-\item In descent steps, we compute $\min_{U_i} E_{SD}$ given $v_{T,i}$ via projected Newton method~\cite{Teran2005Robust} so that we obtain
-\[ f_v(v_{T,i}) = E_{se,i} + \min_{U_i} E_{SD} \]
-\item In topology steps, we estimate $f_v(v_{T,j})$ for a filtered set of neighbors of $v_{T,i}$ on a local stencil of $U$ as $\hat{f}_v$ and move onto the neighbor $v_{T,i+1}$ with smallest $\hat{f}_v$.
-\end{itemize}
-If after a descent step, $f_v(v_{T,i}) \geq f_v(v_{T,i-1})$ is detected, we stop the process by rolling back to $v_{T,i-1}$, which is the stationary of $E_w$ w.r.t. both UV topology (in an approximation sense) and coordinates that we are searching for.
+
+
+\input{descentSteps}
+
+\input{topologySteps}
 
 \subsection{Convergence}
 \label{sec:convergence}
@@ -46,7 +52,3 @@ if we now only consider splitting operations that keep increasing $E_{se}$. It's
 The most important hint we can read from this is, to accelerate convergence, we can move through multiple vertices on $G_T$ in each topology step to increase $E^{i+1}_{se} - E^i_{se}$.
 
 \minchen{[TODO] update the proof with merge operations?}
-
-\input{descentSteps}
-
-\input{topologySteps}
