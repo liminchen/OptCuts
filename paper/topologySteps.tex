@@ -66,53 +66,43 @@ For boundary vertex that connects to another boundary, we free both the 2 bounda
 Since we are using the local estimation to approximate true global energy decrease, it would be necessary to find a balance between accuracy and efficiency by weighing between size of local stencils and number of optimization iterations to run.
 }
 
-\minchen{[NOTE]
-Seamster's selected high curvature vertices are set to be the leaf of the seam tree while necessary, while our interior splitting scheme seems to always allow fracture to be extended on both the 2 sides of a picked vertex, which seems suboptimal. However, instead of just trying to connect interior vertex to the boundary like geometry images, we still have the reason to preserve our current interior splits because we've seen results that holes in UV map will be needed as a better solution for resolving some interior distortion. What we need to do is to take Seamster's inspiration and improve our interior splitting scheme.
-}
-
 \subsubsection{Line Search in Topological Space}
 \label{sec:topo_lineSearch}
 
 By controlling the set of candidate neighboring topologies, we differ topology steps into two kinds: a step that searches from all meaningful neighboring topologies essentially find a search direction; and steps that searches only from topologies obtained by extending the last topological operation are in fact searching for a topological step size for the current search direction.
 
-Once a fracture is initiated, it almost always be extended further in the later topology steps, which justifies the robustness of our method. To speed up the process, instead of waiting for another descent step and query all the filtered candidates again, we propagate this newly initiated fracture further in between the first several inner iterations of the following descent step.
+Even without forward topological line search, an operation is almost always being extended. So we invent the forward line search to speed up the process by avoiding unnecessary descent steps in between the topological operations.
 
-After the fracture has been initiated, we first go to descent step to run an inner iteration and record the energy decrease $\Delta E_w^j$ and energy $E_w^{j,0}$. Then we evaluate $\hat{f}_v$'s for splitting the tail vertex of the newly initiated fracture along its incident edges. If the one with largest $\hat{f}_v$ satisfies $\hat{f}_v - E_w^{j,0} \leq \Delta E_w^j$, we propagate the fracture along this edge, and run another inner iteration to do another propagation query. If there's no propagation that could benefit more than running the inner iteration, we stop querying propagation in the current descent step and run inner iterations till convergence:
+After the fracture has been initiated, we first go to descent step to run an inner iteration and record the energy decrease $\Delta E_w^j$ and energy $E_w^{j,0}$. Then we evaluate $\hat{f}_v$'s for splitting the tail vertex of the newly initiated fracture along its incident edges. If the one with largest $\hat{f}_v$ satisfies $\hat{f}_v - E_w^{j,0} \leq \Delta E_w^j$, we propagate the fracture along this edge, and run another inner iteration to do another propagation query. If there's no propagation that could benefit more than running the inner iteration, we just run another inner iteration and query the propagation again afterwards:
 
 \begin{algorithm}[h]
 \SetAlgoLined
-\KwData{Input model, UV coordinates $U$, UV topology $v_T$}
-\KwResult{new UV topology $v_T$ and UV coordinates $U$}
-\For{each interior incident edge of current fracture tail vertex $k$}{
-  split and compute $\Delta E_{SD, l}$ locally\;
+\KwData{Input surface, $U^a_j$, $T_j$}
+\KwResult{$U_{j+1}$, $T_{j+1}$}
+\For{each neighbor in the candidate set}{
+  compute $\Delta E_{SD, l}$ locally\;
   compute $\Delta E_{w,l} = (1 - \lambda_t) \Delta E_{SD,l} + \lambda_t \Delta E_{se}$\;
 }
 \eIf{$\max (|\Delta E_{w,l}|) \geq |(1-\lambda_t)\Delta E_{SD}^j|$}
 {
-  propagate fracture by splitting the vertex\;
-  update fracture tail record\;
+  $U_{j+1} \leftarrow $, $T_j \leftarrow $\;
 }
 {
-  turn off fracture propagation for the rest of the current descent step\;
+  $U_{j+1} \leftarrow U^a_j$\;
 }
-\caption{Fracture Propagation Line Search}
+\caption{Topology Step $j$}
 \end{algorithm}
-
-\minchen{[TODO] Write merge propagation}
 
 \minchen{[NOTE] Besides fracture propagation line search, increase the depth of querying fracture initiation did the same thing but with more computational cost. However, it could improve the results because it's more global! (Inspired by Seamster)}
 
 \subsubsection{Multiple Fracture Initiation}
-\minchen{[TODO]}
 
 Multiple fracture initiation would be redundant on a single cone-like region since only one fracture would be enough to release the distortion. However, initiating one fracture for each cone-like region within a single topology step would certainly accelerate the whole process.
 
 This could be done by partitioning the UV space according to distortion or filtering measurement and initiate a valid fracture (if any) in each region in every topology step. The partition criteria could be separating the domain so that on each subdomain, the function is convex (has exactly one stationary).
 
-\paragraph{Corner Merge} Applied relaxation method for projecting average position to inversion free position to start from, however cases are still there where only move the merged vertex is not enough
-method ref:
-S. Agmon. The relaxation method for linear inequalities
-I. Eremin. The relaxation method of solving systems of inequalities with convex functions on the left sides
+\paragraph{Corner Merge} Applied relaxation method~\cite{Agmon1954Relaxation} for projecting average position to inversion free position to start from, however cases are still there where only move the merged vertex is not enough
 
 \paragraph{Forward Topological Line Search} It is based on a kind of sufficient energy decrease criteria similar to Armijo rule in the continuous setting, where our epsilon term is the energy decrease of the previous PN iteration.
+
 To understand alternating lambda updates between PN iterations: lambda update changes the energy manifold, so it couldn't be too frequent or the manifold can't really be explored enough, nor it could be too seldom or it would be trapped in a local region.

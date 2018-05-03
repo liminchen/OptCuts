@@ -20,7 +20,7 @@ compute $E_{SD}$ Hessian proxy $P^j$\;
 solve for search direction $p^j$ ($P^j p^j = -g^j$)\;
 compute initial step size $\alpha^j_0$\;
 back-tracking line search with Armijo rule to obtain $\alpha^j$\;
-update $U^a_{j} = U_j + \alpha^j p^j$, $E^{j,a}_{SD} = E_{SD}(U^a_{j}, T_{j})$\;
+$U^a_{j} \leftarrow U_j + \alpha^j p^j$, $E^{j,a}_{SD} \leftarrow E_{SD}(U^a_{j}, T_{j})$\;
 \If{$|E^{j,a}_{SD} - E^{j}_{SD}|/E^{j}_{SD} < 10^{-6}\alpha^{j}$}{
 	stop\;
 }
