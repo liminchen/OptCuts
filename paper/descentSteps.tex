@@ -11,7 +11,6 @@
 \SetAlgoLined
 \KwData{Input surface, $U_{j}$, $T_{j}$}
 \KwResult{$U^a_{j}$}
-
 compute $E_{SD}$ gradient $g^{j} = \nabla E_{SD}(T_{j}, U_{j})$\;
 \If{$||g^{j}||^2 < 10^{-8}$}{
 	converge\;
@@ -24,8 +23,8 @@ $U^a_{j} \leftarrow U_j + \alpha^j p^j$, $E^{j,a}_{SD} \leftarrow E_{SD}(U^a_{j}
 \If{$|E^{j,a}_{SD} - E^{j}_{SD}|/E^{j}_{SD} < 10^{-6}\alpha^{j}$}{
 	stop\;
 }
-
 \caption{Descent Step $j$}
+\label{alg:descentStep}
 \end{algorithm}
 By applying projected Newton method~\cite{Teran2005Robust}, our linear system in each iteration is symmetric and semi-definite, so we use PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver to solve it \minchen{[TODO] change to use SPD solver by fixing a direction to ensure definiteness}. We followed Smith and Schaefer~\shortcite{Smith2015Bijective} to initialize step size $\alpha^j_0$ that avoids element inversion. Then we conduct back-tracking line search with Armijo rule~\cite{Armijo1966Minimization} to ensure sufficient energy decrease.
 

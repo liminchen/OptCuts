@@ -3,7 +3,31 @@
 \subsection{Topology Steps for Discrete Search}
 \label{sec:topologyStep}
 
-\subsubsection{Evaluating Topological Operations via Optimization on Local Stencils}
+In topology steps, we estimate $f_v(v_{T,j})$ for a filtered set of neighbors of $v_{T,i}$ on a local stencil of $U$ as $\hat{f}_v$ and move onto the neighbor $v_{T,i+1}$ with smallest $\hat{f}_v$.
+
+After the fracture has been initiated, we first go to descent step to run an inner iteration and record the energy decrease $\Delta E_w^j$ and energy $E_w^{j,0}$. Then we evaluate $\hat{f}_v$'s for splitting the tail vertex of the newly initiated fracture along its incident edges. If the one with largest $\hat{f}_v$ satisfies $\hat{f}_v - E_w^{j,0} \leq \Delta E_w^j$, we propagate the fracture along this edge, and run another inner iteration to do another propagation query. If there's no propagation that could benefit more than running the inner iteration, we just run another inner iteration and query the propagation again afterwards.
+
+\begin{algorithm}[h]
+\SetAlgoLined
+\KwData{Input surface, $U^a_j$, $T_j$}
+\KwResult{$U_{j+1}$, $T_{j+1}$}
+\For{each neighbor in the candidate set}{
+  compute $\Delta E_{SD, l}$ locally\;
+  compute $\Delta E_{w,l} = (1 - \lambda_t) \Delta E_{SD,l} + \lambda_t \Delta E_{se}$\;
+}
+\eIf{$\max (|\Delta E_{w,l}|) \geq |(1-\lambda_t)\Delta E_{SD}^j|$}
+{
+  $U_{j+1} \leftarrow $, $T_j \leftarrow $\;
+}
+{
+  $U_{j+1} \leftarrow U^a_j$\;
+}
+\caption{Topology Step $j$}
+\end{algorithm}
+
+Even without forward topological line search, an operation is almost always being extended. So we invent the forward line search to speed up the process by avoiding unnecessary descent steps in between the topological operations.
+
+\subsubsection{Candidate Filtering}
 
 \begin{algorithm}[h]
 \SetAlgoLined
@@ -20,6 +44,8 @@
 }
 \caption{Candidate Filtering}
 \end{algorithm}
+
+\subsubsection{First Order Estimation}
 
 \begin{algorithm}[h]
 \SetAlgoLined
@@ -62,47 +88,4 @@ conduct the operation with largest $|\Delta E_{w,l}|$
 \end{algorithm}
 For boundary vertex that connects to another boundary, we free both the 2 boundary vertices while evaluating the local energy decrease.
 
-\minchen{[TODO]
-Since we are using the local estimation to approximate true global energy decrease, it would be necessary to find a balance between accuracy and efficiency by weighing between size of local stencils and number of optimization iterations to run.
-}
-
-\subsubsection{Line Search in Topological Space}
-\label{sec:topo_lineSearch}
-
-By controlling the set of candidate neighboring topologies, we differ topology steps into two kinds: a step that searches from all meaningful neighboring topologies essentially find a search direction; and steps that searches only from topologies obtained by extending the last topological operation are in fact searching for a topological step size for the current search direction.
-
-Even without forward topological line search, an operation is almost always being extended. So we invent the forward line search to speed up the process by avoiding unnecessary descent steps in between the topological operations.
-
-After the fracture has been initiated, we first go to descent step to run an inner iteration and record the energy decrease $\Delta E_w^j$ and energy $E_w^{j,0}$. Then we evaluate $\hat{f}_v$'s for splitting the tail vertex of the newly initiated fracture along its incident edges. If the one with largest $\hat{f}_v$ satisfies $\hat{f}_v - E_w^{j,0} \leq \Delta E_w^j$, we propagate the fracture along this edge, and run another inner iteration to do another propagation query. If there's no propagation that could benefit more than running the inner iteration, we just run another inner iteration and query the propagation again afterwards:
-
-\begin{algorithm}[h]
-\SetAlgoLined
-\KwData{Input surface, $U^a_j$, $T_j$}
-\KwResult{$U_{j+1}$, $T_{j+1}$}
-\For{each neighbor in the candidate set}{
-  compute $\Delta E_{SD, l}$ locally\;
-  compute $\Delta E_{w,l} = (1 - \lambda_t) \Delta E_{SD,l} + \lambda_t \Delta E_{se}$\;
-}
-\eIf{$\max (|\Delta E_{w,l}|) \geq |(1-\lambda_t)\Delta E_{SD}^j|$}
-{
-  $U_{j+1} \leftarrow $, $T_j \leftarrow $\;
-}
-{
-  $U_{j+1} \leftarrow U^a_j$\;
-}
-\caption{Topology Step $j$}
-\end{algorithm}
-
-\minchen{[NOTE] Besides fracture propagation line search, increase the depth of querying fracture initiation did the same thing but with more computational cost. However, it could improve the results because it's more global! (Inspired by Seamster)}
-
-\subsubsection{Multiple Fracture Initiation}
-
-Multiple fracture initiation would be redundant on a single cone-like region since only one fracture would be enough to release the distortion. However, initiating one fracture for each cone-like region within a single topology step would certainly accelerate the whole process.
-
-This could be done by partitioning the UV space according to distortion or filtering measurement and initiate a valid fracture (if any) in each region in every topology step. The partition criteria could be separating the domain so that on each subdomain, the function is convex (has exactly one stationary).
-
 \paragraph{Corner Merge} Applied relaxation method~\cite{Agmon1954Relaxation} for projecting average position to inversion free position to start from, however cases are still there where only move the merged vertex is not enough
-
-\paragraph{Forward Topological Line Search} It is based on a kind of sufficient energy decrease criteria similar to Armijo rule in the continuous setting, where our epsilon term is the energy decrease of the previous PN iteration.
-
-To understand alternating lambda updates between PN iterations: lambda update changes the energy manifold, so it couldn't be too frequent or the manifold can't really be explored enough, nor it could be too seldom or it would be trapped in a local region.
