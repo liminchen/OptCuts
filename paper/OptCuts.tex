@@ -135,9 +135,11 @@ Seam Placement and Parameterization for 3D Surfaces}
 \begin{abstract}
 % context and need
 Mapping 3D surfaces to the plane is a fundamental problem with applications in texture mapping, remeshing, and detail transfer.
+%
 For most surfaces, one has to introduce discontinuities (seams) and distortion to produce a valid map. Existing techniques largely consider seam placement and distortion minimization independently, first placing seams and then minimizing distortion; this leads to sub-optimal output.
 % task and object
 As an alternative, we propose {\em OptCuts}, a joint discrete-continuous optimization framework that progressively places seams between distortion minimization steps, to reduce a linear combination of a distortion energy and seam length. 
+\vova{This sounds like AutoCuts objective. I think ours: "minimize seam length while satisfying a desired distortion bound." Earlier on, we should have another sentence about how this is the right goal for this problem. }
 %he stationary w.r.t. both UV topology and coordinates are guaranteed to be reached within a bounded number of iterations per balancing factor, input model, and initial embedding.%<--- not sure this is true, also probably not necessary for abstract
 Starting with an initial embedding, OptCuts alternates between topology steps and descent steps to search for an optimal UV map. 
 %
