@@ -1,91 +1,33 @@
 % !TeX root = DCSearch.tex
 
-\subsection{Topology Steps for Discrete Search}
+\subsection{Topology Steps}
 \label{sec:topologyStep}
 
-In topology steps, we estimate $f_v(v_{T,j})$ for a filtered set of neighbors of $v_{T,i}$ on a local stencil of $U$ as $\hat{f}_v$ and move onto the neighbor $v_{T,i+1}$ with smallest $\hat{f}_v$.
-
-After the fracture has been initiated, we first go to descent step to run an inner iteration and record the energy decrease $\Delta E_w^j$ and energy $E_w^{j,0}$. Then we evaluate $\hat{f}_v$'s for splitting the tail vertex of the newly initiated fracture along its incident edges. If the one with largest $\hat{f}_v$ satisfies $\hat{f}_v - E_w^{j,0} \leq \Delta E_w^j$, we propagate the fracture along this edge, and run another inner iteration to do another propagation query. If there's no propagation that could benefit more than running the inner iteration, we just run another inner iteration and query the propagation again afterwards.
+In topology steps, we move to a neighboring UV topology with the best first-order reduction in $E_w$ via conducting a basic topological operation searched from the given operation set $\hat{\mathcal{E}}^i_T$. However, if the first-order reduction is not satisfying the threshold $\delta^i$, nothing will be changed.
 
 \begin{algorithm}[h]
 \SetAlgoLined
-\KwData{Input surface, $U^a_j$, $T_j$}
-\KwResult{$U_{j+1}$, $T_{j+1}$}
-\For{each neighbor in the candidate set}{
-  compute $\Delta E_{SD, l}$ locally\;
-  compute $\Delta E_{w,l} = (1 - \lambda_t) \Delta E_{SD,l} + \lambda_t \Delta E_{se}$\;
+\KwData{$M$, $T^i$, $U^i$, $\hat{\mathcal{E}}^i_T$, $\delta^i$}
+\KwResult{$T^{i+1}$, $U_a^{i}$}
+\For{each $e^{i,j}_{T}$ in $\hat{\mathcal{E}}^i_T$}{
+  compute $\hat{f}_e(e^{i,j}_{T}) = \Big(E^j_s + \lambda \min_{U^{i,j}} E_d(T^j,U)\Big) - E^i_{w}$\;
 }
-\eIf{$\max (|\Delta E_{w,l}|) \geq |(1-\lambda_t)\Delta E_{SD}^j|$}
+$U_a^{i} \leftarrow U^i$\;
+\If{$\min_{e^{i,j}_{T} \in \hat{\mathcal{E}}^i_T} \hat{f}_e(e^{i,j}_{T}) \leq \delta^i$}
 {
-  $U_{j+1} \leftarrow $, $T_j \leftarrow $\;
-}
-{
-  $U_{j+1} \leftarrow U^a_j$\;
+  $T^{i+1} \leftarrow T^j$, $U_a^{i,j} \leftarrow \argmin_{U^{i,j}} E_d(T^j,U)$\;
 }
 \caption{Topology Step $j$}
 \end{algorithm}
 
-Even without forward topological line search, an operation is almost always being extended. So we invent the forward line search to speed up the process by avoiding unnecessary descent steps in between the topological operations.
+We compute the first-order reduction of $E_w$ from $T^i$ to $T^j$ for all $e^{i,j}_T \in \mathcal{E}^i_T$ in parallel, and only moves to $v^j_T$ with smallest $\hat{f}_e(e^{i,j}_{T})$, if this energy decrease is smaller than $\delta^i$. Recall that the threshold $\delta^i$ is set as the energy decrease in the current descent step. For deciding a search direction, $\delta^i$ is near $0$ as the current descent step converged, while for computing the topology step size, $\delta^i$ is not $0$. This together let our alternating process always pick the search step (continous or discrete) that decrease $E_w$ more to perform.
 
-\subsubsection{Candidate Filtering}
+\paragraph{Operation Filtering}
+As the number of vertex that could be splitted is in the scale of $n_p$, and it is obvious that initiating a cut in near-isometric regions won't help improve the UV map much, we filter the vertices to be considered in a split operation by computing the standard deviation of the local individual energy gradients on a vertex, and only consider the top $n_p^{0.6}$ vertices with large deviation. \minchen{[TODO] why not filtering by energy? how to filter it well for bijective parameterization?} For each vertex to be splitted in the candidate set, we evaluate every splitting possibility.
 
-\begin{algorithm}[h]
-\SetAlgoLined
-\KwData{Input model, UV coordinates $U$, UV topology $v_T$}
-\KwResult{A filtered set of UV vertices}
-\eIf{boundary split}
-{
-  compute divergence of local gradients for all $n_{v,b}^i$ boundary vertices\;
-  pick $(n_{v,b}^i)^{0.8}$ vertices with largest divergence as candidates\;
-}
-{
-  compute divergence of local gradients for all $n_{v,i}^i$ interior vertices that doesn't connect to boundary\;
-  pick $(n_{v,i}^i)^{0.8}$ vertices with largest divergence as candidates\;
-}
-\caption{Candidate Filtering}
-\end{algorithm}
+\paragraph{First Order Reduction}
+We take the one-ring stencil of the splitted or merged vertex, and optimize $E_d$ on it with the one-ring neighbors fixed. As our energies are normalized, we renormalize the energies defined on the local stencil to be the same measure as the energy defined on the whole UV map.
 
-\subsubsection{First Order Estimation}
+\paragraph{Corner Merge} We merge the 2 incident boundary edges with averaged position. If element inversion is detected, we apply relaxation method~\cite{Agmon1954Relaxation} for projecting average position to inversion free position to start from, however cases are still there where only move the merged vertex is not enough, for which we will just abandon it.
 
-\begin{algorithm}[h]
-\SetAlgoLined
-\KwData{Input model, UV coordinates $U$, UV topology $v_T$, candidate UV vertices}
-\KwResult{new UV topology $v_T$ and UV coordinates $U$}
-\For{each candidate UV vertex}{
-  \eIf{on boundary}
-  {
-    \For{each interior incident edge}{
-      split and compute $\Delta E_{SD,l}$ locally\;
-      compute $\Delta E_{w,l} = (1 - \lambda_t) \Delta E_{SD,l} + \lambda_t \Delta E_{se}$\;
-    }
-  }
-  {
-    \For{each pair of incident edges}{
-      split and compute $\Delta E_{SD,l}$ locally\;
-      compute $\Delta E_{w,l} = 0.5((1 - \lambda_t) \Delta E_{SD,l} + \lambda_t \Delta E_{se})$\;
-    }
-  }
-}
-\If{!interiorSplit}
-{
-  \For{each fracture tail}
-  {
-    merge the 2 incident boundary edges with averaged position\;
-    \If{element inversion is detected}
-    {
-      project the averaged position to feasible region\;
-      \If{feasible region is empty}
-      {
-        continue\;
-      }
-    }
-    compute $\Delta E_{SD,l}$ locally\;
-    compute $\Delta E_{w,l} = (1-\lambda_t)\Delta E_{SD,l}+\lambda_t \Delta E_{se}$
-  }
-}
-conduct the operation with largest $|\Delta E_{w,l}|$
-\caption{Local Evaluation}
-\end{algorithm}
-For boundary vertex that connects to another boundary, we free both the 2 boundary vertices while evaluating the local energy decrease.
-
-\paragraph{Corner Merge} Applied relaxation method~\cite{Agmon1954Relaxation} for projecting average position to inversion free position to start from, however cases are still there where only move the merged vertex is not enough
+For boundary vertex that connects to another boundary, we free both the 2 boundary vertices while evaluating the local energy decrease. For merge

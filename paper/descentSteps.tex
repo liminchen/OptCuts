@@ -1,36 +1,35 @@
 % !TeX root = DCSearch.tex
 
-\subsection{Descent Steps for Continuous Search}
+\subsection{Descent Steps}
 \label{sec:descentStep}
 
-\minchen{high level functionality of descent step}
-
-\subsubsection{Newton-type Iterations}
+Descent steps apply Newton-type method to solve $\min_U E_d$ with $T$ fixed.
 
 \begin{algorithm}[h]
 \SetAlgoLined
-\KwData{Input surface, $U_{j}$, $T_{j}$}
-\KwResult{$U^a_{j}$}
-compute $E_{SD}$ gradient $g^{j} = \nabla E_{SD}(T_{j}, U_{j})$\;
-\If{$||g^{j}||^2 < 10^{-8}$}{
+\KwData{$M$, $T^{i+1}$, $U_a^{i}$}
+\KwResult{$U^{i+1}$, $\delta^{i+1}$}
+$g^{i} \leftarrow \nabla E_{SD}(T^{i+1}, U_a^{i})$\;
+\If{$||g^{i}||^2 < 10^{-8}$}{
 	converge\;
 }
-compute $E_{SD}$ Hessian proxy $P^j$\;
-solve for search direction $p^j$ ($P^j p^j = -g^j$)\;
-compute initial step size $\alpha^j_0$\;
-back-tracking line search with Armijo rule to obtain $\alpha^j$\;
-$U^a_{j} \leftarrow U_j + \alpha^j p^j$, $E^{j,a}_{SD} \leftarrow E_{SD}(U^a_{j}, T_{j})$\;
-\If{$|E^{j,a}_{SD} - E^{j}_{SD}|/E^{j}_{SD} < 10^{-6}\alpha^{j}$}{
+compute $E_{SD}$ Hessian proxy $P^i$\;
+solve for search direction $p^i$ ($P^i p^i = -g^i$)\;
+compute initial step size $\alpha^i_0$\;
+back-tracking line search with Armijo rule to obtain $\alpha^i$\;
+$U^{i+1} \leftarrow U_a^i + \alpha^i p^i$\;
+$\delta^{i+1} \leftarrow E_{SD}(T^{i+1}, U^{i+1}) - E_{SD}(T^{i+1}, U_a^{i})$\;
+\If{$|\delta^{i+1}|/E_{SD}(T^{i+1}, U_a^{i}) < 10^{-6}\alpha^{i}$}{
 	stop\;
 }
-\caption{Descent Step $j$}
+\caption{Descent Step $i$}
 \label{alg:descentStep}
 \end{algorithm}
-By applying projected Newton method~\cite{Teran2005Robust}, our linear system in each iteration is symmetric and semi-definite, so we use PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver to solve it \minchen{[TODO] change to use SPD solver by fixing a direction to ensure definiteness}. We followed Smith and Schaefer~\shortcite{Smith2015Bijective} to initialize step size $\alpha^j_0$ that avoids element inversion. Then we conduct back-tracking line search with Armijo rule~\cite{Armijo1966Minimization} to ensure sufficient energy decrease.
+By applying projected Newton method~\cite{Teran2005Robust}, our linear system in each descent step is symmetric and semi-definite, so we use PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver to solve it \minchen{[TODO] change to use SPD solver by fixing a direction to ensure definiteness}. We followed Smith and Schaefer~\shortcite{Smith2015Bijective} to initialize step size $\alpha^i_0$ that avoids element inversion. Then we conduct back-tracking line search with Armijo rule~\cite{Armijo1966Minimization} to ensure sufficient energy decrease.
 
-Besides a relatively small tolerance on $g^j$ for convergence detection, we apply another relative energy decrease criteria to appropriately stop the process while necessary. This is better than setting a larger gradient tolerance since our energy is highly nonlinear, thus only when the gradient is small enough, we can ensure that the true local optimum infinitesimal region has been reached. \minchen{[NOTE] might not be necessary if we end descent step right after we have no appropriate elongation of topology step size.}
+Besides a relatively small tolerance on $g^i$ for convergence detection, we apply another relative energy decrease criteria to appropriately stop the process while necessary.
+This can stop our continuous search at the true local optimum infinitesimal better than setting a larger gradient tolerance since our energy is highly nonlinear. \minchen{[NOTE] might not be necessary if we end descent step right after we have no appropriate extension of topology step size.}
 
-\subsubsection{Potential Accelerations for Practical Use}
-
+\paragraph{Potential Accelerations for Practical Use}
 Since our topological operations only change the mesh locally both on connectivity and coordinates, we could also update the Hessian or the decomposition locally after topology changes to save time. Besides, it's also interesting to try other Hessian approximation methods like L-BFGS~\cite{Liu1989Limited} or composite majorization~\cite{Shtengel2017Geometric} to explore further acceleration by finding a balance between computational cost and convergence rate.
 

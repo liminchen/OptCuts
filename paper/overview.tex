@@ -1,10 +1,10 @@
 % !TeX root = OptCuts.tex
 
 \section{Framework Overview}
-
+\minchen{add more motivation}
 \paragraph{A Discrete-Continuous Problem}
 
-Given an input triangle mesh of a 3D surface with $n_v$ vertices and its initial UV map with topology $T_0$ and coordinates $U_0 \in \mathcal{R}^{2n_v}$, we automatically search for
+Given an input triangle mesh $M$ of a 3D surface with $n_p$ vertices and its initial UV map with topology $T^0$ and coordinates $U^0 \in \mathcal{R}^{2n_p}$, we automatically search for
 \[ \argmin_{T,U} E_w(T,U) \]
 where $E_w(T,U) = E_s(T) + \lambda E_d(T,U)$ is the total energy combining both seam energy $E_s$ and distortion energy $E_d$ with a balancing factor $\lambda \in \mathcal{R^+}$. Notice that usually $E_d$ is smooth, while $E_s$ is defined to be non-differentiable, which gives us a discrete-continuous problem.
 
@@ -16,7 +16,7 @@ Descent steps deal with the continuous search
 $\min_U E_d$
 where $T$ is fixed and Newton-type method is applied (Section~\ref{sec:descentStep}).
 Topology steps deal with the discrete search (Section~\ref{sec:topologyStep}) where a neighboring topology is searched based on the first-order reduction it would cause in $E_w$.
-While each descent step is one complete Newton-type iteration with back-tracking line search, a sequence of topology steps alternated with descent steps are used to perform a forward line search in topology space. \minchen{analogously a direction is decided first and followed with elongations}
+While each descent step is one complete Newton-type iteration with back-tracking line search, a sequence of topology steps alternated with descent steps are used to perform a forward line search in topology space: a search direction is first decided and then the step size is increased to ensure sufficent energy decrease.
 
 Given a topology change, we evaluate the first-order reduction of $E_w$ it would cause by minimizing $E_d$ only on the local stencil of the edited seam edge and combine it with the $E_s$ change. Experiments demonstrate that this is efficient and sufficient for always editing the seams reasonably and sustainably (Section~\ref{sec:results_exp}).
 
