@@ -3,7 +3,7 @@
 \subsection{Descent Steps}
 \label{sec:descentStep}
 
-Descent steps apply Newton-type method to solve $\min_U E_d$ with $T$ fixed.
+Descent steps takes in the locally altered UV map by the current topology step, and conduct one Newton-type iteration towards solving $\min_U E_d$ with $T$ fixed.
 
 \begin{algorithm}[h]
 \SetAlgoLined
@@ -14,7 +14,7 @@ $g^{i} \leftarrow \nabla E_{SD}(T^{i+1}, U_a^{i})$\;
 	converge\;
 }
 compute $E_{SD}$ Hessian proxy $P^i$\;
-solve for search direction $p^i$ ($P^i p^i = -g^i$)\;
+solve $P^i p^i = -g^i$ for search direction $p^i$\;
 compute initial step size $\alpha^i_0$\;
 back-tracking line search with Armijo rule to obtain $\alpha^i$\;
 $U^{i+1} \leftarrow U_a^i + \alpha^i p^i$\;
@@ -25,11 +25,11 @@ $\delta^{i+1} \leftarrow E_{SD}(T^{i+1}, U^{i+1}) - E_{SD}(T^{i+1}, U_a^{i})$\;
 \caption{Descent Step $i$}
 \label{alg:descentStep}
 \end{algorithm}
-By applying projected Newton method~\cite{Teran2005Robust}, our linear system in each descent step is symmetric and semi-definite, so we use PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver to solve it \minchen{[TODO] change to use SPD solver by fixing a direction to ensure definiteness}. We followed Smith and Schaefer~\shortcite{Smith2015Bijective} to initialize step size $\alpha^i_0$ that avoids element inversion. Then we conduct back-tracking line search with Armijo rule~\cite{Armijo1966Minimization} to ensure sufficient energy decrease.
+Since $E_{SD}$ is not a convex energy, we apply projected Newton method~\cite{Teran2005Robust} to project the Hessian of each energy element to its closest symmetric positive definite (SPD) matrix in parallel, and assemble them to form the SPD Hessian proxy $P^i$. We use PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver to solve the linear system $P^i p^i = -g^i$ for search direction $p^i$. \minchen{[TODO] change to use SPD solver by fixing a direction to ensure definiteness}. As $E_{SD}$ is also a barrier type energy, it is essential to ensure that the configuration always stay inside the feasible region. Thus, we follow Smith and Schaefer~\shortcite{Smith2015Bijective} to first compute an initial step size $\alpha^i_0$ that avoids element inversion, and then conduct back-tracking line search with Armijo rule~\cite{Armijo1966Minimization} to ensure sufficient energy decrease.
 
 Besides a relatively small tolerance on $g^i$ for convergence detection, we apply another relative energy decrease criteria to appropriately stop the process while necessary.
 This can stop our continuous search at the true local optimum infinitesimal better than setting a larger gradient tolerance since our energy is highly nonlinear. \minchen{[NOTE] might not be necessary if we end descent step right after we have no appropriate extension of topology step size.}
 
 \paragraph{Potential Accelerations for Practical Use}
-Since our topological operations only change the mesh locally both on connectivity and coordinates, we could also update the Hessian or the decomposition locally after topology changes to save time. Besides, it's also interesting to try other Hessian approximation methods like L-BFGS~\cite{Liu1989Limited} or composite majorization~\cite{Shtengel2017Geometric} to explore further acceleration by finding a balance between computational cost and convergence rate.
+Since our topological operations only change the mesh locally both on connectivity and coordinates, we could also update the Hessian or the decomposition locally in order to save time. Besides, it's also interesting to try other Hessian approximation methods like L-BFGS~\cite{Liu1989Limited} or composite majorization~\cite{Shtengel2017Geometric} to explore further acceleration by finding a balance between per-iteration computational cost and convergence rate.
 

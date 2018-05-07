@@ -3,14 +3,14 @@
 \subsection{Topology Steps}
 \label{sec:topologyStep}
 
-In topology steps, we move to a neighboring UV topology with the best first-order reduction in $E_w$ via conducting a basic topological operation searched from the given operation set $\hat{\mathcal{E}}^i_T$. However, if the first-order reduction is not satisfying the threshold $\delta^i$, nothing will be changed.
+In topology steps, starting from the UV map given by last descent step, we move to a neighboring UV topology with the best first-order reduction in $E_w$, conducting a basic topological operation searched from the given operation set $\hat{\mathcal{E}}^i_T$. The UV coordinates of the editted seam vertices will also be updated. However, if the first-order reduction is not satisfying the threshold $\delta^i$ given by the last descent step, nothing will be changed.
 
 \begin{algorithm}[h]
 \SetAlgoLined
 \KwData{$M$, $T^i$, $U^i$, $\hat{\mathcal{E}}^i_T$, $\delta^i$}
 \KwResult{$T^{i+1}$, $U_a^{i}$}
 \For{each $e^{i,j}_{T}$ in $\hat{\mathcal{E}}^i_T$}{
-  compute $\hat{f}_e(e^{i,j}_{T}) = \Big(E^j_s + \lambda \min_{U^{i,j}} E_d(T^j,U)\Big) - E^i_{w}$\;
+  $\hat{f}_e(e^{i,j}_{T}) \leftarrow \Big(E^j_s + \lambda \min_{U^{i,j}} E_d(T^j,U)\Big) - E^i_{w}$\;
 }
 $U_a^{i} \leftarrow U^i$\;
 \If{$\min_{e^{i,j}_{T} \in \hat{\mathcal{E}}^i_T} \hat{f}_e(e^{i,j}_{T}) \leq \delta^i$}
@@ -22,12 +22,9 @@ $U_a^{i} \leftarrow U^i$\;
 
 We compute the first-order reduction of $E_w$ from $T^i$ to $T^j$ for all $e^{i,j}_T \in \mathcal{E}^i_T$ in parallel, and only moves to $v^j_T$ with smallest $\hat{f}_e(e^{i,j}_{T})$, if this energy decrease is smaller than $\delta^i$. Recall that the threshold $\delta^i$ is set as the energy decrease in the current descent step. For deciding a search direction, $\delta^i$ is near $0$ as the current descent step converged, while for computing the topology step size, $\delta^i$ is not $0$. This together let our alternating process always pick the search step (continous or discrete) that decrease $E_w$ more to perform.
 
-\paragraph{Operation Filtering}
-As the number of vertex that could be splitted is in the scale of $n_p$, and it is obvious that initiating a cut in near-isometric regions won't help improve the UV map much, we filter the vertices to be considered in a split operation by computing the standard deviation of the local individual energy gradients on a vertex, and only consider the top $n_p^{0.6}$ vertices with large deviation. \minchen{[TODO] why not filtering by energy? how to filter it well for bijective parameterization?} For each vertex to be splitted in the candidate set, we evaluate every splitting possibility.
-
 \paragraph{First Order Reduction}
-We take the one-ring stencil of the splitted or merged vertex, and optimize $E_d$ on it with the one-ring neighbors fixed. As our energies are normalized, we renormalize the energies defined on the local stencil to be the same measure as the energy defined on the whole UV map.
+After making copies of the one-ring stencil of each candidate vertex to be splitted or merged, we split or merge them following all possible edge combinations in parallel, and optimize $E_d$ on them with the one-ring neighbors fixed. Since only less than 2 vertices are free to move, the system sizes only ranges from 2 to 4 degree of freedoms, which can be computed very efficiently than evaluating the true $f_v$ for deciding where to go next on $\mathcal{G}_T$.
 
-\paragraph{Corner Merge} We merge the 2 incident boundary edges with averaged position. If element inversion is detected, we apply relaxation method~\cite{Agmon1954Relaxation} for projecting average position to inversion free position to start from, however cases are still there where only move the merged vertex is not enough, for which we will just abandon it.
+For splits, the initial position of the splitted vertex can just be the original position before split. However, for corner merge, the merged vertex must have a locally injective initial position. Instead of potentially minimizing a distance measure subject to a set of linear inequality constraints preventing element inversion, we first pose the merged vertex to the averaged position of the two vertices been merged, if element inversion is detected, we then apply relaxation method~\cite{Agmon1954Relaxation} to iteratively project from the averaged position to a inversion free position. However, cases are still there when only moving the merged vertex is not enough to obtain an inversion free initial point. In these situations, we will just abandon the candidate, which rarely happens in practice and does not affect our result.
 
-For boundary vertex that connects to another boundary, we free both the 2 boundary vertices while evaluating the local energy decrease. For merge
+Splitting a boundary vertex along an edge that connects to another boundary vertex will produce an extra chart in our UV map. For this case, we free both the 2 boundary vertices while computing the energy decrease on the first-order stencil. \minchen{[TODO] 4-vertex merge to support joining two charts together, triangle moving operations?}

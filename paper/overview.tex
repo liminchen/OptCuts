@@ -1,7 +1,8 @@
 % !TeX root = OptCuts.tex
 
 \section{Framework Overview}
-\minchen{add more motivation}
+\minchen{As Vova suggested, describe Self-Weighting as our main formulation before Joint Discrete-Continuous Search, so does Abstract, Introduction, and Section 4 and 5.}
+
 \paragraph{A Discrete-Continuous Problem}
 
 Given an input triangle mesh $M$ of a 3D surface with $n_p$ vertices and its initial UV map with topology $T^0$ and coordinates $U^0 \in \mathcal{R}^{2n_p}$, we automatically search for
@@ -10,13 +11,13 @@ where $E_w(T,U) = E_s(T) + \lambda E_d(T,U)$ is the total energy combining both 
 
 \paragraph{Joint Discrete-Continuous Search}
 
-Instead of trying to solve an ill-conditioned real-valued optimization by approximating $T$ with $U$ \cite{Poranne2017Autocuts}, we alternatingly optimize $T$ (in topology steps) and $U$ (in descent steps), augmenting the continuous search with a discrete topology search.
+Instead of trying to solve an ill-conditioned real-valued optimization by approximating $T$ with $U$ \cite{Poranne2017Autocuts}, we alternatingly optimize $T$ (in topology steps) and $U$ (in descent steps), augmenting the continuous search with a discrete topology search (Section~\ref{sec:DCSearch}).
 
 Descent steps deal with the continuous search
 $\min_U E_d$
 where $T$ is fixed and Newton-type method is applied (Section~\ref{sec:descentStep}).
 Topology steps deal with the discrete search (Section~\ref{sec:topologyStep}) where a neighboring topology is searched based on the first-order reduction it would cause in $E_w$.
-While each descent step is one complete Newton-type iteration with back-tracking line search, a sequence of topology steps alternated with descent steps are used to perform a forward line search in topology space: a search direction is first decided and then the step size is increased to ensure sufficent energy decrease.
+While each descent step is one complete Newton-type iteration with back-tracking line search, we use a sequence of topology steps alternated with descent steps to perform a forward line search in topology space: a search direction is first decided and then the step size is increased to ensure sufficent energy decrease.
 
 Given a topology change, we evaluate the first-order reduction of $E_w$ it would cause by minimizing $E_d$ only on the local stencil of the edited seam edge and combine it with the $E_s$ change. Experiments demonstrate that this is efficient and sufficient for always editing the seams reasonably and sustainably (Section~\ref{sec:results_exp}).
 

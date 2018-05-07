@@ -1,6 +1,7 @@
 % !TeX root = OptCuts.tex
 
 \section{Joint Discrete-Continuous Search}
+\label{sec:DCSearch}
 
 The UV topology space we are searching in can be represented using a directed graph $\mathcal{G}_T$ with its vertices $v_T \in \mathcal{V}_T$ being all possible UV topologies of a given 3D surface, and its edges $e_T \in \mathcal{E}_T$ are the basic topological operations conducted on the UV map that can transform one UV topology to a nearby topology. Currently we support boundary and interior vertex split, and corner vertex merge operation.
 We define the value $f_v$ of vertex $v^i_T$ as 
@@ -9,7 +10,7 @@ and the weights $f_e$ of edge $e^{i,j}_{T}$ from $v^i_T$ to $v^j_T$ as
 \[ f_e(e^{i,j}_T) = f_v(v^j_T) - f_v(v^i_T) \]
 Thus our problem could be restated as to start from a $v^0_T$, search for a $v^i_T$ in $\mathcal{G}_T$ where all edges started from it satisfies $f_e(e^{i,j}_T) \geq 0$ ($e^{i,j}_T \in \mathcal{E}^i_T$).
 
-However, computing $f_v$ for one UV topology requires a proper setting of initial UV coordinates plus a whole process of real-valued optimization. In addition, even the number of neighbors of one UV topology is in the scale of $n_p$. These in practice prevent us from treating our problem as a usual graph search problem. Consequently, we construct a single search path on $\mathcal{G}_T$ and only approximate $f_v$ and $f_e$ in a topological first-order manner to guide the search, where intermediate UV maps are also served as the initial points of the next search step.
+However, computing $f_v$ for one UV topology requires a proper setting of initial UV coordinates plus a whole process of real-valued optimization. Moreover, even the number of neighbors of one UV topology is in the scale of $n_p$. These in practice prevent us from treating our problem as a usual graph search problem. Consequently, we construct a single search path on $\mathcal{G}_T$ and only approximate $f_v$ and $f_e$ in a topological first-order manner to guide the search along the path, where intermediate UV maps are also served as the initial points of the next search step.
 
 \begin{algorithm}[h]
 \SetAlgoLined
@@ -39,11 +40,10 @@ $T^i \leftarrow T^0$\;
 \caption{Joint Discrete-Continuous Search}
 \label{alg:DCSearch}
 \end{algorithm}
-\minchen{explain pseudo-code with motivations, compute or leftarrow? check hiarachical and story points. which are to dos? which needs section reference? solve potential git collisions...}
 
-Given the initial UV map $(T^0, U^0)$ of the input surface mesh $M$, we first compute $\min_U E_d(T^0,U)$ by iterating on descent steps only. After we get the stationary UV map with $T^0$, we start the joint discrete-continuous search that continues to minimize $E_w$ (See \autoref{alg:DCSearch}). 
+Given the initial UV map $(T^0, U^0)$ of the input surface mesh $M$, we first compute $\min_U E_d(T^0,U)$ by iterating on descent steps only. After we get the stationary UV map with $T^0$, we start the joint discrete-continuous search that continues to minimize $E_w$ (See Algorithm~\ref{alg:DCSearch}). 
 
-Similar to continuous search in descent steps (\autoref{alg:descentStep}), topology search is also composed of two stages - first decide a search direction (initiating a seam edit), and then compute a proper step size (extending the edit) to ensure sufficient energy decrease. Apparently there's no point in searching for every neighboring UV topology since, for example, initiating a cut in near-isometric regions won't help improve the map much. Thus we have a filtered candidate operation set $\hat{\mathcal{E}}^i_T$ for each topology step $i$. When deciding a direction, we fill the set with all promising operations produced by operation filtering (), while when computing the step size, we fill the set with only the same operation as in the previous topology step for extending the step size.
+Similar to continuous search in descent steps (Algorithm~\ref{alg:descentStep}), topology search is also composed of two stages - first decide a search direction (initiating a seam edit), and then compute a proper step size (extending the edit) to ensure sufficient energy decrease. Apparently there's no point in searching for every neighboring UV topology since, for example, initiating a cut in near-isometric regions won't help improve the map much. Thus we have a filtered candidate operation set $\hat{\mathcal{E}}^i_T$ for each topology step $i$ (Section~\ref{sec:topologyStep}). When deciding a direction, we fill the set with all promising operations produced by operation filtering (Section~\ref{sec:operationFiltering}), while when computing the step size, we fill the set with only the same operation as in the previous topology step for extending the step size.
 
 When the current descent step converges, if in the topology step there's no candidate operation that can decrease $E_w$ in the first-order, we say that the topology step also converges, and a near-stationary point of $E_w$ w.r.t. both UV topology and coordinates is reached. \minchen{[TODO] change current roll back scheme to this and see how it works}
 
@@ -62,6 +62,10 @@ With the energies normalized, our $E_w$ is invariant of coordinate scale and res
 \input{descentSteps}
 
 \input{topologySteps}
+
+\subsection{Operation Filtering}
+\label{sec:operationFiltering}
+As the number of vertex that could be splitted is in the scale of $n_p$, and it is obvious that initiating a cut in near-isometric regions won't help improve the UV map much, we filter the vertices to be considered in a split operation by computing the standard deviation of the local individual energy gradients on a vertex, and only consider the top $n_p^{0.6}$ vertices with large deviation. \minchen{[TODO] why not filtering by energy? how to filter it well for bijective parameterization?}
 
 \subsection{Convergence}
 \label{sec:convergence}
