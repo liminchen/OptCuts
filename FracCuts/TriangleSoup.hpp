@@ -157,8 +157,9 @@ namespace FracCuts{
                                 const std::vector<int>& splitPath, Eigen::MatrixXd& newVertPos,
                                 int maxIter = 100) const;
         // interior split
-        double computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
-                                std::map<int, Eigen::RowVector2d>& newVertPos, int maxIter = 100) const;
+        double computeLocalEDec_in(const std::vector<int>& triangles, const std::set<int>& freeVert,
+                                const std::vector<int>& path, Eigen::MatrixXd& newVertPos, int maxIter = 100) const;
+        //TODO: sort all computeLocalEDec, and separate vert routine
         // minimize SD on the local stencil (merge)
         double computeLocalEDec(const std::vector<int>& path, const std::vector<int>& triangles,
                                 const std::set<int>& freeVert, std::map<int, Eigen::RowVector2d>& newVertPos,

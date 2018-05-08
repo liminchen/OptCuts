@@ -906,6 +906,7 @@ namespace FracCuts {
             assert(!propagate);
             // query interior splits
             energyChanges_iSplit.resize(bestCandVerts.size());
+//            for(int candI = 0; candI < bestCandVerts.size(); candI++) {
             tbb::parallel_for(0, (int)bestCandVerts.size(), 1, [&](int candI) {
                 EwDecs[candI] = computeLocalEwDec(bestCandVerts[candI], lambda_t, paths[candI], newVertPoses[candI],
                                                         energyChanges_iSplit[candI]);
@@ -913,6 +914,7 @@ namespace FracCuts {
                     EwDecs[candI] *= 0.5;
                 }
             });
+//            }
         }
         int candI_max = 0;
         for(int candI = 1; candI < bestCandVerts.size(); candI++) {
@@ -1591,7 +1593,7 @@ namespace FracCuts {
         
         bool isFromBound = isBoundaryVert(path[0]);
         bool isToBound = isBoundaryVert(path.back());
-        if(isFromBound || isToBound) {
+        if(allowCutThrough && (isFromBound || isToBound)) {
             bool cutThrough = false;
             if(isFromBound && isToBound) {
                 cutThrough = true;
@@ -1616,7 +1618,7 @@ namespace FracCuts {
                     newVertPos.resize(2, 2);
                     newVertPos << V.row(vInd_s), V.row(vInd_s);
                 }
-                splitEdgeOnBoundary(std::pair<int, int>(vInd_s, vInd_e), newVertPos, true, allowCutThrough); //!!! make coh?
+                splitEdgeOnBoundary(std::pair<int, int>(vInd_s, vInd_e), newVertPos, true); //!!! make coh?
                 updateFeatures();
             }
         }
@@ -1683,7 +1685,7 @@ namespace FracCuts {
                 assert(edge2Tri.find(std::pair<int, int>(vInd_e, vInd_s)) != edge2Tri.end());
                 Eigen::Matrix2d newVertPos;
                 newVertPos << V.row(vInd_s), V.row(vInd_s);
-                splitEdgeOnBoundary(std::pair<int, int>(vInd_s, vInd_e), newVertPos); //!!! make coh?
+                splitEdgeOnBoundary(std::pair<int, int>(vInd_s, vInd_e), newVertPos, true, allowCutThrough); //!!! make coh?
                 updateFeatures();
             }
         }
@@ -2262,8 +2264,8 @@ namespace FracCuts {
                             if(vNeighbor[path_max[2]].find(nbVI) != vNeighbor[path_max[2]].end()) {
                                 seDec += (V_rest.row(path_max[0]) - V_rest.row(nbVI)).norm() / virtualRadius;
                                 closeup = true;
+                                break;
                             }
-                            break;
                         }
                     }
                 }
@@ -2386,51 +2388,44 @@ namespace FracCuts {
 //                    }
                     
                     double SDDec = 0.0;
-                    Eigen::Matrix2d newVertPos;
+                    Eigen::MatrixXd newVertPos;
                     
-                    std::vector<int> triangles(umbrella.begin() + startI, umbrella.begin() + endI);
-                    SDDec += computeLocalEDec(triangles, freeVert, newVertPosMap);
-                    newVertPos.block(0, 0, 1, 2) = newVertPosMap[vI];
+                    SDDec += computeLocalEDec_in(umbrella, freeVert, path, newVertPos);
+                    //TODO: share local mesh before split, also for boundary splits
                     
-                    triangles.resize(0);
-                    triangles.insert(triangles.end(), umbrella.begin(), umbrella.begin() + startI);
-                    triangles.insert(triangles.end(), umbrella.begin() + endI, umbrella.end());
-                    SDDec += computeLocalEDec(triangles, freeVert, newVertPosMap);
-                    newVertPos.block(1, 0, 1, 2) = newVertPosMap[vI];
-                    
-                    if(scaffold) {
-                        // test overlap
-                        const double eps_ang = 1.0e-3;
-                        const Eigen::RowVector2d p0p1 = V.row(path[1]) - V.row(path[0]);
-                        const Eigen::RowVector2d p0nv0 = newVertPos.block(0, 0, 1, 2) - V.row(path[0]);
-                        const Eigen::RowVector2d p0nv1 = newVertPos.block(1, 0, 1, 2) - V.row(path[0]);
-                        const double ang_nv0p0p1 = IglUtils::computeRotAngle(p0nv0, p0p1);
-                        const double ang_p1p0nv1 = IglUtils::computeRotAngle(p0p1, p0nv1);
-                        if(ang_nv0p0p1 + ang_p1p0nv1 <= eps_ang) {
-                            continue;
-                        }
-                        const Eigen::RowVector2d p2p1 = V.row(path[1]) - V.row(path[2]);
-                        const Eigen::RowVector2d p2nv0 = newVertPos.block(0, 0, 1, 2) - V.row(path[2]);
-                        const Eigen::RowVector2d p2nv1 = newVertPos.block(1, 0, 1, 2) - V.row(path[2]);
-                        const double ang_nv1p2p1 = IglUtils::computeRotAngle(p2nv1, p2p1);
-                        const double ang_p1p2nv0 = IglUtils::computeRotAngle(p2p1, p2nv0);
-                        if(ang_nv1p2p1 + ang_p1p2nv0 <= eps_ang) {
-                            continue;
-                        }
-                        // test on corners of non-moving vertices is unnecessary
-                        double ang_p0p1p2 = IglUtils::computeRotAngle(-p0p1, -p2p1);
-                        if(ang_p0p1p2 < 0.0) {
-                            ang_p0p1p2 += 2.0 * M_PI;
-                        }
-//                        assert(ang_p1p0nv1 + ang_nv1p2p1 < ang_p0p1p2 + eps_ang);
-                        if(ang_p1p0nv1 + ang_nv1p2p1 >= ang_p0p1p2) {
-                            continue;
-                        }
-//                        assert(ang_p1p2nv0 + ang_nv0p0p1 < 2.0 * M_PI - ang_p0p1p2 + eps_ang);
-                        if(ang_p1p2nv0 + ang_nv0p0p1 >= 2.0 * M_PI - ang_p0p1p2) {
-                            continue;
-                        }
-                    }
+//                    if(scaffold) {
+//                        // test overlap
+//                        const double eps_ang = 1.0e-3;
+//                        const Eigen::RowVector2d p0p1 = V.row(path[1]) - V.row(path[0]);
+//                        const Eigen::RowVector2d p0nv0 = newVertPos.block(0, 0, 1, 2) - V.row(path[0]);
+//                        const Eigen::RowVector2d p0nv1 = newVertPos.block(1, 0, 1, 2) - V.row(path[0]);
+//                        const double ang_nv0p0p1 = IglUtils::computeRotAngle(p0nv0, p0p1);
+//                        const double ang_p1p0nv1 = IglUtils::computeRotAngle(p0p1, p0nv1);
+//                        if(ang_nv0p0p1 + ang_p1p0nv1 <= eps_ang) {
+//                            continue;
+//                        }
+//                        const Eigen::RowVector2d p2p1 = V.row(path[1]) - V.row(path[2]);
+//                        const Eigen::RowVector2d p2nv0 = newVertPos.block(0, 0, 1, 2) - V.row(path[2]);
+//                        const Eigen::RowVector2d p2nv1 = newVertPos.block(1, 0, 1, 2) - V.row(path[2]);
+//                        const double ang_nv1p2p1 = IglUtils::computeRotAngle(p2nv1, p2p1);
+//                        const double ang_p1p2nv0 = IglUtils::computeRotAngle(p2p1, p2nv0);
+//                        if(ang_nv1p2p1 + ang_p1p2nv0 <= eps_ang) {
+//                            continue;
+//                        }
+//                        // test on corners of non-moving vertices is unnecessary
+//                        double ang_p0p1p2 = IglUtils::computeRotAngle(-p0p1, -p2p1);
+//                        if(ang_p0p1p2 < 0.0) {
+//                            ang_p0p1p2 += 2.0 * M_PI;
+//                        }
+////                        assert(ang_p1p0nv1 + ang_nv1p2p1 < ang_p0p1p2 + eps_ang);
+//                        if(ang_p1p0nv1 + ang_nv1p2p1 >= ang_p0p1p2) {
+//                            continue;
+//                        }
+////                        assert(ang_p1p2nv0 + ang_nv0p0p1 < 2.0 * M_PI - ang_p0p1p2 + eps_ang);
+//                        if(ang_p1p2nv0 + ang_nv0p0p1 >= 2.0 * M_PI - ang_p0p1p2) {
+//                            continue;
+//                        }
+//                    }
                     
                     const double seInc = ((V_rest.row(path[0]) - V_rest.row(path[1])).norm() +
                                           (V_rest.row(path[1]) - V_rest.row(path[2])).norm()) / virtualRadius;
@@ -2448,8 +2443,8 @@ namespace FracCuts {
         }
     }
         
-    double TriangleSoup::computeLocalEDec(const std::vector<int>& triangles, const std::set<int>& freeVert,
-                                          std::map<int, Eigen::RowVector2d>& newVertPos, int maxIter) const
+    double TriangleSoup::computeLocalEDec_in(const std::vector<int>& triangles, const std::set<int>& freeVert,
+                                          const std::vector<int>& path, Eigen::MatrixXd& newVertPos, int maxIter) const
     {
         assert(triangles.size() && freeVert.size());
         
@@ -2494,29 +2489,69 @@ namespace FracCuts {
         }
         initE *= surfaceArea / localMesh.surfaceArea;
         
-//        bool isBijective = !!scaffold;
-        bool isBijective = false;
+        // convert split path global index to local index
+        std::vector<int> path_local;
+        path_local.reserve(path.size());
+        for(const auto& pvI : path) {
+            const auto finder = globalVI2local.find(pvI);
+            assert(finder != globalVI2local.end());
+            path_local.emplace_back(finder->second);
+        }
+        // split
+        localMesh.cutPath(path_local, true, 0, Eigen::MatrixXd(), false);
+        
+        bool isBijective = !!scaffold;
         
         // construct air mesh
         Eigen::MatrixXd UV_bnds;
         Eigen::MatrixXi E;
         Eigen::VectorXi bnd;
-//        if(isBijective) {
-//            // convert index from global to local
-//            // split local mesh, do not allow cut through
-//            // separate vertex
-//            if(!scaffold->getCornerAirLoop(path, initMergedPos, UV_bnds, E, bnd)) {
-//                // if initPos causes the composite loop to self-intersect, or the loop is totally inverted
-//                // (potentially violating bijectivity), abandon this query
-//                return -__DBL_MAX__;
-//            }
-//            
-//            for(int bndI = 0; bndI < bnd.size(); bndI++) {
-//                const auto finder = globalVI2local.find(bnd[bndI]);
-//                assert(finder != globalVI2local.end());
-//                bnd[bndI] = finder->second;
-//            }
-//        }
+        if(isBijective) {
+            // separate vertex
+            //TODO: write into a function
+            Eigen::RowVector2d splittedV[2] = {
+                localMesh.V.row(path_local[1]),
+                localMesh.V.row(localMesh.V.rows() - 1)
+            };
+            Eigen::RowVector2d sepDir_oneV[2];
+            localMesh.compute2DInwardNormal(path_local[1], sepDir_oneV[0]);
+            localMesh.compute2DInwardNormal(localMesh.V.rows() - 1, sepDir_oneV[1]);
+            Eigen::VectorXd sepDir[2] = {
+                Eigen::VectorXd::Zero(localMesh.V.rows() * 2),
+                Eigen::VectorXd::Zero(localMesh.V.rows() * 2)
+            };
+            sepDir[0].block(path_local[1] * 2, 0, 2, 1) = sepDir_oneV[0].transpose();
+            sepDir[1].block((localMesh.V.rows() - 1) * 2, 0, 2, 1) = sepDir_oneV[1].transpose();
+            const double eps_sep = (V.row(path[1]) - V.row(path[0])).squaredNorm() * 1.0e-4;
+            double curSqDist = (splittedV[0]-splittedV[1]).squaredNorm();
+            while(curSqDist < eps_sep) {
+                for(int i = 0; i < 2; i++) {
+                    double stepSize_sep = 1.0;
+                    SD.initStepSize(localMesh, sepDir[i], stepSize_sep);
+                    splittedV[i] += 0.1 * stepSize_sep * sepDir_oneV[i];
+                }
+                localMesh.V.row(path_local[1]) = splittedV[0];
+                localMesh.V.row(localMesh.V.rows() - 1) = splittedV[1];
+                
+                double lastSqDist = curSqDist;
+                curSqDist = (splittedV[0]-splittedV[1]).squaredNorm();
+                if(std::abs(curSqDist - lastSqDist) / lastSqDist < 1.0e-3) {
+                    break;
+                }
+//                    //TODO: may update search dir, and accelerate
+//                    localMesh.compute2DInwardNormal(splitPath_local[0], sepDir_oneV[0]);
+//                    localMesh.compute2DInwardNormal(localMesh.V.rows() - 1, sepDir_oneV[1]);
+//                    sepDir[0].block(splitPath_local[0] * 2, 0, 2, 1) = sepDir_oneV[0].transpose();
+//                    sepDir[1].bottomRows(2) = sepDir_oneV[1].transpose();
+            }
+            
+            // establish air mesh information
+            UV_bnds.resize(4, 2);
+            E.resize(4, 2);
+            E << 0, 1, 1, 2, 2, 3, 3, 0;
+            bnd.resize(4);
+            bnd << path_local[2], path_local[1], path_local[0], static_cast<int>(localMesh.V.rows()) - 1;
+        }
         
         // conduct optimization on local mesh
         std::vector<FracCuts::Energy*> energyTerms(1, &SD);
@@ -2533,10 +2568,9 @@ namespace FracCuts {
         const double eDec = (initE - curE) * localMesh.surfaceArea / surfaceArea; //!!! this should be written in a more general way, cause this way it only works for E_SD
         
         // get new vertex positions
-        newVertPos.clear();
-        for(const auto& vI_free : freeVert) {
-            newVertPos[vI_free] = optimizer.getResult().V.row(globalVI2local[vI_free]);
-        }
+        newVertPos.resize(2, 2);
+        newVertPos.row(0) = optimizer.getResult().V.bottomRows(1);
+        newVertPos.row(1) = optimizer.getResult().V.row(path_local[1]);
         
         return eDec;
     }
@@ -2760,7 +2794,8 @@ namespace FracCuts {
                     sepDir[0].block(splitPath_local[0] * 2, 0, 2, 1) = sepDir_oneV[0].transpose();
                     sepDir[1].block((localMesh.V.rows() - 1 - cutThrough) * 2, 0, 2, 1) = sepDir_oneV[1].transpose();
                     const double eps_sep = (V.row(splitPath[1]) - V.row(splitPath[0])).squaredNorm() * 1.0e-4;
-                    while((splittedV[0]-splittedV[1]).squaredNorm() < eps_sep) {
+                    double curSqDist = (splittedV[0]-splittedV[1]).squaredNorm();
+                    while(curSqDist < eps_sep) {
                         for(int i = 0; i < 2; i++) {
                             double stepSize_sep = 1.0;
                             SD.initStepSize(localMesh, sepDir[i], stepSize_sep);
@@ -2768,12 +2803,18 @@ namespace FracCuts {
                         }
                         localMesh.V.row(splitPath_local[0]) = splittedV[0];
                         localMesh.V.row(localMesh.V.rows() - 1 - cutThrough) = splittedV[1];
+                        
+                        double lastSqDist = curSqDist;
+                        curSqDist = (splittedV[0]-splittedV[1]).squaredNorm();
+                        if(std::abs(curSqDist - lastSqDist) / lastSqDist < 1.0e-3) {
+                            break;
+                        }
     //                    //TODO: may update search dir, and accelerate
     //                    localMesh.compute2DInwardNormal(splitPath_local[0], sepDir_oneV[0]);
     //                    localMesh.compute2DInwardNormal(localMesh.V.rows() - 1, sepDir_oneV[1]);
     //                    sepDir[0].block(splitPath_local[0] * 2, 0, 2, 1) = sepDir_oneV[0].transpose();
     //                    sepDir[1].bottomRows(2) = sepDir_oneV[1].transpose();
-                    }//TODO: maxIter?
+                    }
                     assert(localMesh.checkInversion());
                     
                     if(cutThrough) {
@@ -2784,7 +2825,8 @@ namespace FracCuts {
                         sepDir[0] = sepDir[1] = Eigen::VectorXd::Zero(localMesh.V.rows() * 2);
                         sepDir[0].block(splitPath_local[1] * 2, 0, 2, 1) = sepDir_oneV[0].transpose();
                         sepDir[1].bottomRows(2) = sepDir_oneV[1].transpose();
-                        while((splittedV[0]-splittedV[1]).squaredNorm() < eps_sep) {
+                        double curSqDist = (splittedV[0]-splittedV[1]).squaredNorm();
+                        while(curSqDist < eps_sep) {
                             for(int i = 0; i < 2; i++) {
                                 double stepSize_sep = 1.0;
                                 SD.initStepSize(localMesh, sepDir[i], stepSize_sep);
@@ -2792,8 +2834,14 @@ namespace FracCuts {
                             }
                             localMesh.V.row(splitPath_local[1]) = splittedV[0];
                             localMesh.V.bottomRows(1) = splittedV[1];
+                            
+                            double lastSqDist = curSqDist;
+                            curSqDist = (splittedV[0]-splittedV[1]).squaredNorm();
+                            if(std::abs(curSqDist - lastSqDist) / lastSqDist < 1.0e-3) {
+                                break;
+                            }
                             //                    //TODO: may update search dir, and accelerate
-                        }//TODO: maxIter?
+                        }
                         assert(localMesh.checkInversion());
                     }
     //                std::cout << std::to_string(splitPath[0]) + "-" + std::to_string(splitPath[1]) << std::endl;

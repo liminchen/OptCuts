@@ -845,12 +845,27 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
             logFile << "curUpdated = " << energyParams[0] << ", increase, critical "
                 << 1.0 - criticalLambda_boundaryOpt << ", " << 1.0 - criticalLambda_interiorOpt << std::endl;
             
+//            std::cout << "iSplit:" << std::endl;
+//            for(const auto& i : energyChanges_iSplit) {
+//                std::cout << i.first << "," << i.second << std::endl;
+//            }
+//            std::cout << "bSplit:" << std::endl;
+//            for(const auto& i : energyChanges_bSplit) {
+//                std::cout << i.first << "," << i.second << std::endl;
+//            }
+//            std::cout << "merge:" << std::endl;
+//            for(const auto& i : energyChanges_merge) {
+//                std::cout << i.first << "," << i.second << std::endl;
+//            }
+            //!!!DEBUG: with bijectivity, sometimes there might be no valid bSplit that could decrease E_SD
             if((!energyChanges_merge.empty()) &&
-               (computeOptPicked(energyChanges_bSplit, energyChanges_merge, 1.0 - energyParams[0]) == 1)) {
+               (computeOptPicked(energyChanges_bSplit, energyChanges_merge, 1.0 - energyParams[0]) == 1)){// &&
+//               (computeOptPicked(energyChanges_iSplit, energyChanges_merge, 1.0 - energyParams[0]) == 1)) {
                 // still picking merge
                 do {
                     energyParams[0] = updateLambda(measure_bound);
-                } while(computeOptPicked(energyChanges_bSplit, energyChanges_merge, 1.0 - energyParams[0]) == 1);
+                } while((computeOptPicked(energyChanges_bSplit, energyChanges_merge, 1.0 - energyParams[0]) == 1));// &&
+//                        (computeOptPicked(energyChanges_iSplit, energyChanges_merge, 1.0 - energyParams[0]) == 1));
                 
                 logFile << "iterativelyUpdated = " << energyParams[0] << ", increase for switch, critical " <<
                     1.0 - criticalLambda_boundaryOpt << ", " << 1.0 - criticalLambda_interiorOpt << std::endl;
@@ -862,7 +877,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
                       (sameISplit && (energyParams[0] < 1.0 - criticalLambda_interiorOpt)))
                 {
                     energyParams[0] = updateLambda(measure_bound);
-
+                    
                     sameBSplit = (computeBestCand(energyChanges_bSplit, 1.0 - energyParams[0]) == id_pickedBSplit);
                     sameISplit = (computeBestCand(energyChanges_iSplit, 1.0 - energyParams[0]) == id_pickedISplit);
                 }
@@ -885,6 +900,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
             const double critical_dec = 1.0 - criticalLambda_boundaryOpt;
             logFile << "curUpdated = " << energyParams[0] << ", decrease, critical " << critical_dec << std::endl;
             
+            //!!! also account for iSplit for this switch?
             if(computeOptPicked(energyChanges_bSplit, energyChanges_merge, 1.0 - energyParams[0]) == 0) {
                 // still picking split
                 do {
