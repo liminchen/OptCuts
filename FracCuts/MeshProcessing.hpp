@@ -164,6 +164,28 @@ namespace FracCuts {
                             break;
                         }
                             
+                        case 3: {
+                            // map texture to 0-1
+                            
+                            if(UV.rows() == 0) {
+                                std::cout << "no input UV" << std::endl;
+                                break;
+                            }
+                            
+                            double minUV_x = UV.col(0).minCoeff(), minUV_y = UV.col(1).minCoeff();
+                            double maxUV_x = UV.col(0).maxCoeff(), maxUV_y = UV.col(1).maxCoeff();
+                            double divider = std::max(maxUV_x - minUV_x, maxUV_y - minUV_y);
+                            for(int uvI = 0; uvI < UV.rows(); uvI++) {
+                                UV(uvI, 0) = (UV(uvI, 0) - minUV_x) / divider;
+                                UV(uvI, 1) = (UV(uvI, 1) - minUV_y) / divider;
+                            }
+                            igl::writeOBJ(outputFolderPath + meshName + "_01UV.obj", V, F, N, FN, UV, FUV);
+                            
+                            std::cout << "texture mapped to [0,1]^2 and saved into " << outputFolderPath << meshName << "_01UV.obj" << std::endl;
+                            
+                            break;
+                        }
+                            
                         default:
                             std::cout << "No procMode " << procMode << std::endl;
                             break;

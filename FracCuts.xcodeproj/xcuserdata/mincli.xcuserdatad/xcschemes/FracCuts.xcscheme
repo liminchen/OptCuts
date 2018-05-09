@@ -220,6 +220,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "2 /Users/mincli/Desktop/meshes/test16_postTopo.obj 2"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "2 /Users/mincli/Desktop/meshes/bishop_part_f1000_ours.obj 3"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
