@@ -2,6 +2,7 @@
 
 \subsection{Topology Steps}
 \label{sec:topologyStep}
+\danny{This is also a ``descent'' step - suggest as I did above to rename to something like ``discrete'' or ``topology'' descent step.}
 
 In topology steps, starting from the UV map given by last descent step, we move to a neighboring UV topology with the best first-order reduction in $E_w$, conducting a basic topological operation searched from the given operation set $\hat{\mathcal{E}}^i_T$. The UV coordinates of the editted seam vertices will also be updated. However, if the first-order reduction is not satisfying the threshold $\delta^i$ given by the last descent step, nothing will be changed.
 
@@ -27,4 +28,4 @@ After making copies of the one-ring stencil of each candidate vertex to be split
 
 For splits, the initial position of the splitted vertex can just be the original position before split. However, for corner merge, the merged vertex must have a locally injective initial position. Instead of potentially minimizing a distance measure subject to a set of linear inequality constraints preventing element inversion, we first pose the merged vertex to the averaged position of the two vertices been merged, if element inversion is detected, we then apply relaxation method~\cite{Agmon1954Relaxation} to iteratively project from the averaged position to a inversion free position. However, cases are still there when only moving the merged vertex is not enough to obtain an inversion free initial point. In these situations, we will just abandon the candidate, which rarely happens in practice and does not affect our result.
 
-Splitting a boundary vertex along an edge that connects to another boundary vertex will produce an extra chart in our UV map. For this case, we free both the 2 boundary vertices while computing the energy decrease on the first-order stencil. \minchen{[TODO] 4-vertex merge to support joining two charts together, triangle moving operations?}
+Splitting a boundary vertex along an edge that connects to another boundary vertex will remove a hole or produce an extra chart in our UV map. For this case, we free both the 2 boundary vertices while computing the energy decrease on the first-order stencil. \minchen{[TODO] 4-vertex merge to support joining two charts together, triangle moving operations?}

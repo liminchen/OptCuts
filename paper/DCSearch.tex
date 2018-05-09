@@ -1,7 +1,22 @@
 % !TeX root = OptCuts.tex
 
-\section{Joint Discrete-Continuous Search}
+%\section{Joint Discrete-Continuous Search}
+\section{Jointly Discrete and Continuous Search}
 \label{sec:DCSearch}
+
+Consider, for the moment, minimizing (\ref{eq:L}) for a temporarily fixed $\lambda$ (we will address details of how we update $\lambda$ below in Section\ \ref{}). Rather than trying to solve such an ill-conditioned real-valued optimization by approximating $T$ with $U$\ \cite{Poranne2017Autocuts}, we alternate local optimizations over $U$ and then $T$. We augment a smooth descent search with a search over discrete topology. See Section~\ref{sec:DCSearch} for more details.
+
+Our smooth descent steps apply standard continuous search. We locally minimize distortion $E_d$ over vertices $U$ while holding topology, $T$, fixed. Here we apply Newton-type method detailed~\ref{sec:descentStep}.
+
+Our topology descent step then applies a discrete search over lcoal topology changes. We search neighboring topology to maximize a first-order reduction in the Lagrangian $E_w$. See Section~\ref{sec:topologyStep} for details. 
+
+While each smooth descent step applies a complete Newton-type iteration with back-tracking line search, we apply a sequence of topology steps alternated with descent steps to perform a forward line search in topology. Topology search directions are first constructed and then their step size is \emph{increased}, rather than backtracked, to ensure 
+%sufficient 
+energy decrease. Given a candidate topology change, we evaluate its potential first-order reduction in $E_w$ by minimizing distortion, $E_d$, restricted to the local stencil of the edited seam edge and summed with the corresponding change in seam quality, $E_s$. Our experiments demonstrate that this local analysis is efficient and effective to explore seam edits (Section~\ref{sec:results_exp}).
+
+In total, by ensuring monotonic decrease in $E_w$ over both the smooth and topology descent steps, we then prove that a near-stationary point can be reached for any input within a bounded number of alternations (Section~\ref{sec:convergence}). \danny{for varying $\lambda$ - i.e. our constrained problem seems like we need to spend a bit more work on this - see comments below.} 
+
+\subsection{Set Up}
 
 The UV topology space we are searching in can be represented using a directed graph $\mathcal{G}_T$ with its vertices $v_T \in \mathcal{V}_T$ being all possible UV topologies of a given 3D surface, and its edges $e_T \in \mathcal{E}_T$ are the basic topological operations conducted on the UV map that can transform one UV topology to a nearby topology. Currently we support boundary and interior vertex split, and corner vertex merge operation.
 We define the value $f_v$ of vertex $v^i_T$ as 
