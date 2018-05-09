@@ -1,38 +1,74 @@
 % !TeX root = OptCuts.tex
 
-\section{Framework Overview}
-\minchen{As Vova suggested, describe Self-Weighting as our main formulation before Joint Discrete-Continuous Search, so does Abstract, Introduction, and Section 4 and 5.}
+\section{Problem Statement}
+%\minchen{As Vova suggested, describe Self-Weighting as our main formulation before Joint Discrete-Continuous Search, so does Abstract, Introduction, and Section 4 and 5.}
+\danny{Also took a pretty heavy pass at re-organizing this section and the next.}
 
-\paragraph{A Discrete-Continuous Problem}
+Given an input triangle mesh $M$ of a 3D surface with $n$ vertices we seek a locally optimal UV map with topology $T^*$ and coordinates $U^* \in \mathcal{R}^{2n}$ that are local minimizers of the constrained parametrization problem
+\begin{align}
+	\min_{T,U} E_s(T) \quad s.t. \quad E_d(T,U) - b_d \leq 0.
+	\label{eq:p1}
+\end{align}
 
-Given an input triangle mesh $M$ of a 3D surface with $n_p$ vertices and its initial UV map with topology $T^0$ and coordinates $U^0 \in \mathcal{R}^{2n_p}$, we automatically search for
-\[ \argmin_{T,U} E_w(T,U) \]
-where $E_w(T,U) = E_s(T) + \lambda E_d(T,U)$ is the total energy combining both seam energy $E_s$ and distortion energy $E_d$ with a balancing factor $\lambda \in \mathcal{R^+}$. Notice that usually $E_d$ is smooth, while $E_s$ is defined to be non-differentiable, which gives us a discrete-continuous problem.
 
-\paragraph{Joint Discrete-Continuous Search}
+Here $E_s$ and $E_d$ respectively measure seam quality and map distortion while $b_d$ is a user specified \emph{upper bound} on acceptable distortion of the generated map. Notice too that this optimization is always feasible as in the limit more cuts will always satisfy any set distortion bound. \danny{If we truly want to make bijectivity a first-class component of our method (I'd suggest we do then we should add the bijectivity constraint to the optimization problem statement above and also the derivation that follows - happy to do this once we decide.}
 
-Instead of trying to solve an ill-conditioned real-valued optimization by approximating $T$ with $U$ \cite{Poranne2017Autocuts}, we alternatingly optimize $T$ (in topology steps) and $U$ (in descent steps), augmenting the continuous search with a discrete topology search (Section~\ref{sec:DCSearch}).
+In general, distortion measures are smooth, albeit \emph{nonconvex}, quantities while seam measures are \emph{nonsmooth} and so we must address challenges in formulating an effective nonsmooth, nonconvex optimization method. 
 
-Descent steps deal with the continuous search
-$\min_U E_d$
-where $T$ is fixed and Newton-type method is applied (Section~\ref{sec:descentStep}).
-Topology steps deal with the discrete search (Section~\ref{sec:topologyStep}) where a neighboring topology is searched based on the first-order reduction it would cause in $E_w$.
-While each descent step is one complete Newton-type iteration with back-tracking line search, we use a sequence of topology steps alternated with descent steps to perform a forward line search in topology space: a search direction is first decided and then the step size is increased to ensure sufficent energy decrease.
+Concretely we formulate our seam measure as the normalized seam length (see Section\ \ref{} below) and apply standard geometric energy densities, e.g. symmetric Dirichlet, MIPS, etc, to measure distortion over the mapped domain. In what follows, for simplicity we largely focus on symmetric Dirichlet and reserve examples with other distortion measures for our results in Section\ \ref{}.
 
-Given a topology change, we evaluate the first-order reduction of $E_w$ it would cause by minimizing $E_d$ only on the local stencil of the edited seam edge and combine it with the $E_s$ change. Experiments demonstrate that this is efficient and sufficient for always editing the seams reasonably and sustainably (Section~\ref{sec:results_exp}).
 
-Since we ensure $E_w$ to be monotonically decreased in both the descent steps and topology steps, we can easily prove that a near-stationary point can be reached for any input within a bounded number of alternations (Section~\ref{sec:convergence}).
+%Given an input triangle mesh $M$ of a 3D surface with $n_p$ vertices and its initial UV map with topology $T^0$ and coordinates $U^0 \in \mathcal{R}^{2n_p}$, we automatically search for
+%\[ \argmin_{T,U} E_w(T,U) \]
+%where $E_w(T,U) = E_s(T) + \lambda E_d(T,U)$ is the total energy combining both seam energy $E_s$ and distortion energy $E_d$ with a balancing factor $\lambda \in \mathcal{R^+}$. Notice that usually $E_d$ is smooth, while $E_s$ is defined to be non-differentiable, which gives us a discrete-continuous problem.
 
-\paragraph{Self-Weighted Objective}
+\paragraph{Dual Objective}
 
-In order to automatically decide $\lambda$ and enable users to directly control the distortion they expect for the output UV map, we formulate a constrained optimization seeking to minimize seam energy $E_s$ subject to user-specified distortion bounds $b_d$:
-\[ \min_{T,U} E_s(T) \quad s.t. \quad E_d(T,U) - b_d \leq 0 \]
-Introducing $\lambda$ as a dual variable gives us
-\[ \min_{T,U} \max_{\lambda \in \mathcal{R^+}} E_s(T) + \lambda(E_d(T,U) - b_d) \]
-We solve it by adding a regularization term to make it smooth for $\lambda$, and alternatingly updating dual variable $\lambda$ and primal variables $T$ and $U$ (Section~\ref{sec:self_weighting}).
+Equivalently we can construct the Lagrangian 
+\begin{align}
+	E_w(T,U,\lambda) = E_s(T) + \lambda(E_d(T,U) - b_d) 
+	\label{eq:L}
+\end{align}
+to form the saddle-point problem~\cite{} for (\ref{eq:p1}) over primal variables $T,U$ and dual variable $\lambda$,
+\begin{align}
+	\min_{T,U} \max_{\lambda \in \mathcal{R^+}} E_w(T,U,\lambda).
+	\label{eq:p2}
+\end{align}
+%
+Here $\lambda \in \mathcal{R^+}$ is the Lagrange multiplier for our unilateral distortion bound constraint. Notice that the Lagrangian $E_w$ is exactly a multi-objective balancing between distortion and seem quality. However, $\lambda$ now effectively applies a local scaling between the seam and distortion terms that is directly and automatically given by a our specified user goal of an an enforced distortion bound. Within our algorithm to solve (\ref{eq:p1}) $\lambda$ will thus grow as we threaten to violate our distortion bound and so prioritize distortion minimization. Similarly $\lambda$ will decrease towards $0$ as our bound is strictly satisfied and so will prioritize seam quality.
 
-The challenge here is that the initial embedding we start from is usually with high distortion, thus infeasible, and the quality of the output seams is highly affected by the $\lambda$ updating scheme. \minchen{[TODO] briefly describe what we do after finalized}
+
+\danny{Moved and reorganized a good portion of what was here to the next section.}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\paragraph{Joint Discrete-Continuous Search}
+%
+%Instead of trying to solve an ill-conditioned real-valued optimization by approximating $T$ with $U$ \cite{Poranne2017Autocuts}, we alternatingly optimize $T$ (in topology steps) and $U$ (in descent steps), augmenting the continuous search with a discrete topology search (Section~\ref{sec:DCSearch}).
+%
+%Descent steps deal with the continuous search
+%$\min_U E_d$
+%where $T$ is fixed and Newton-type method is applied (Section~\ref{sec:descentStep}).
+%Topology steps deal with the discrete search (Section~\ref{sec:topologyStep}) where a neighboring topology is searched based on the first-order reduction it would cause in $E_w$.
+%While each descent step is one complete Newton-type iteration with back-tracking line search, we use a sequence of topology steps alternated with descent steps to perform a forward line search in topology space: a search direction is first decided and then the step size is increased to ensure sufficent energy decrease.
+%
+%Given a topology change, we evaluate the first-order reduction of $E_w$ it would cause by minimizing $E_d$ only on the local stencil of the edited seam edge and combine it with the $E_s$ change. Experiments demonstrate that this is efficient and sufficient for always editing the seams reasonably and sustainably (Section~\ref{sec:results_exp}).
+%
+%Since we ensure $E_w$ to be monotonically decreased in both the descent steps and topology steps, we can easily prove that a near-stationary point can be reached for any input within a bounded number of alternations (Section~\ref{sec:convergence}).
+
+%\paragraph{Self-Weighted Objective}
+%
+%In order to automatically decide $\lambda$ and enable users to directly control the distortion they expect for the output UV map, we formulate a constrained optimization seeking to minimize seam energy $E_s$ subject to user-specified distortion bounds $b_d$:
+%\[ \min_{T,U} E_s(T) \quad s.t. \quad E_d(T,U) - b_d \leq 0 \]
+%Introducing $\lambda$ as a dual variable gives us
+%\[ \min_{T,U} \max_{\lambda \in \mathcal{R^+}} E_s(T) + \lambda(E_d(T,U) - b_d) \]
+%We solve it by adding a regularization term to make it smooth for $\lambda$, and alternatingly updating dual variable $\lambda$ and primal variables $T$ and $U$ (Section~\ref{sec:self_weighting}).
+%
+%The challenge here is that the initial embedding we start from is usually with high distortion, thus infeasible, and the quality of the output seams is highly affected by the $\lambda$ updating scheme. \minchen{[TODO] briefly describe what we do after finalized}
  
+ \danny{I haven't commented it the next paragraph but would suggest we: 1. remove this next paragraph from paper, 2. make bijection a main part of the algorithm and 3. move everything else to future work (if we don't do it) or results (if we do get to it).}
 \paragraph{Variations}
 
 When defining the total energy $E_w(T,U) = E_s(T) + \lambda E_d(T,U)$ for our discrete-continuous problem, the continuous energy $E_d(T,U)$ can be any kinds of distortion energy, measuring either isometry or conformality, and it can also be augmented with energies enforcing extra features such as bijectivity or seamlessness. This is also true for the discrete energy $E_s(T)$, which can be any energy related to seams, such as length, regional preference, smoothness, etc. The key is that with all these variations (we show some of them in Section~\ref{sec:results_variations}), our framework stays the same, and it efficiently generates optimal seams for the specific $E_w$. Moreover, we believe our framework can be applied to other discrete-continuous geometry processing problems, where $E_s$ can be any energy related to mesh topology, and $E_d$ can be any energy defined on the surface geometry.
