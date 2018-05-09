@@ -144,7 +144,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/bull.obj 0.025 1 3 test"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/male_body_i_f10000.obj 0.025 1 3 test"
@@ -219,8 +219,8 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "2 /Users/mincli/Desktop/meshes/test121_afterPN_AM.obj 2"
-            isEnabled = "NO">
+            argument = "2 /Users/mincli/Desktop/meshes/test16_postTopo.obj 2"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/bull.obj 0.025 1 0 test"

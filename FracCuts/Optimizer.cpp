@@ -216,7 +216,7 @@ namespace FracCuts {
             globalIterNum++;
             if(!mute) { timer.stop(); }
 //            //DEBUG
-//            if(globalIterNum > 120) {
+//            if(globalIterNum > 1220) {
 //                result.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_afterPN.obj");
 //                scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_afterPN_AM.obj");
 //            }
@@ -439,7 +439,7 @@ namespace FracCuts {
                 scaffold.mergeFixedV(result.fixedVert, fixedV_withScaf);
             }
 //            //DEBUG
-//            if(globalIterNum > 520) {
+//            if(globalIterNum > 10) {
 //                result.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_postTopo.obj");
 //                scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_postTopo_AM.obj");
 //            }
@@ -548,12 +548,15 @@ namespace FracCuts {
         double lastEnergyVal_scaffold = 0.0;
         const double m = searchDir.dot(gradient);
         const double c1m = 1.0e-4 * m;
+        Eigen::MatrixXd resultV0 = result.V;
+//        TriangleSoup temp = result; //TEST
+        Eigen::MatrixXd scaffoldV0;
         if(scaffolding) {
+//            Scaffold tempp = scaffold;
+            scaffoldV0 = scaffold.airMesh.V;
             computeEnergyVal(result, scaffold, lastEnergyVal); // this update is necessary since scaffold changes
             lastEnergyVal_scaffold = energyVal_scaffold;
         }
-        Eigen::MatrixXd resultV0 = result.V;
-        Eigen::MatrixXd scaffoldV0 = scaffold.airMesh.V;
         stepForward(resultV0, scaffoldV0, result, scaffold, stepSize);
         double testingE;
 //        Eigen::VectorXd testingG;
