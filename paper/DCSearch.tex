@@ -1,31 +1,33 @@
 % !TeX root = OptCuts.tex
 
 %\section{Joint Discrete-Continuous Search}
-\section{Jointly Discrete and Continuous Search}
+\section{Search Procedure}%Jointly Discrete and Continuous Search}%<--- sounds weird
 \label{sec:DCSearch}
 
-Consider, for the moment, minimizing (\ref{eq:L}) for a temporarily fixed $\lambda$ (we will address details of how we update $\lambda$ below in Section\ \ref{}). Rather than trying to solve such an ill-conditioned real-valued optimization by approximating $T$ with $U$\ \cite{Poranne2017Autocuts}, we alternate local optimizations over $U$ and then $T$. We augment a smooth descent search with a search over discrete topology. See Section~\ref{sec:DCSearch} for more details.
+Consider minimizing \eqref{eq:L} for a temporarily-fixed $\lambda$; we will address details of how we update $\lambda$ below in Section\ \ref{}. Rather than trying to solve a potentially ill-conditioned real-valued optimization by approximating $T$ with $U$\ \cite{Poranne2017Autocuts}, we alternate local optimizations over $U$ and then $T$. %We augment a smooth descent search with a search over discrete topology. See Section~\ref{sec:DCSearch} for more details.%<--- these two sentences don't make sense, this is the topic of the current section
 
-Our smooth descent steps apply standard continuous search. We locally minimize distortion $E_d$ over vertices $U$ while holding topology, $T$, fixed. Here we apply Newton-type method detailed~\ref{sec:descentStep}.
+Our smooth descent steps apply standard continuous search. We locally minimize distortion $E_d$ over vertices $U$ while holding topology, $T$, fixed. Here we apply Newton-type method detailed in~\ref{sec:descentStep}.
+%
+Our topology descent step then applies a discrete search over local topology changes. We search neighboring topology to maximize a first-order reduction in the Lagrangian $E_w$ detailed in Section~\ref{sec:topologyStep}. 
 
-Our topology descent step then applies a discrete search over lcoal topology changes. We search neighboring topology to maximize a first-order reduction in the Lagrangian $E_w$. See Section~\ref{sec:topologyStep} for details. 
-
-While each smooth descent step applies a complete Newton-type iteration with back-tracking line search, we apply a sequence of topology steps alternated with descent steps to perform a forward line search in topology. Topology search directions are first constructed and then their step size is \emph{increased}, rather than backtracked, to ensure 
-%sufficient 
-energy decrease. Given a candidate topology change, we evaluate its potential first-order reduction in $E_w$ by minimizing distortion, $E_d$, restricted to the local stencil of the edited seam edge and summed with the corresponding change in seam quality, $E_s$. Our experiments demonstrate that this local analysis is efficient and effective to explore seam edits (Section~\ref{sec:results_exp}).
+\justin{I'm not sure the role of this paragraph, and it refers to a section before the two discussed above it.  Something is wrong here.}
+While each smooth descent step applies a complete Newton-type iteration with backtracking line search, we interleave topology steps with descent steps to perform a forward line search in topology. \justin{previous sentence sounds nice but I don't know what it means.} Topology search directions are first constructed and then their step size is \emph{increased}, \justin{what is step size in this context?} rather than backtracked, to ensure energy decrease. Given a candidate topology change, we evaluate its potential first-order reduction in $E_w$ by minimizing distortion, $E_d$, restricted to the local stencil of the edited seam edge and summed with the corresponding change in seam quality, $E_s$. Our experiments demonstrate that this local analysis is efficient and effective to explore seam edits (Section~\ref{sec:results_exp}).
 
 In total, by ensuring monotonic decrease in $E_w$ over both the smooth and topology descent steps, we then prove that a near-stationary point can be reached for any input within a bounded number of alternations (Section~\ref{sec:convergence}). \danny{for varying $\lambda$ - i.e. our constrained problem seems like we need to spend a bit more work on this - see comments below.} 
 
-\subsection{Set Up}
+\subsection{Setup}
 
-The UV topology space we are searching in can be represented using a directed graph $\mathcal{G}_T$ with its vertices $v_T \in \mathcal{V}_T$ being all possible UV topologies of a given 3D surface, and its edges $e_T \in \mathcal{E}_T$ are the basic topological operations conducted on the UV map that can transform one UV topology to a nearby topology. Currently we support boundary and interior vertex split, and corner vertex merge operation.
+\justin{At the beginning of subsections like this one, add a short ``roadmap'' paragraph.  What are you about to tell us and how does it fit into the whole?}
+
+The UV topology space we are searching in can be represented using a directed graph $\mathcal{G}_T$ with its vertices $v_T \in \mathcal{V}_T$ being all possible UV topologies of a given 3D surface, and its edges $e_T \in \mathcal{E}_T$ are the basic topological operations conducted on the UV map that can transform one UV topology to a nearby topology. Currently we support boundary and interior vertex splits, as well as corner vertex merge operations. \justin{add a small figure with these} 
+
 We define the value $f_v$ of vertex $v^i_T$ as 
 \[ f_v(v^i_T) = \min_{U} E_w(T^i, U) = E_s(T^i) + \min_{U} E_d(T^i, U) \]
 and the weights $f_e$ of edge $e^{i,j}_{T}$ from $v^i_T$ to $v^j_T$ as 
-\[ f_e(e^{i,j}_T) = f_v(v^j_T) - f_v(v^i_T) \]
-Thus our problem could be restated as to start from a $v^0_T$, search for a $v^i_T$ in $\mathcal{G}_T$ where all edges started from it satisfies $f_e(e^{i,j}_T) \geq 0$ ($e^{i,j}_T \in \mathcal{E}^i_T$).
+\[ f_e(e^{i,j}_T) = f_v(v^j_T) - f_v(v^i_T). \]
+Thus our problem could be restated as to start from a $v^0_T$, search for a $v^i_T$ in $\mathcal{G}_T$ where all edges started from it satisfies $f_e(e^{i,j}_T) \geq 0$ ($e^{i,j}_T \in \mathcal{E}^i_T$).\justin{previous sentence didn't parse for me}
 
-However, computing $f_v$ for one UV topology requires a proper setting of initial UV coordinates plus a whole process of real-valued optimization. Moreover, even the number of neighbors of one UV topology is in the scale of $n_p$. These in practice prevent us from treating our problem as a usual graph search problem. Consequently, we construct a single search path on $\mathcal{G}_T$ and only approximate $f_v$ and $f_e$ in a topological first-order manner to guide the search along the path, where intermediate UV maps are also served as the initial points of the next search step.
+Computing $f_v$ for one UV topology, however, requires a proper setting of initial UV coordinates plus a whole process of real-valued optimization. Moreover, even the number of neighbors of one UV topology is in the scale of $n_p$. These in practice prevent us from treating our problem as a usual graph search problem. Consequently, we construct a single search path on $\mathcal{G}_T$ and only approximate $f_v$ and $f_e$ in a topological first-order manner to guide the search along the path, where intermediate UV maps are also served as the initial points of the next search step.
 
 \begin{algorithm}[h]
 \SetAlgoLined
@@ -58,9 +60,9 @@ $T^i \leftarrow T^0$\;
 
 Given the initial UV map $(T^0, U^0)$ of the input surface mesh $M$, we first compute $\min_U E_d(T^0,U)$ by iterating on descent steps only. After we get the stationary UV map with $T^0$, we start the joint discrete-continuous search that continues to minimize $E_w$ (See Algorithm~\ref{alg:DCSearch}). 
 
-Similar to continuous search in descent steps (Algorithm~\ref{alg:descentStep}), topology search is also composed of two stages - first decide a search direction (initiating a seam edit), and then compute a proper step size (extending the edit) to ensure sufficient energy decrease. Apparently there's no point in searching for every neighboring UV topology since, for example, initiating a cut in near-isometric regions won't help improve the map much. Thus we have a filtered candidate operation set $\hat{\mathcal{E}}^i_T$ for each topology step $i$ (Section~\ref{sec:topologyStep}). When deciding a direction, we fill the set with all promising operations produced by operation filtering (Section~\ref{sec:operationFiltering}), while when computing the step size, we fill the set with only the same operation as in the previous topology step for extending the step size.
+Similar to continuous search in descent steps (Algorithm~\ref{alg:descentStep}), topology search is also composed of two stages: First decide a search direction (initiating a seam edit), and then compute a proper step size (extending the edit) to ensure sufficient energy decrease. \justin{apparently?} Apparently there is no point in searching for every neighboring UV topology since, for example, initiating a cut in near-isometric regions will not help improve the map much. Thus we have a filtered candidate operation set $\hat{\mathcal{E}}^i_T$ for each topology step $i$ (Section~\ref{sec:topologyStep}). When deciding a direction, we fill the set with all promising operations produced by operation filtering (Section~\ref{sec:operationFiltering}), while when computing the step size, we fill the set with only the same operation as in the previous topology step for extending the step size.
 
-When the current descent step converges, if in the topology step there's no candidate operation that can decrease $E_w$ in the first-order, we say that the topology step also converges, and a near-stationary point of $E_w$ w.r.t. both UV topology and coordinates is reached. \minchen{[TODO] change current roll back scheme to this and see how it works}
+When the current descent step converges, if in the topology step there is no candidate operation that can decrease $E_w$ in the first-order, we say that the topology step also converges, and a near-stationary point of $E_w$ w.r.t. both UV topology and coordinates is reached. \minchen{[TODO] change current roll back scheme to this and see how it works}
 
 \subsection{Energy Definition}
 
@@ -80,15 +82,16 @@ With the energies normalized, our $E_w$ is invariant of coordinate scale and res
 
 \subsection{Operation Filtering}
 \label{sec:operationFiltering}
-As the number of vertex that could be splitted is in the scale of $n_p$, and it is obvious that initiating a cut in near-isometric regions won't help improve the UV map much, we filter the vertices to be considered in a split operation by computing the standard deviation of the local individual energy gradients on a vertex, and only consider the top $n_p^{0.6}$ vertices with large deviation. \minchen{[TODO] why not filtering by energy? how to filter it well for bijective parameterization?}
+As the number of vertex that could be splitted is in the scale of $n_p$, and it is obvious that initiating a cut in near-isometric regions will not help improve the UV map much, we filter the vertices to be considered in a split operation by computing the standard deviation of the local individual energy gradients on a vertex and only considering the top $n_p^{0.6}$ vertices with large deviation. \minchen{[TODO] why not filtering by energy? how to filter it well for bijective parameterization?}\justin{will this heuristic mess up the convergence theory?}
 
 \subsection{Convergence}
 \label{sec:convergence}
 
-As our method is defined to guarantee convergence, we now analyze the convergence rate. First, it is easy to see that $E_w$ is monotonically decreasing looking at each end of descent steps \minchen{[NOTE] might change to abandon roll back}. Now we look at descent step $i$ and $i+1$, from $E^i_w \geq E^{i+1}_w$ we have
+As our method is defined to guarantee convergence to a local optimum, we now analyze the convergence rate. First, it is easy to see that $E_w$ monotonically decreases \justin{not sure what this means:} looking at each end of descent steps \minchen{[NOTE] might change to abandon roll back}. Now we look at descent step $i$ and $i+1$, from $E^i_w \geq E^{i+1}_w$ we have
 \[ E^i_{SD} - E^{i+1}_{SD} \geq \frac{\lambda}{1-\lambda} (E^{i+1}_{se} - E^i_{se}) \geq \frac{\lambda}{1-\lambda} \frac{1}{\sqrt{(\sum_t |A_t|)/\pi}} |e|_{min} \]
-if we now only consider splitting operations that keep increasing $E_{se}$. It's obvious that $E_{SD}$'s theoretical lower bound is defined to be $4$, so we have
+if we now only consider splitting operations that keep increasing $E_{se}$. $E_{SD}$ is lower-bounded theoretically by $4$, so we have
 \[ n_{alter} \leq \frac{(1-\lambda)\sqrt{(\sum_t |A_t|)/\pi}}{\lambda|e|_{min}} (E^0_{SD} - 4) \]
 The most important hint we can read from this is, to accelerate convergence, we can move through multiple vertices on $G_T$ in each topology step to increase $E^{i+1}_{se} - E^i_{se}$.
 
 \minchen{[TODO] update the proof with merge operations?}
+\justin{nothing about this discussion seems to involve convergence rate.}

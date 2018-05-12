@@ -2,9 +2,9 @@
 
 \subsection{Descent Steps}
 \label{sec:descentStep}
-\danny{Topology operation below is also a ``descent'' step - suggest as I did above to rename this to something like ``smooth'' or ``continuous''  descent step.}
+\danny{Topology operation below is also a ``descent'' step - suggest as I did above to rename this to something like ``smooth'' or ``continuous''  descent step.}\justin{agreed}
 
-Descent steps takes in the locally altered UV map by the current topology step, and conduct one Newton-type iteration towards solving $\min_U E_d$ with $T$ fixed.
+Our descent steps take in the locally altered UV map by the current topology step and conduct one Newton-type iteration towards solving $\min_U E_d$ with $T$ fixed.
 
 \begin{algorithm}[h]
 \SetAlgoLined
@@ -26,11 +26,11 @@ $\delta^{i+1} \leftarrow E_{SD}(T^{i+1}, U^{i+1}) - E_{SD}(T^{i+1}, U_a^{i})$\;
 \caption{Descent Step $i$}
 \label{alg:descentStep}
 \end{algorithm}
-Since $E_{SD}$ is not a convex energy, we apply projected Newton method~\cite{Teran2005Robust} to project the Hessian of each energy element to its closest symmetric positive definite (SPD) matrix in parallel, and assemble them to form the SPD Hessian proxy $P^i$. We use PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver to solve the linear system $P^i p^i = -g^i$ for search direction $p^i$. \minchen{[TODO] change to use SPD solver by fixing a direction to ensure definiteness}. As $E_{SD}$ is also a barrier type energy, it is essential to ensure that the configuration always stay inside the feasible region. Thus, we follow Smith and Schaefer~\shortcite{Smith2015Bijective} to first compute an initial step size $\alpha^i_0$ that avoids element inversion, and then conduct back-tracking line search with Armijo rule~\cite{Armijo1966Minimization} to ensure sufficient energy decrease.
+Since $E_{SD}$ is not convex, we apply the projected Newton method~\cite{Teran2005Robust} to project the Hessian of each energy element to its closest symmetric positive definite (SPD) matrix in parallel, and assemble them to form the SPD Hessian proxy $P^i$. We use the PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver to solve the linear system $P^i p^i = -g^i$ for search direction $p^i$. \justin{personally I'd move mention of pardiso to implementation section}\minchen{[TODO] change to use SPD solver by fixing a direction to ensure definiteness} As $E_{SD}$ is also a barrier-type energy, it is essential to ensure that the configuration always stays inside the feasible region. Thus, we follow Smith and Schaefer~\shortcite{Smith2015Bijective} to first compute an initial step size $\alpha^i_0$ that avoids element inversion and then conduct back-tracking line search with Armijo rule~\cite{Armijo1966Minimization} to ensure sufficient energy decrease.
 
 Besides a relatively small tolerance on $g^i$ for convergence detection, we apply another relative energy decrease criteria to appropriately stop the process while necessary.
 This can stop our continuous search at the true local optimum infinitesimal better than setting a larger gradient tolerance since our energy is highly nonlinear. \minchen{[NOTE] might not be necessary if we end descent step right after we have no appropriate extension of topology step size.}
 
 \paragraph{Potential Accelerations for Practical Use}
-Since our topological operations only change the mesh locally both on connectivity and coordinates, we could also update the Hessian or the decomposition locally in order to save time. Besides, it's also interesting to try other Hessian approximation methods like L-BFGS~\cite{Liu1989Limited} or composite majorization~\cite{Shtengel2017Geometric} to explore further acceleration by finding a balance between per-iteration computational cost and convergence rate.
-
+Since our topological operations only change the mesh locally both on connectivity and coordinates, we could also update the Hessian or the decomposition locally to save time. Besides, it's also interesting to try other Hessian approximation methods like L-BFGS~\cite{Liu1989Limited} or composite majorization~\cite{Shtengel2017Geometric} to explore further acceleration by finding a balance between per-iteration computational cost and convergence rate.
+\justin{not sure previous paragraph is needed}
