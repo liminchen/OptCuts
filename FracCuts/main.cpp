@@ -45,28 +45,22 @@ double lambda_init;
 bool optimization_on = false;
 int iterNum = 0;
 int iterNum_lastTopo = 0;
-int iterAmt_rollBack = 0;
-int iterAmt_rollBack_topo = 0;
-int iterNum_backUp = 0;
 int converged = 0;
-bool noValidOp = false;
 bool autoHomotopy = true;
 std::ofstream homoTransFile;
 bool fractureMode = false;
-//double fracThres = 0.0; //stop according to local estimation TODO: make as prog args
-double fracThres = -__DBL_MAX__; //stop according to descent step TODO: make as prog args
-bool lastFractureIn = false;
+double fracThres = 0.0;
 bool altBase = false;
 bool outerLoopFinished = false;
-double lastE_w = 0.0;
-double lastE_SD = 0.0;
-double lastE_se = 0.0;
 const int boundMeasureType = 0; // 0: E_SD, 1: L2 Stretch
 const double upperBound = 4.1;
 const double convTol_upperBound = 1.0e-3; //TODO!!! related to avg edge len or upperBound?
-double criticalLambda_boundaryOpt, criticalLambda_interiorOpt;
 std::vector<std::pair<double, double>> energyChanges_bSplit, energyChanges_iSplit, energyChanges_merge;
-int id_pickedBSplit, id_pickedISplit, id_pickedMerge;
+std::vector<std::vector<int>> paths_bSplit, paths_iSplit, paths_merge;
+std::vector<Eigen::MatrixXd> newVertPoses_bSplit, newVertPoses_iSplit, newVertPoses_merge;
+int opType_queried = -1;
+std::vector<int> path_queried;
+Eigen::MatrixXd newVertPos_queried;
 
 std::ofstream logFile;
 std::string outputFolderPath = "/Users/mincli/Desktop/output_FracCuts/";
@@ -347,9 +341,7 @@ void saveInfoForPresent(const std::string fileName = "info.txt")
     file << vertAmt_input << " " <<
         triSoup[channel_initial]->F.rows() << std::endl;
     
-    file << iterNum << " " << optimizer->getTopoIter() << " "
-        << iterAmt_rollBack << " " << iterAmt_rollBack_topo << " "
-        << lambda_init << " " << 1.0 - energyParams[0] << std::endl;
+    file << iterNum << " " << optimizer->getTopoIter() << " 0 0 " << lambda_init << " " << 1.0 - energyParams[0] << std::endl;
     
     file << "0.0 0.0 " << timer.timing_total() << " " << secPast <<
         " topo" << timer.timing(0) << " desc" << timer.timing(1) << " scaf" << timer.timing(2) << " enUp" << timer.timing(3) <<
@@ -621,20 +613,21 @@ int computeOptPicked(const std::vector<std::pair<double, double>>& energyChanges
     return (minEChange0 > minEChange1);
 }
 
-int computeBestCand(const std::vector<std::pair<double, double>>& energyChanges, double lambda)
+int computeBestCand(const std::vector<std::pair<double, double>>& energyChanges, double lambda,
+                    double& bestEChange)
 {
     assert(!energyChanges.empty());
     assert((lambda >= 0.0) && (lambda <= 1.0));
     
-    double minEChange = __DBL_MAX__;
+    bestEChange = __DBL_MAX__;
     int id_minEChange = -1;
     for(int ecI = 0; ecI < energyChanges.size(); ecI++) {
         if((energyChanges[ecI].first == __DBL_MAX__) || (energyChanges[ecI].second == __DBL_MAX__)) {
             continue;
         }
         double EwChange = energyChanges[ecI].first * (1.0 - lambda) + energyChanges[ecI].second * lambda;
-        if(EwChange < minEChange) {
-            minEChange = EwChange;
+        if(EwChange < bestEChange) {
+            bestEChange = EwChange;
             id_minEChange = ecI;
         }
     }
@@ -807,32 +800,6 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
         }
     }
     
-    // momentum canceling (convergence lambda estimation)
-    if((measure_bound <= upperBound) && firstReach) {
-        firstReach = false;
-        if(cancelMomentum) {
-//            energyParams[0] = (E_se - lastE_se) / (lastE_SD - lastE_se - E_SD + E_se);
-//            
-//            if(energyParams[0] > 1.0 - eps_lambda) {
-//                energyParams[0] = 1.0 - eps_lambda;
-//            }
-//            if(energyParams[0] < eps_lambda) {
-//                energyParams[0] = eps_lambda;
-//            }
-            //!!! still not perfect, is it really necessary?
-            double newVal = (E_se - lastE_se) / (lastE_SD - lastE_se - E_SD + E_se);
-            if((newVal <= 1.0 - eps_lambda) && (newVal >= eps_lambda)) {
-                energyParams[0] = newVal;
-            }
-            
-            optimizer->updateEnergyData(true, false, false);
-
-            logFile << "measure = " << measure_bound << ", b = " << upperBound <<
-                ", estimated convergence lambda = " << energyParams[0] << std::endl;
-            return true;
-        }
-    }
-    
     // lambda update (dual update)
     energyParams[0] = updateLambda(measure_bound);
     //!!! needs to be careful on lambda update space
@@ -842,8 +809,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
         // update lambda until feasible update on T might be triggered
         if(measure_bound > upperBound) {
             // need to cut further, increase energyParams[0]
-            logFile << "curUpdated = " << energyParams[0] << ", increase, critical "
-                << 1.0 - criticalLambda_boundaryOpt << ", " << 1.0 - criticalLambda_interiorOpt << std::endl;
+            logFile << "curUpdated = " << energyParams[0] << ", increase" << std::endl;
             
 //            std::cout << "iSplit:" << std::endl;
 //            for(const auto& i : energyChanges_iSplit) {
@@ -867,23 +833,30 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
                 } while((computeOptPicked(energyChanges_bSplit, energyChanges_merge, 1.0 - energyParams[0]) == 1));// &&
 //                        (computeOptPicked(energyChanges_iSplit, energyChanges_merge, 1.0 - energyParams[0]) == 1));
                 
-                logFile << "iterativelyUpdated = " << energyParams[0] << ", increase for switch, critical " <<
-                    1.0 - criticalLambda_boundaryOpt << ", " << 1.0 - criticalLambda_interiorOpt << std::endl;
+                logFile << "iterativelyUpdated = " << energyParams[0] << ", increase for switch" << std::endl;
+            }
+            
+            double eDec_b, eDec_i;
+            int id_pickingBSplit = computeBestCand(energyChanges_bSplit, 1.0 - energyParams[0], eDec_b);
+            int id_pickingISplit = computeBestCand(energyChanges_iSplit, 1.0 - energyParams[0], eDec_i);
+            while((eDec_b > 0.0) && (eDec_i > 0.0)) {
+                energyParams[0] = updateLambda(measure_bound);
+                id_pickingBSplit = computeBestCand(energyChanges_bSplit, 1.0 - energyParams[0], eDec_b);
+                id_pickingISplit = computeBestCand(energyChanges_iSplit, 1.0 - energyParams[0], eDec_i);
+            }
+            if(eDec_b <= 0.0) {
+                opType_queried = 0;
+                path_queried = paths_bSplit[id_pickingBSplit];
+                newVertPos_queried = newVertPoses_bSplit[id_pickingBSplit];
             }
             else {
-                bool sameBSplit = (computeBestCand(energyChanges_bSplit, 1.0 - energyParams[0]) == id_pickedBSplit);
-                bool sameISplit = (computeBestCand(energyChanges_iSplit, 1.0 - energyParams[0]) == id_pickedISplit);
-                while((sameBSplit && (energyParams[0] < 1.0 - criticalLambda_boundaryOpt)) &&
-                      (sameISplit && (energyParams[0] < 1.0 - criticalLambda_interiorOpt)))
-                {
-                    energyParams[0] = updateLambda(measure_bound);
-                    
-                    sameBSplit = (computeBestCand(energyChanges_bSplit, 1.0 - energyParams[0]) == id_pickedBSplit);
-                    sameISplit = (computeBestCand(energyChanges_iSplit, 1.0 - energyParams[0]) == id_pickedISplit);
-                }
-                logFile << "iterativelyUpdated = " << energyParams[0] << ", increase, critical " <<
-                    1.0 - criticalLambda_boundaryOpt << ", " << 1.0 - criticalLambda_interiorOpt << std::endl;
+                opType_queried = 1;
+                path_queried = paths_iSplit[id_pickingISplit];
+                newVertPos_queried = newVertPoses_iSplit[id_pickingISplit];
             }
+            
+            logFile << "iterativelyUpdated = " << energyParams[0] << ", increased, current eDec = " <<
+                eDec_b << ", " << eDec_i << "; id: " << id_pickingBSplit << ", " << id_pickingISplit << std::endl;
         }
         else {
             if(energyChanges_merge.empty()) {
@@ -897,8 +870,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
                 return false;
             }
             
-            const double critical_dec = 1.0 - criticalLambda_boundaryOpt;
-            logFile << "curUpdated = " << energyParams[0] << ", decrease, critical " << critical_dec << std::endl;
+            logFile << "curUpdated = " << energyParams[0] << ", decrease" << std::endl;
             
             //!!! also account for iSplit for this switch?
             if(computeOptPicked(energyChanges_bSplit, energyChanges_merge, 1.0 - energyParams[0]) == 0) {
@@ -907,19 +879,20 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
                     energyParams[0] = updateLambda(measure_bound);
                 } while(computeOptPicked(energyChanges_bSplit, energyChanges_merge, 1.0 - energyParams[0]) == 0);
                 
-                logFile << "iterativelyUpdated = " << energyParams[0] << ", decrease for switch, critical " <<
-                    1.0 - criticalLambda_boundaryOpt << ", " << 1.0 - criticalLambda_interiorOpt << std::endl;
+                logFile << "iterativelyUpdated = " << energyParams[0] << ", decrease for switch" << std::endl;
             }
-            else {
-                bool sameMerge = (computeBestCand(energyChanges_merge, 1.0 - energyParams[0]) == id_pickedMerge);
-                while(sameMerge && (energyParams[0] > 1.0 - criticalLambda_boundaryOpt))
-                {
-                    energyParams[0] = updateLambda(measure_bound);
-                    
-                    sameMerge = (computeBestCand(energyChanges_merge, 1.0 - energyParams[0]) == id_pickedMerge);
-                }
-                logFile << "iterativelyUpdated = " << energyParams[0] << ", decrease, critical " << critical_dec << std::endl;
+            
+            double eDec_m;
+            int id_pickingMerge = computeBestCand(energyChanges_merge, 1.0 - energyParams[0], eDec_m);
+            while(eDec_m > 0.0) {
+                energyParams[0] = updateLambda(measure_bound);
+                id_pickingMerge = computeBestCand(energyChanges_merge, 1.0 - energyParams[0], eDec_m);
             }
+            opType_queried = 2;
+            path_queried = paths_merge[id_pickingMerge];
+            newVertPos_queried = newVertPoses_merge[id_pickingMerge];
+            
+            logFile << "iterativelyUpdated = " << energyParams[0] << ", decreased, current eDec = " << eDec_m << std::endl;
         }
     }
     
@@ -1121,111 +1094,46 @@ bool preDrawFunc(igl::viewer::Viewer& viewer)
                     const double E_SD = optimizer->getLastEnergyVal(true) / energyParams[0];
                     const double E_w = optimizer->getLastEnergyVal(true) +
                         (1.0 - energyParams[0]) * E_se;
-                    std::cout << "E_w from " << lastE_w << " to " << E_w << std::endl;
+                    std::cout << iterNum << ": " << E_SD << " " << E_se << " " << triSoup[channel_result]->V_rest.rows() << std::endl;
+                    logFile << iterNum << ": " << E_SD << " " << E_se << " " << triSoup[channel_result]->V_rest.rows() << std::endl;
+                    optimizer->flushEnergyFileOutput();
+                    optimizer->flushGradFileOutput();
+                    homoTransFile << iterNum_lastTopo << std::endl;
                     
-                    if((E_w > lastE_w) || noValidOp) {
-                        assert(fracThres < 0.0);
-                        
-                        // compute critical lambda
-                        if(lastFractureIn) {
-                            //!!! novalidop shouldn't happen if scaffolding interior split!!!
-                            criticalLambda_interiorOpt = (noValidOp ? 0.0 : ((E_SD - lastE_SD) / (E_SD - lastE_SD - E_se + lastE_se)));
-                        }
-                        else {
-                            criticalLambda_boundaryOpt = (E_SD - lastE_SD) / (E_SD - lastE_SD - E_se + lastE_se);
-                        }
-                        
-                        // roll back
-                        optimizer->clearEnergyFileOutputBuffer();
-                        optimizer->clearGradFileOutputBuffer();
-                        optimizer->setConfig(triSoup_backup, iterNum_backUp, optimizer->getTopoIter() - 1);
-                        iterAmt_rollBack += iterNum - iterNum_backUp;
-                        iterNum = iterNum_backUp;
-                        logFile << "iterNum roll back to " << iterNum << std::endl;
-                        iterAmt_rollBack_topo++;
-                        noValidOp = false;
-                        
-                        if(lastFractureIn) {
-                            // if the last topology operation is interior split
-                            homoTransFile << iterNum << std::endl; // mark stationaryVT
-                            if((methodType == FracCuts::MT_OURS_FIXED) ||
-                               (!updateLambda_stationaryV(false, true)))
-                            {
-                                // all converged
-                                converge_preDrawFunc(viewer);
-                            }
-                            else {
-                                // continue to split boundary after lambda update
-                                saveInfo_postDraw = false;
-                                
-                                triSoup[channel_result]->computeSeamSparsity(lastE_se);
-                                lastE_se /= triSoup[channel_result]->virtualRadius;
-                                lastE_SD = optimizer->getLastEnergyVal(true) / energyParams[0];
-                                lastE_w = optimizer->getLastEnergyVal(true) +
-                                    (1.0 - energyParams[0]) * lastE_se;
-                                
-                                iterNum_lastTopo = iterNum;
-                                logFile << "boundary split VT " << triSoup[channel_result]->V_rest.rows() << std::endl;
-                                if(optimizer->createFracture(fracThres, false, !altBase)) {
-                                    lastFractureIn = false;
-                                    converged = false;
-                                }
-                                else {
-                                    // if no valid (won't cause overlaps) boundary split exists among the filtered candidate
-                                    lastFractureIn = false;
-                                    noValidOp = true;
-                                }
-                            }
-                        }
-                        else {
-                            // last topology operation is boundary split,
-                            // roll back and try interior split
-                            saveInfo_postDraw = false;
-                            iterNum_lastTopo = iterNum;
-                            logFile << "interior split " << triSoup[channel_result]->V_rest.rows() << std::endl;
-                            if(optimizer->createFracture(fracThres, false, !altBase, true)) {
-                                lastFractureIn = true;
-                                converged = false;
-                            }
-                            else {
-                                // if no valid (won't cause overlaps) interior split exists among the filtered candidate
-                                lastFractureIn = true;
-                                noValidOp = true;
-                            }
-                        }
+                    // continue to split boundary
+                    if((methodType == FracCuts::MT_OURS) &&
+                       (!updateLambda_stationaryV()))
+                    {
+                        // oscillation detected
+                        converge_preDrawFunc(viewer);
                     }
                     else {
-                        logFile << iterNum << ": " << E_SD << " " << E_se << " " << triSoup[channel_result]->V_rest.rows() << std::endl;
-                        optimizer->flushEnergyFileOutput();
-                        optimizer->flushGradFileOutput();
-                        homoTransFile << iterNum_lastTopo << std::endl;
-                        
-                        // continue to split boundary
-                        if((methodType == FracCuts::MT_OURS) &&
-                           (!updateLambda_stationaryV()))
-                        {
-                            // oscillation detected
-                            converge_preDrawFunc(viewer);
+                        logFile << "boundary op V " << triSoup[channel_result]->V_rest.rows() << std::endl;
+                        if(optimizer->createFracture(fracThres, false, !altBase)) {
+                            converged = false;
                         }
                         else {
-                            triSoup_backup = optimizer->getResult();
-                            iterNum_backUp = iterNum;
-                            triSoup[channel_result]->computeSeamSparsity(lastE_se);
-                            lastE_se /= triSoup[channel_result]->virtualRadius;
-                            lastE_SD = optimizer->getLastEnergyVal(true) / energyParams[0];
-                            lastE_w = optimizer->getLastEnergyVal(true) +
-                                (1.0 - energyParams[0]) * lastE_se;
-                            
-                            iterNum_lastTopo = iterNum;
-                            logFile << "boundary split V " << triSoup[channel_result]->V_rest.rows() << std::endl;
-                            if(optimizer->createFracture(fracThres, false, !altBase)) {
-                                lastFractureIn = false;
+                            // if no boundary op, try interior split if split is the current best boundary op
+                            if((measure_bound > upperBound) &&
+                               optimizer->createFracture(fracThres, false, !altBase, true))
+                            {
+                                logFile << "interior split " << triSoup[channel_result]->V_rest.rows() << std::endl;
                                 converged = false;
                             }
                             else {
-                                // if no valid (won't cause overlaps) boundary split exists among the filtered candidate
-                                lastFractureIn = false;
-                                noValidOp = true;
+                                homoTransFile << iterNum << std::endl; // mark stationaryVT
+                                if((methodType == FracCuts::MT_OURS_FIXED) ||
+                                   (!updateLambda_stationaryV(false, true)))
+                                {
+                                    // all converged
+                                    converge_preDrawFunc(viewer);
+                                }
+                                else {
+                                    // split or merge after lambda update
+                                    optimizer->createFracture(opType_queried, path_queried, newVertPos_queried, !altBase);
+                                    opType_queried = -1;
+                                    converged = false;
+                                }
                             }
                         }
                     }
@@ -1587,11 +1495,6 @@ int main(int argc, char *argv[])
         //!!!TODO: put into switch(methodType)
         // fracture mode
         fractureMode = true;
-        
-        triSoup[channel_result]->computeSeamSparsity(lastE_se);
-        lastE_se /= triSoup[channel_result]->virtualRadius;
-        lastE_SD = optimizer->getLastEnergyVal(true) / energyParams[0];
-        lastE_w = optimizer->getLastEnergyVal(true) + (1.0 - energyParams[0]) * lastE_se;
         
         if(delta == 0.0) {
             altBase = true;

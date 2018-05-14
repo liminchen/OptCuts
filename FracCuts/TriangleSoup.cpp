@@ -27,7 +27,8 @@ extern std::ofstream logFile;
 extern Timer timer_step;
 
 extern std::vector<std::pair<double, double>> energyChanges_bSplit, energyChanges_iSplit, energyChanges_merge;
-extern int id_pickedBSplit, id_pickedISplit, id_pickedMerge;
+extern std::vector<std::vector<int>> paths_bSplit, paths_iSplit, paths_merge;
+extern std::vector<Eigen::MatrixXd> newVertPoses_bSplit, newVertPoses_iSplit, newVertPoses_merge;
 
 namespace FracCuts {
     
@@ -879,24 +880,33 @@ namespace FracCuts {
         // evaluate local energy decrease
         std::cout << "evaluate vertex splits, " << bestCandVerts.size() << " candidate verts" << std::endl;
         // run in parallel:
-        std::vector<double> EwDecs(bestCandVerts.size());
-        std::vector<std::vector<int>> paths(bestCandVerts.size());
-        std::vector<Eigen::MatrixXd> newVertPoses(bestCandVerts.size());
+        static std::vector<double> EwDecs;
+        EwDecs.resize(bestCandVerts.size());
+        static std::vector<std::vector<int>> paths_p;
+        static std::vector<Eigen::MatrixXd> newVertPoses_p;
         static std::vector<std::pair<double, double>> energyChanges_p;
+        int operationType = -1;
         // query boundary splits
         if(!splitInterior) {
             if(propagate) {
+                paths_p.resize(0);
+                paths_p.resize(bestCandVerts.size());
+                newVertPoses_p.resize(bestCandVerts.size());
                 energyChanges_p.resize(bestCandVerts.size());
                 tbb::parallel_for(0, (int)bestCandVerts.size(), 1, [&](int candI) {
-                    EwDecs[candI] = computeLocalEwDec(bestCandVerts[candI], lambda_t, paths[candI], newVertPoses[candI],
+                    EwDecs[candI] = computeLocalEwDec(bestCandVerts[candI], lambda_t, paths_p[candI], newVertPoses_p[candI],
                                                       energyChanges_p[candI]);
                 });
             }
             else {
+                operationType = 0;
+                paths_bSplit.resize(0);
+                paths_bSplit.resize(bestCandVerts.size());
+                newVertPoses_bSplit.resize(bestCandVerts.size());
                 energyChanges_bSplit.resize(bestCandVerts.size());
 //                for(int candI = 0; candI < bestCandVerts.size(); candI++) {
                 tbb::parallel_for(0, (int)bestCandVerts.size(), 1, [&](int candI) {
-                    EwDecs[candI] = computeLocalEwDec(bestCandVerts[candI], lambda_t, paths[candI], newVertPoses[candI],
+                    EwDecs[candI] = computeLocalEwDec(bestCandVerts[candI], lambda_t, paths_bSplit[candI], newVertPoses_bSplit[candI],
                                                       energyChanges_bSplit[candI]);
                 });
 //                }
@@ -904,11 +914,15 @@ namespace FracCuts {
         }
         else {
             assert(!propagate);
+            operationType = 1;
             // query interior splits
+            paths_iSplit.resize(0);
+            paths_iSplit.resize(bestCandVerts.size());
+            newVertPoses_iSplit.resize(bestCandVerts.size());
             energyChanges_iSplit.resize(bestCandVerts.size());
 //            for(int candI = 0; candI < bestCandVerts.size(); candI++) {
             tbb::parallel_for(0, (int)bestCandVerts.size(), 1, [&](int candI) {
-                EwDecs[candI] = computeLocalEwDec(bestCandVerts[candI], lambda_t, paths[candI], newVertPoses[candI],
+                EwDecs[candI] = computeLocalEwDec(bestCandVerts[candI], lambda_t, paths_iSplit[candI], newVertPoses_iSplit[candI],
                                                         energyChanges_iSplit[candI]);
                 if(EwDecs[candI] != -__DBL_MAX__) {
                     EwDecs[candI] *= 0.5;
@@ -916,31 +930,40 @@ namespace FracCuts {
             });
 //            }
         }
+            
         int candI_max = 0;
         for(int candI = 1; candI < bestCandVerts.size(); candI++) {
             if(EwDecs[candI] > EwDecs[candI_max]) {
                 candI_max = candI;
             }
         }
-        
+            
         EwDec_max = EwDecs[candI_max];
-        path_max = paths[candI_max];
+        switch(operationType) {
+            case -1:
+                path_max = paths_p[candI_max];
+                newVertPos_max = newVertPoses_p[candI_max];
+                energyChanges_max = energyChanges_p[candI_max];
+                break;
+                
+            case 0:
+                path_max = paths_bSplit[candI_max];
+                newVertPos_max = newVertPoses_bSplit[candI_max];
+                energyChanges_max = energyChanges_bSplit[candI_max];
+                break;
+                
+            case 1:
+                path_max = paths_iSplit[candI_max];
+                newVertPos_max = newVertPoses_iSplit[candI_max];
+                energyChanges_max = energyChanges_iSplit[candI_max];
+                break;
+                
+            default:
+                assert(0);
+                break;
+        }
 //        std::cout << path_max[0] << " " << path_max[1] << std::endl;
 //        std::cout << newVertPoses[candI_max] << std::endl;
-        newVertPos_max = newVertPoses[candI_max];
-        if(splitInterior) {
-            energyChanges_max = energyChanges_iSplit[candI_max];
-            id_pickedISplit = ((EwDec_max == -__DBL_MAX__) ? -1 : candI_max); //!!! shouldn't happen if scaffolding interior splits 
-        }
-        else {
-            if(propagate) {
-                energyChanges_max = energyChanges_p[candI_max];
-            }
-            else {
-                energyChanges_max = energyChanges_bSplit[candI_max];
-                id_pickedBSplit = candI_max;
-            }
-        }
             
         timer_step.stop();
     }
@@ -996,6 +1019,8 @@ namespace FracCuts {
         std::cout << "evaluate edge merge, " << cohE.rows() << " cohesive edge pairs." << std::endl;
         localEwDec_max = -__DBL_MAX__;
         if(!propagate) {
+            paths_merge.resize(0);
+            newVertPoses_merge.resize(0);
             energyChanges_merge.resize(0);
         }
         for(int cohI = 0; cohI < cohE.rows(); cohI++) {
@@ -1009,6 +1034,12 @@ namespace FracCuts {
             else {
                 //!!! only consider "zipper bottom" edge pairs for now
                 continue;
+            }
+            
+            if(propagate) {
+                if(cohE(cohI, forkVI) != curFracTail) {
+                    continue;
+                }
             }
             
             // find incident triangles for inversion check and local energy decrease evaluation
@@ -1113,6 +1144,8 @@ namespace FracCuts {
             std::pair<double, double> energyChanges;
             double localEwDec = computeLocalEwDec(0, lambda, path, newVertPos, energyChanges, triangles, mergedPos);
             if(!propagate) {
+                paths_merge.emplace_back(path);
+                newVertPoses_merge.emplace_back(newVertPos);
                 energyChanges_merge.emplace_back(energyChanges);
             }
             
@@ -1121,9 +1154,6 @@ namespace FracCuts {
                 newVertPos_max = newVertPos;
                 path_max = path;
                 energyChanges_max = energyChanges;
-                if(!propagate) {
-                    id_pickedMerge = static_cast<int>(energyChanges_merge.size()) - 1;
-                }
             }
         }
         

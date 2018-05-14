@@ -93,6 +93,7 @@ namespace FracCuts {
         void updateEnergyData(bool updateEVal = true, bool updateGradient = true, bool updateHessian = true);
         bool createFracture(double stressThres, int propType,
                             bool allowPropagate = true, bool allowInSplit = false);
+        bool createFracture(int opType, const std::vector<int>& path, const Eigen::MatrixXd& newVertPos, bool allowPropagate);
         void setConfig(const TriangleSoup& config, int iterNum, int p_topoIter);
         void setPropagateFracture(bool p_prop);
         void setScaffolding(bool p_scaffolding);

@@ -370,6 +370,86 @@ namespace FracCuts {
         }
     }
     
+    bool Optimizer::createFracture(int opType, const std::vector<int>& path, const Eigen::MatrixXd& newVertPos, bool allowPropagate)
+    {
+        assert(methodType == MT_OURS);
+        
+        topoIter++;
+//        //DEBUG
+//        if(globalIterNum > 520) {
+//            result.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_preTopo.obj");
+//            scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_preTopo_AM.obj");
+//        }
+        
+        timer.start(0);
+        bool isMerge = false;
+        data_findExtrema = result; // potentially time-consuming
+        switch(opType) {
+            case 0: // boundary split
+                std::cout << "boundary split without querying again" << std::endl;
+                result.splitEdgeOnBoundary(std::pair<int, int>(path[0], path[1]), newVertPos);
+                logFile << "boundary edge splitted without querying again" << std::endl;
+                //TODO: process fractail here!
+                result.updateFeatures();
+                break;
+                
+            case 1: // interior split
+                std::cout << "Interior split without querying again" << std::endl;
+                result.cutPath(path, true, 1, newVertPos);
+                logFile << "interior edge splitted without querying again" << std::endl;
+                result.fracTail.insert(path[0]);
+                result.fracTail.insert(path[2]);
+                result.curInteriorFracTails.first = path[0];
+                result.curInteriorFracTails.second = path[2];
+                result.curFracTail = -1;
+                break;
+                
+            case 2: // merge
+                std::cout << "corner edge merged without querying again" << std::endl;
+                result.mergeBoundaryEdges(std::pair<int, int>(path[0], path[1]),
+                                          std::pair<int, int>(path[1], path[2]), newVertPos.row(0));
+                logFile << "corner edge merged without querying again" << std::endl;
+                
+                result.computeFeatures(); //TODO: only update locally
+                isMerge = true;
+                break;
+                
+            default:
+                assert(0);
+                break;
+        }
+        timer.stop();
+//        logFile << result.V.rows() << std::endl;
+//        logFile << result.F << std::endl; //DEBUG
+//        logFile << result.cohE << std::endl; //DEBUG
+        
+        if(scaffolding) {
+            scaffold = Scaffold(result, UV_bnds_scaffold, E_scaffold, bnd_scaffold);
+            result.scaffold = &scaffold;
+            scaffold.mergeVNeighbor(result.vNeighbor, vNeighbor_withScaf);
+            scaffold.mergeFixedV(result.fixedVert, fixedV_withScaf);
+        }
+//            //DEBUG
+//            if(globalIterNum > 10) {
+//                result.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_postTopo.obj");
+//                scaffold.airMesh.save("/Users/mincli/Desktop/meshes/test"+std::to_string(globalIterNum)+"_postTopo_AM.obj");
+//            }
+        
+        timer.start(3);
+        updateEnergyData(true, false, true);
+        timer.stop();
+        fractureInitiated = true;
+        if(!mute) {
+            writeEnergyValToFile(false);
+        }
+        
+        if(allowPropagate) {
+            propagateFracture = 1 + isMerge;
+        }
+
+        return true;
+    }
+    
     bool Optimizer::createFracture(double stressThres, int propType, bool allowPropagate, bool allowInSplit)
     {
         if(propType == 0) {
@@ -404,7 +484,7 @@ namespace FracCuts {
                         changed = result.splitEdge(1.0 - energyParams[0], stressThres, true, allowInSplit);
                         break;
                         
-                    case 2: // propagate merge [need to also update lambda in-between propagation?]
+                    case 2: // propagate merge
                         changed = result.mergeEdge(1.0 - energyParams[0], stressThres, true);
 //                        changed = false;
                         isMerge = true;
