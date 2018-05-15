@@ -18,7 +18,7 @@ global parameterization methods?
 %Seams, due to its discontinuous property, is not intuitive to be considered in traditional distortion minimization frameworks.
 Due to discontinuities that occur when seams are introduced or removed, it is not intuitive to consider optimization of seam topology in the context of traditional frameworks for minimizing distortion during mesh parameterization.
 %
-\justin{couldn't follow this sentence (what does ``efficient'' or ``sparse'' mean in this context and what does it have to do with L2?):}
+\justin{couldn't follow this sentence (what does ``efficient'' or ``sparse'' mean in this context and what does it have to do with L2?):}\minchen{"efficient" and "sparse" means the number of seam edges should be in $O(\sqrt{numOfEdges})$. If one tries to model seam as a continuous energy (e.g.\ \cite{Poranne2017Autocuts}), residuals will be distributed evenly if the objective function is L2-type. To obtain sparsity structure in the result, less smooth energy such as L1-type energy is needed, which is similar to feature selection in statistical learning.}
 Moreover, for seams to be efficient, it needs to be sparse, which is another challenge for optimizing it with L2-type distortion energies.
 
 

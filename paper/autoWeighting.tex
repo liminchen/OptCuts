@@ -11,15 +11,10 @@ How do we get $\lambda^{k+1}$? \justin{not sure a rhetorical question is needed}
 
 Our overall minimization is inequality constrained with a specified upper bound $b \in \mathbb{R}_+$ on distortion. \justin{I moved a parenthetical to a Minchen comment assuming he'll write it more formally}\minchen{(L2 norm on SD  energy for now - pretty easy to modify to an extremal measure if we want later on.)}
 
-Our model problem minimization is then 
-\[ \min_{T,V} E_{SE}(V,T) :  b - E_{SD}(V,T) \geq 0 \]
-
-Or, equivalently,
-\[ \min_{T,V} \max_{\lambda \geq 0} E_{SE}(V,T) + \lambda \big( E_{SD}(V,T) - b\big) \]
-\justin{the two equations above are repeats from sec3; remove them and just use eq numbers.}
+Our model problem minimization is then Eq.~\ref{eq:p1}. Or, equivalently, Eq.~\ref{eq:p2}.
 
 The inner objective is nonsmooth in $\lambda$ since it does not take into account %very nicely 
-the fact that per-iteration we will start away from feasibility and want to iteratively improve both our primal variables $\{V,T\}$ and our dual variable $\lambda$. \justin{I didn't follow the previous sentence} To smoothly update to a current $\lambda^{k+1}$ from a previous estimate $\lambda^k$ we will add a regularizer $R(\lambda,\lambda^k)$ to make sure $\lambda$ iterates behave reasonably. For now lets stick with something simple:  a quadratic regularizer should do the trick  $R =\frac{1}{2\kappa} (\lambda- \lambda^k)^2$.  \justin{Previous sentence is too informal, and not sure ``for now'' is right}
+the fact that per-iteration we will start away from feasibility and want to iteratively improve both our primal variables $\{V,T\}$ and our dual variable $\lambda$. \justin{I didn't follow the previous sentence} To smoothly update to a current $\lambda^{k+1}$ from a previous estimate $\lambda^k$, we add a simple quadratic regularizer $R(\lambda,\lambda^k) = \frac{1}{2\kappa} (\lambda- \lambda^k)^2$ to make sure $\lambda$ iterates behave reasonably.
 
 For iteration $k+1$ this gives us 
 \[ \min_{T,V} \max_{\lambda \geq 0} E_{SE}(V,T) + \lambda \big( E_{SD}(V,T) - b\big) - \frac{1}{2\kappa} (\lambda- \lambda^k)^2 \]
@@ -43,18 +38,7 @@ followed by the next update of dual variable $\lambda$.
 \KwData{Input model with initial UV map, expected $E_{SD}$ upper bound $b$}
 \KwResult{UV map with $argmin_{v_T} E_{se}$ topology and $E_{SD} <= b$}
 
-$\lambda \leftarrow +\infty$ \\
-\For{each alternating iteration $i$}{
-  descent step $i$\;
-  \If{$E^i_{SD} <= b$}{
-  	$j \leftarrow i$
-    break;
-  }
-  $i \leftarrow i + 1$\;
-  topology step $i$\;
-}
-
-$\lambda \leftarrow (E^j_{se} - E^{j-1}_{se})/(E^{j-1}_{SD}-E^{j}_{SD})$\;
+$\lambda \leftarrow 0$\;
 
 \For{each alternating iteration $i$}{
   topology step\;

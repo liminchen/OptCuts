@@ -24,7 +24,7 @@ We measure the trade-off between topology and geometry by balancing a distortion
 Measuring a balance between distortion and seam length has previously required a choice of a relative scaling factor between these two objectives.  From a practical perspective, it is difficult for users to choose such a coefficient. %trading off between the two. 
 %Likewise, i
 In practice, for high-quality solutions this balancing factor must be %somehow 
-be updated---often by user intervention---during the parametrization process\ \cite{Poranne2017Autocuts}. Instead, we construct our joint optimization as a \emph{constrained} problem. We propose to find locally minimal seam length for a user-specified distortion bound. Setting distortion bounds as a hard constraint guarantees a level of geometric quality, while simultaneously enabling the exploration of optimal seams satisfying the bound. %In turn, o %<--- not sure what ``in turn'' means in this context
+updated---often by user intervention---during the parametrization process\ \cite{Poranne2017Autocuts}. Instead, we construct our joint optimization as a \emph{constrained} problem. We propose to find locally minimal seam length for a user-specified distortion bound. Setting distortion bounds as a hard constraint guarantees a level of geometric quality, while simultaneously enabling the exploration of optimal seams satisfying the bound. %In turn, o %<--- not sure what ``in turn'' means in this context
 Our scaling factor directly falls out from our model as the Lagrange multiplier of the distortion bound and is thus adaptively updated during the course of optimization.  %directly by our optimization method.
 %(Section~\ref{sec:self_weighting}).
 
