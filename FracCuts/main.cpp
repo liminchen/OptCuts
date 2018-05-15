@@ -17,7 +17,7 @@
 #include <igl/harmonic.h>
 #include <igl/arap.h>
 #include <igl/avg_edge_length.h>
-#include <igl/viewer/Viewer.h>
+#include <igl/opengl/glfw/Viewer.h>
 #include <igl/png/writePNG.h>
 #include <igl/euler_characteristic.h>
 #include <igl/edge_lengths.h>
@@ -67,7 +67,7 @@ std::string outputFolderPath = "/Users/mincli/Desktop/output_FracCuts/";
 const std::string meshFolder = "/Users/mincli/Desktop/meshes/";
 
 // visualization
-igl::viewer::Viewer viewer;
+igl::opengl::glfw::Viewer viewer;
 const int channel_initial = 0;
 const int channel_result = 1;
 const int channel_findExtrema = 2;
@@ -105,9 +105,9 @@ void proceedOptimization(int proceedNum = 1)
 
 void updateViewerData_meshEdges(void)
 {
-    viewer.core.show_lines = !showSeam;
+    viewer.data().show_lines = !showSeam;
     
-    viewer.data.set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
+    viewer.data().set_edges(Eigen::MatrixXd(0, 3), Eigen::MatrixXi(0, 2), Eigen::RowVector3d(0.0, 0.0, 0.0));
     if(showSeam) {
         // only draw air mesh edges
         if(optimizer->isScaffolding() && viewUV && (viewChannel == channel_result)) {
@@ -115,7 +115,7 @@ void updateViewerData_meshEdges(void)
             for(int triI = 0; triI < optimizer->getAirMesh().F.rows(); triI++) {
                 const Eigen::RowVector3i& triVInd = optimizer->getAirMesh().F.row(triI);
                 for(int eI = 0; eI < 3; eI++) {
-                    viewer.data.add_edges(V_airMesh.row(triVInd[eI]), V_airMesh.row(triVInd[(eI + 1) % 3]),
+                    viewer.data().add_edges(V_airMesh.row(triVInd[eI]), V_airMesh.row(triVInd[(eI + 1) % 3]),
                                           Eigen::RowVector3d::Zero());
                 }
             }
@@ -207,7 +207,7 @@ void updateViewerData_distortion(void)
         color_distortionVis.bottomRows(seamColor.rows()) = seamColor;
     }
     
-    viewer.data.set_colors(color_distortionVis);
+    viewer.data().set_colors(color_distortionVis);
 }
 
 void updateViewerData(void)
@@ -223,23 +223,23 @@ void updateViewerData(void)
         UV_vis.rightCols(1) = Eigen::VectorXd::Zero(UV_vis.rows());
         updateViewerData_seam(UV_vis, F_vis, UV_vis);
         
-        if((UV_vis.rows() != viewer.data.V.rows()) ||
-           (F_vis.rows() != viewer.data.F.rows()))
+        if((UV_vis.rows() != viewer.data().V.rows()) ||
+           (F_vis.rows() != viewer.data().F.rows()))
         {
-            viewer.data.clear();
+            viewer.data().clear();
         }
-        viewer.data.set_mesh(UV_vis, F_vis);
+        viewer.data().set_mesh(UV_vis, F_vis);
         viewer.core.align_camera_center(UV_vis, F_vis);
         
-        viewer.core.show_texture = false;
+        viewer.data().show_texture = false;
         viewer.core.lighting_factor = 0.0;
 
         updateViewerData_meshEdges();
         
-        viewer.data.set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 0.0));
+        viewer.data().set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 0.0));
         if(showFracTail) {
             for(const auto& tailVI : triSoup[viewChannel]->fracTail) {
-                viewer.data.add_points(UV_vis.row(tailVI), Eigen::RowVector3d(0.0, 0.0, 0.0));
+                viewer.data().add_points(UV_vis.row(tailVI), Eigen::RowVector3d(0.0, 0.0, 0.0));
             }
         }
     }
@@ -247,21 +247,21 @@ void updateViewerData(void)
         Eigen::MatrixXd V_vis = triSoup[viewChannel]->V_rest;
         updateViewerData_seam(V_vis, F_vis, UV_vis);
         
-        if((V_vis.rows() != viewer.data.V.rows()) ||
-           (UV_vis.rows() != viewer.data.V_uv.rows()) ||
-           (F_vis.rows() != viewer.data.F.rows()))
+        if((V_vis.rows() != viewer.data().V.rows()) ||
+           (UV_vis.rows() != viewer.data().V_uv.rows()) ||
+           (F_vis.rows() != viewer.data().F.rows()))
         {
-            viewer.data.clear();
+            viewer.data().clear();
         }
-        viewer.data.set_mesh(V_vis, F_vis);
+        viewer.data().set_mesh(V_vis, F_vis);
         viewer.core.align_camera_center(V_vis, F_vis);
         
         if(showTexture) {
-            viewer.data.set_uv(UV_vis);
-            viewer.core.show_texture = true;
+            viewer.data().set_uv(UV_vis);
+            viewer.data().show_texture = true;
         }
         else {
-            viewer.core.show_texture = false;
+            viewer.data().show_texture = false;
         }
         
         if(isLighting) {
@@ -273,16 +273,16 @@ void updateViewerData(void)
         
         updateViewerData_meshEdges();
         
-        viewer.data.set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 0.0));
+        viewer.data().set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 0.0));
         if(showFracTail) {
             for(const auto& tailVI : triSoup[viewChannel]->fracTail) {
-                viewer.data.add_points(V_vis.row(tailVI), Eigen::RowVector3d(0.0, 0.0, 0.0));
+                viewer.data().add_points(V_vis.row(tailVI), Eigen::RowVector3d(0.0, 0.0, 0.0));
             }
         }
     }
     updateViewerData_distortion();
     
-    viewer.data.compute_normals();
+    viewer.data().compute_normals();
 }
 
 void saveScreenshot(const std::string& filePath, double scale = 1.0, bool writeGIF = false, bool writePNG = true)
@@ -301,7 +301,7 @@ void saveScreenshot(const std::string& filePath, double scale = 1.0, bool writeG
     Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> A(width, height);
     
     // Draw the scene in the buffers
-    viewer.core.draw_buffer(viewer.data, viewer.opengl, false, R, G, B, A);
+    viewer.core.draw_buffer(viewer.data(), false, R, G, B, A);
     
     if(writePNG) {
         // Save it to a PNG
@@ -406,7 +406,7 @@ void toggleOptimization(void)
     }
 }
 
-bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
+bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier)
 {
     if((key >= '0') && (key <= '9')) {
         int changeToChannel = key - '0';
@@ -532,7 +532,7 @@ bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier)
     return false;
 }
 
-bool postDrawFunc(igl::viewer::Viewer& viewer)
+bool postDrawFunc(igl::opengl::glfw::Viewer& viewer)
 {
     if(offlineMode && (iterNum == 0)) {
         toggleOptimization();
@@ -910,7 +910,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
     return true;
 }
 
-void converge_preDrawFunc(igl::viewer::Viewer& viewer)
+void converge_preDrawFunc(igl::opengl::glfw::Viewer& viewer)
 {
     infoName = "finalResult";
     
@@ -940,7 +940,7 @@ void converge_preDrawFunc(igl::viewer::Viewer& viewer)
     outerLoopFinished = true;
 }
 
-bool preDrawFunc(igl::viewer::Viewer& viewer)
+bool preDrawFunc(igl::opengl::glfw::Viewer& viewer)
 {
     if(optimization_on)
     {
@@ -1506,12 +1506,12 @@ int main(int argc, char *argv[])
     viewer.callback_key_down = &key_down;
     viewer.callback_pre_draw = &preDrawFunc;
     viewer.callback_post_draw = &postDrawFunc;
-    viewer.core.show_lines = true;
+    viewer.data().show_lines = true;
     viewer.core.orthographic = true;
     viewer.core.camera_zoom *= 1.9;
     viewer.core.animation_max_fps = 60.0;
-    viewer.core.point_size = 15.0f; //TODO: make it adaptive
-    viewer.core.show_overlay = true;
+    viewer.data().point_size = 15.0f; //TODO: make it adaptive
+    viewer.data().show_overlay = true;
     updateViewerData();
     viewer.launch();
     

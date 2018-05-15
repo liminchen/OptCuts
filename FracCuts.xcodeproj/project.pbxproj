@@ -9,21 +9,25 @@
 /* Begin PBXBuildFile section */
 		980180BC1F552CDA00C64B43 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 980180BB1F552CDA00C64B43 /* main.cpp */; };
 		982CE6131F5DB358004176A8 /* Energy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982CE6121F5DB358004176A8 /* Energy.cpp */; };
-		987382CE2076EE9D0040BBCE /* libtriangle.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 987382CD2076EE9D0040BBCE /* libtriangle.a */; };
 		987382D12076F49A0040BBCE /* Scaffold.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 987382CF2076F49A0040BBCE /* Scaffold.cpp */; };
-		988ED1281F57211500B21181 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 988ED1271F57211500B21181 /* OpenGL.framework */; };
-		988ED12C1F57237F00B21181 /* libglfw.3.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 988ED12B1F57237F00B21181 /* libglfw.3.2.dylib */; };
+		988D81A720AA7FFE0037737D /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 988ED1271F57211500B21181 /* OpenGL.framework */; };
+		988D81A920AA80A60037737D /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 988D81A820AA80A60037737D /* IOKit.framework */; };
+		988D81AB20AA80E40037737D /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 988D81AA20AA80E40037737D /* Cocoa.framework */; };
+		988D81AD20AA81130037737D /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 988D81AC20AA81130037737D /* CoreVideo.framework */; };
+		988D81B720AA98380037737D /* libpardiso500-MACOS-X86-64.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 98CE47671F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib */; };
+		988D81B920AA98E10037737D /* libglad.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 988D81B820AA98E10037737D /* libglad.a */; };
+		988D81BB20AA98ED0037737D /* libigl_stb_image.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 988D81BA20AA98ED0037737D /* libigl_stb_image.dylib */; };
+		988D81BC20AA98FA0037737D /* libtbb.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 98BFBB1E1FA153EA00142E10 /* libtbb.dylib */; };
+		988D81BD20AA99060037737D /* libtriangle.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 987382CD2076EE9D0040BBCE /* libtriangle.a */; };
+		988D81BF20AA99120037737D /* libglfw3.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 988D81BE20AA99120037737D /* libglfw3.a */; };
 		988ED12F1F5727F400B21181 /* TriangleSoup.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 988ED12D1F5727F400B21181 /* TriangleSoup.cpp */; };
 		988ED1321F575C3C00B21181 /* IglUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 988ED1301F575C3C00B21181 /* IglUtils.cpp */; };
 		988ED1351F5871F200B21181 /* Optimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 988ED1331F5871F200B21181 /* Optimizer.cpp */; };
 		98A5A32B1F5F5BB900584EFD /* ARAPEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98A5A3291F5F5BB900584EFD /* ARAPEnergy.cpp */; };
-		98BFBB1F1FA153EA00142E10 /* libtbb.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 98BFBB1E1FA153EA00142E10 /* libtbb.dylib */; };
 		98C2D8F41F6348820048B18A /* SeparationEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98C2D8F21F6348820048B18A /* SeparationEnergy.cpp */; };
-		98CE47681F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 98CE47671F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib */; };
 		98CE476F1F71E66300627725 /* PardisoSolver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98CE476D1F71E66300627725 /* PardisoSolver.cpp */; };
 		98D10F2D1F5CA12C0010E1A6 /* SymStretchEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98D10F2B1F5CA12C0010E1A6 /* SymStretchEnergy.cpp */; };
 		98D3E7D51F75AEC6000DA61D /* CohesiveEnergy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98D3E7D31F75AEC6000DA61D /* CohesiveEnergy.cpp */; };
-		98D5B2101F67274100DCE9F4 /* libstb_image.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 98D5B20F1F67274100DCE9F4 /* libstb_image.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -48,6 +52,20 @@
 		987382CD2076EE9D0040BBCE /* libtriangle.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libtriangle.a; path = ../../../../usr/local/lib/libtriangle.a; sourceTree = "<group>"; };
 		987382CF2076F49A0040BBCE /* Scaffold.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Scaffold.cpp; sourceTree = "<group>"; };
 		987382D02076F49A0040BBCE /* Scaffold.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Scaffold.hpp; sourceTree = "<group>"; };
+		988D819D20AA7F9A0037737D /* libglfw3.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglfw3.a; path = ../../Documents/libigl/external/glfw/build/src/Release/libglfw3.a; sourceTree = "<group>"; };
+		988D819F20AA7FC40037737D /* libtriangle.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libtriangle.a; path = ../../Documents/libigl/external/triangle/build/Release/libtriangle.a; sourceTree = "<group>"; };
+		988D81A120AA7FD40037737D /* libtbb.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbb.dylib; path = ../../Documents/tbb2018_20180312oss/lib/libtbb.dylib; sourceTree = "<group>"; };
+		988D81A320AA7FDF0037737D /* libpardiso600-GNU720-X86-64.so */ = {isa = PBXFileReference; lastKnownFileType = file; name = "libpardiso600-GNU720-X86-64.so"; path = "../../Documents/libpardiso600-GNU720-X86-64.so"; sourceTree = "<group>"; };
+		988D81A520AA7FF10037737D /* libigl_stb_image.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libigl_stb_image.dylib; path = ../../Documents/libigl/external/stb_image/build/Release/libigl_stb_image.dylib; sourceTree = "<group>"; };
+		988D81A820AA80A60037737D /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		988D81AA20AA80E40037737D /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		988D81AC20AA81130037737D /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
+		988D81AE20AA81B70037737D /* libglad.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglad.a; path = ../../Documents/libigl/external/glad/build/Release/libglad.a; sourceTree = "<group>"; };
+		988D81B020AA848D0037737D /* libpardiso600-GNU720-X86-64.so */ = {isa = PBXFileReference; lastKnownFileType = file; name = "libpardiso600-GNU720-X86-64.so"; path = "../../Documents/pardiso/libpardiso600-GNU720-X86-64.so"; sourceTree = "<group>"; };
+		988D81B320AA8ACC0037737D /* libpardiso500-MACOS-X86-64.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libpardiso500-MACOS-X86-64.dylib"; path = "../../Documents/pardiso/libpardiso500-MACOS-X86-64.dylib"; sourceTree = "<group>"; };
+		988D81B820AA98E10037737D /* libglad.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglad.a; path = ../../../../usr/local/lib/libglad.a; sourceTree = "<group>"; };
+		988D81BA20AA98ED0037737D /* libigl_stb_image.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libigl_stb_image.dylib; path = ../../../../usr/local/lib/libigl_stb_image.dylib; sourceTree = "<group>"; };
+		988D81BE20AA99120037737D /* libglfw3.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglfw3.a; path = ../../../../usr/local/lib/libglfw3.a; sourceTree = "<group>"; };
 		988ED1271F57211500B21181 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		988ED1291F57212300B21181 /* lib */ = {isa = PBXFileReference; lastKnownFileType = folder; name = lib; path = ../../../../usr/local/lib; sourceTree = "<group>"; };
 		988ED12B1F57237F00B21181 /* libglfw.3.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.2.dylib; path = ../../../../usr/local/lib/libglfw.3.2.dylib; sourceTree = "<group>"; };
@@ -81,12 +99,16 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				987382CE2076EE9D0040BBCE /* libtriangle.a in Frameworks */,
-				98BFBB1F1FA153EA00142E10 /* libtbb.dylib in Frameworks */,
-				98CE47681F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib in Frameworks */,
-				98D5B2101F67274100DCE9F4 /* libstb_image.a in Frameworks */,
-				988ED12C1F57237F00B21181 /* libglfw.3.2.dylib in Frameworks */,
-				988ED1281F57211500B21181 /* OpenGL.framework in Frameworks */,
+				988D81BF20AA99120037737D /* libglfw3.a in Frameworks */,
+				988D81BD20AA99060037737D /* libtriangle.a in Frameworks */,
+				988D81BC20AA98FA0037737D /* libtbb.dylib in Frameworks */,
+				988D81BB20AA98ED0037737D /* libigl_stb_image.dylib in Frameworks */,
+				988D81B920AA98E10037737D /* libglad.a in Frameworks */,
+				988D81B720AA98380037737D /* libpardiso500-MACOS-X86-64.dylib in Frameworks */,
+				988D81AD20AA81130037737D /* CoreVideo.framework in Frameworks */,
+				988D81AB20AA80E40037737D /* Cocoa.framework in Frameworks */,
+				988D81A920AA80A60037737D /* IOKit.framework in Frameworks */,
+				988D81A720AA7FFE0037737D /* OpenGL.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -146,6 +168,20 @@
 		988ED1261F57211500B21181 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				988D81BE20AA99120037737D /* libglfw3.a */,
+				988D81BA20AA98ED0037737D /* libigl_stb_image.dylib */,
+				988D81B820AA98E10037737D /* libglad.a */,
+				988D81B320AA8ACC0037737D /* libpardiso500-MACOS-X86-64.dylib */,
+				988D81B020AA848D0037737D /* libpardiso600-GNU720-X86-64.so */,
+				988D81AE20AA81B70037737D /* libglad.a */,
+				988D81AC20AA81130037737D /* CoreVideo.framework */,
+				988D81AA20AA80E40037737D /* Cocoa.framework */,
+				988D81A820AA80A60037737D /* IOKit.framework */,
+				988D81A520AA7FF10037737D /* libigl_stb_image.dylib */,
+				988D81A320AA7FDF0037737D /* libpardiso600-GNU720-X86-64.so */,
+				988D81A120AA7FD40037737D /* libtbb.dylib */,
+				988D819F20AA7FC40037737D /* libtriangle.a */,
+				988D819D20AA7F9A0037737D /* libglfw3.a */,
 				987382CD2076EE9D0040BBCE /* libtriangle.a */,
 				98BFBB1E1FA153EA00142E10 /* libtbb.dylib */,
 				98CE47691F71E2DC00627725 /* gfortran */,
@@ -327,15 +363,13 @@
 				HEADER_SEARCH_PATHS = (
 					/Users/mincli/Documents/libigl/include,
 					"/Users/mincli/Documents/eigen-eigen-5a0156e40feb",
-					"/Users/mincli/Documents/glfw-3.2.1/include",
+					/Users/mincli/Documents/libigl/external/glfw/include,
 					/Users/mincli/Documents/libigl/external/stb_image,
-					/Users/mincli/Documents/tbb2018_20170919oss/include,
+					/Users/mincli/Documents/tbb2018_20180312oss/include,
 					/Users/mincli/Documents/libigl/external/triangle,
+					/Users/mincli/Documents/libigl/external/glad/include,
 				);
-				LIBRARY_SEARCH_PATHS = (
-					/usr/local/lib,
-					/usr/local/gfortran/lib,
-				);
+				LIBRARY_SEARCH_PATHS = /usr/local/lib;
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -347,15 +381,13 @@
 				HEADER_SEARCH_PATHS = (
 					/Users/mincli/Documents/libigl/include,
 					"/Users/mincli/Documents/eigen-eigen-5a0156e40feb",
-					"/Users/mincli/Documents/glfw-3.2.1/include",
+					/Users/mincli/Documents/libigl/external/glfw/include,
 					/Users/mincli/Documents/libigl/external/stb_image,
-					/Users/mincli/Documents/tbb2018_20170919oss/include,
+					/Users/mincli/Documents/tbb2018_20180312oss/include,
 					/Users/mincli/Documents/libigl/external/triangle,
+					/Users/mincli/Documents/libigl/external/glad/include,
 				);
-				LIBRARY_SEARCH_PATHS = (
-					/usr/local/lib,
-					/usr/local/gfortran/lib,
-				);
+				LIBRARY_SEARCH_PATHS = /usr/local/lib;
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};

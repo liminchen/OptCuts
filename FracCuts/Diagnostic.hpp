@@ -12,11 +12,11 @@
 #include "TriangleSoup.hpp"
 
 #include <igl/readOBJ.h>
-#include <igl/viewer/Viewer.h>
+#include <igl/opengl/glfw/Viewer.h>
 
 #include <cstdio>
 
-extern igl::viewer::Viewer viewer;
+extern igl::opengl::glfw::Viewer viewer;
 extern bool viewUV;
 extern bool showTexture;
 extern int showDistortion;
@@ -24,9 +24,9 @@ extern double texScale;
 extern std::vector<const FracCuts::TriangleSoup*> triSoup;
 extern std::vector<FracCuts::Energy*> energyTerms;
 extern void updateViewerData(void);
-extern bool key_down(igl::viewer::Viewer& viewer, unsigned char key, int modifier);
-extern bool preDrawFunc(igl::viewer::Viewer& viewer);
-extern bool postDrawFunc(igl::viewer::Viewer& viewer);
+extern bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier);
+extern bool preDrawFunc(igl::opengl::glfw::Viewer& viewer);
+extern bool postDrawFunc(igl::opengl::glfw::Viewer& viewer);
 extern void saveScreenshot(const std::string& filePath, double scale, bool writeGIF, bool writePNG);
 
 namespace FracCuts{
@@ -116,12 +116,12 @@ namespace FracCuts{
                         viewer.callback_key_down = &key_down;
                         viewer.callback_pre_draw = &preDrawFunc;
                         viewer.callback_post_draw = &postDrawFunc;
-                        viewer.core.show_lines = true;
+                        viewer.data().show_lines = true;
                         viewer.core.orthographic = true;
                         viewer.core.camera_zoom *= 1.9;
                         viewer.core.animation_max_fps = 60.0;
-                        viewer.core.point_size = 16.0f;
-                        viewer.core.show_overlay = true;
+                        viewer.data().point_size = 16.0f;
+                        viewer.data().show_overlay = true;
                         viewer.core.is_animating = true;
                         viewer.launch_init(true, false);
                         
