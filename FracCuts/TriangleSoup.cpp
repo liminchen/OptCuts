@@ -759,7 +759,7 @@ namespace FracCuts {
     {
         timer_step.start(6 + splitInterior);
         
-        const double filterExp_b = 0.6, filterMult_b = 1.0; //TODO: better use ratio
+        const double filterExp_b = 0.8, filterMult_b = 1.0; //TODO: better use ratio
         const double filterExp_in = 0.6; // smaller than 0.5 is not recommanded
         
         std::vector<int> bestCandVerts;

@@ -55,14 +55,17 @@ namespace FracCuts {
                 curBndVAmt = E.rows();
             }
             
-            double margin = mesh.avgEdgeLen; //TODO: use boundary edge lengths of current UV map?
+            const double scaleFactor = 3.0; // >=2.0 is recommanded
+            const int bandAmt = 2; // >= 2 is recommanded
+            const double segLen = mesh.avgEdgeLen * std::pow(scaleFactor, bandAmt);
+            const double margin = (mesh.avgEdgeLen - segLen) / (1.0 - scaleFactor); //TODO: use boundary edge lengths of current UV map?
             double minX = mesh.V.col(0).minCoeff() - margin;
             double maxX = mesh.V.col(0).maxCoeff() + margin;
             double minY = mesh.V.col(1).minCoeff() - margin;
             double maxY = mesh.V.col(1).maxCoeff() + margin;
             // segment the bounding box:
-            int segAmtX = static_cast<int>((maxX - minX) / margin);
-            int segAmtY = static_cast<int>((maxY - minY) / margin);
+            int segAmtX = static_cast<int>((maxX - minX) / segLen);
+            int segAmtY = static_cast<int>((maxY - minY) / segLen);
             E.conservativeResize(E.rows() + (segAmtX + segAmtY) * 2, 2);
             for(int segI = bnd.size(); segI + 1 < E.rows(); segI++) {
                 E.row(segI) << segI, segI + 1;
@@ -160,7 +163,11 @@ namespace FracCuts {
             // so no processing for H
         }
         
-        igl::triangle::triangulate(UV_bnds, E, H, "qYQ", airMesh.V, airMesh.F); // "Y" for no Steiner points
+        igl::triangle::triangulate(UV_bnds, E, H, "qYQ", airMesh.V, airMesh.F);
+        // "Y" for no Steiner points on mesh boundary
+        // "q" for high quality mesh generation
+        // "Q" for quiet mode (no output)
+        
         airMesh.V_rest.resize(airMesh.V.rows(), 3);
         airMesh.V_rest << airMesh.V, Eigen::VectorXd::Zero(airMesh.V.rows());
         const double edgeLen_eps = mesh.avgEdgeLen * 0.5; //NOTE: different from what's used in [Jiang et al. 2017]
