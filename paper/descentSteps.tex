@@ -7,28 +7,28 @@ Our smooth descent steps take in the locally altered UV map by the current topol
 
 \begin{algorithm}[h]
 \SetAlgoLined
-\KwData{$M$, $T^{i+1}$, $U_a^{i}$}
-\KwResult{$U^{i+1}$, $\delta^{i+1}$}
-$g^{i} \leftarrow \nabla E_{SD}(T^{i+1}, U_a^{i})$\;
-\If{$||g^{i}||^2 < 10^{-8}$}{
+\KwData{$M$, $T^{k,i}$, $U_a^{k,i-1}$}
+\KwResult{$U^{k,i}$, $\delta^{k,i}$}
+$g^{k,i-1} \leftarrow \nabla E_{SD}(T^{k,i}, U_a^{k,i-1})$\;
+\If{$||g^{k,i-1}||^2 < 10^{-8}$}{
 	converge\;
 }
-compute $E_{SD}$ Hessian proxy $P^i$\;
-solve $P^i p^i = -g^i$ for search direction $p^i$\;
-compute initial step size $\alpha^i_0$\;
-back-tracking line search with Armijo rule to obtain $\alpha^i$\;
-$U^{i+1} \leftarrow U_a^i + \alpha^i p^i$\;
-$\delta^{i+1} \leftarrow E_{SD}(T^{i+1}, U^{i+1}) - E_{SD}(T^{i+1}, U_a^{i})$\;
-\If{$|\delta^{i+1}|/E_{SD}(T^{i+1}, U_a^{i}) < 10^{-6}\alpha^{i}$}{
+compute $E_{SD}$ Hessian proxy $P^{k,i-1}$\;
+solve $P^{k,i-1} p^{k,i-1} = -g^{k,i-1}$ for search direction $p^{k,i-1}$\;
+compute initial step size $\alpha^{k,i-1}_0$\;
+back-tracking line search with Armijo rule to obtain $\alpha^{k,i-1}$\;
+$U^{k,i} \leftarrow U_a^{k,i-1} + \alpha^{k,i-1} p^{k,i-1}$\;
+$\delta^{k,i} \leftarrow E_{SD}(T^{k,i}, U^{k,i}) - E_{SD}(T^{k,i}, U_a^{k,i-1})$\;
+\If{$|\delta^{k,i}/E_{SD}(T^{k,i}, U_a^{k,i-1})| < 10^{-6}\alpha^{k,i-1}$}{
 	stop\;
 }
-\caption{Smooth Descent Step $i$}
+\caption{Smooth Descent Step $(k+1,i)$}
 \label{alg:descentStep}
 \end{algorithm}
-Since $E_{SD}$ is not convex, we apply the projected Newton method~\cite{Teran2005Robust} to project the Hessian of each energy element to its closest symmetric positive definite (SPD) matrix in parallel, and assemble them to form the SPD Hessian proxy $P^i$. We use the PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver to solve the linear system $P^i p^i = -g^i$ for search direction $p^i$. \justin{personally I'd move mention of pardiso to implementation section}\minchen{[TODO] change to use SPD solver by fixing a direction to ensure definiteness} As $E_{SD}$ is also a barrier-type energy, it is essential to ensure that the configuration always stays inside the feasible region. Thus, we follow Smith and Schaefer~\shortcite{Smith2015Bijective} to first compute an initial step size $\alpha^i_0$ that avoids element inversion and then conduct back-tracking line search with Armijo rule~\cite{Armijo1966Minimization} to ensure sufficient energy decrease.
+Since $E_{SD}$ is not convex, we apply the projected Newton method~\cite{Teran2005Robust} to project the Hessian of each energy element to its closest symmetric positive definite (SPD) matrix in parallel, and assemble them to form the SPD Hessian proxy $P$. We use the PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver to solve the linear system $P p = -g$ for search direction $p$. \justin{personally I'd move mention of pardiso to implementation section}\minchen{[TODO] change to use SPD solver by fixing a direction to ensure definiteness} As $E_{SD}$ is also a barrier-type energy, it is essential to ensure that the configuration always stays inside the feasible region. Thus, we follow Smith and Schaefer~\shortcite{Smith2015Bijective} to first compute an initial step size $\alpha_0$ that avoids element inversion and then conduct back-tracking line search with Armijo rule~\cite{Armijo1966Minimization} to ensure sufficient energy decrease.
 
-Besides a relatively small tolerance on $g^i$ for convergence detection, we apply another relative energy decrease criteria to appropriately stop the process while necessary.
-This can stop our continuous search at the true local optimum infinitesimal better than setting a larger gradient tolerance since our energy is highly nonlinear. \minchen{[NOTE] might not be necessary if we end smooth descent step right after we have no appropriate extension of topology descent step size.}
+Besides a relatively small tolerance on $g$ for convergence detection, we apply another relative energy decrease criteria to appropriately stop the process while necessary.
+This can stop our continuous search at the true local optimum infinitesimal better than setting a larger gradient tolerance since our energy is highly nonlinear.
 
 \paragraph{Potential Accelerations for Practical Use}
 Since our topological operations only change the mesh locally both on connectivity and coordinates, we could also update the Hessian or the decomposition locally to save time. Besides, it is also interesting to try other Hessian approximation methods like L-BFGS~\cite{Liu1989Limited} or composite majorization~\cite{Shtengel2017Geometric} to explore further acceleration by finding a balance between per-iteration computational cost and convergence rate.

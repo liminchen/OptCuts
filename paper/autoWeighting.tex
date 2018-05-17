@@ -12,22 +12,22 @@ The inner objective\minchen{Danny: which?} in the saddle-point problem (Eq.~\ref
 \KwData{$M$, $T^0$, $U^0$, $b_d$}
 \KwResult{$T^*$, $U^*$}
 
-$\lambda^0 \leftarrow 0$, $k \leftarrow 0$\;
+$\lambda^0 \leftarrow 0$, $k \leftarrow 1$\;
 
-\Do{not converged}{
-  $k \leftarrow k + 1$\;
-
+\Do{either primal or dual not converged}{
   $\lambda^{k} \leftarrow \max\big(0,\kappa(E_{d}(T^{k-1}, U^{k-1}) - b_d) + \lambda^{k-1} \big)$\; 
 
-  $(T^k, U^k)$ $\leftarrow$ primalUpdate($T^{k-1}$, $U^{k-1}$, $\lambda^{k}$)\;
-}
-$(T^*, U^*)$ $\leftarrow$ $(T^k, U^k)$\; 
+  $(T^{k}, U^{k})$ $\leftarrow$ primalUpdate($M$, $T^{k-1}$, $U^{k-1}$, $\lambda^{k}$)\;
 
-\caption{Self-Weighting}
+  $k \leftarrow k + 1$\;
+}
+$(T^*, U^*)$ $\leftarrow$ $(T^{k-1}, U^{k-1})$\; 
+
+\caption{OptCuts}
 \label{alg:selfWeight}
 \end{algorithm}
 
-To smoothly update to a current $\lambda^{k}$ in iteration $k$ from a previous estimate $\lambda^{k-1}$, we add a simple quadratic regularizer $R(\lambda,\lambda^{k-1}) = \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2$ to make sure $\lambda$ iterates behave reasonably.
+To smoothly update to a current $\lambda^{k}$ in iteration $k$ from a previous estimate $\lambda^{k-1}$, we add a simple quadratic regularizer $R(\lambda,\lambda^{k-1}) = \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2$ to make sure $\lambda$ iterates behave reasonably. (We simply set $\kappa = 1$.)
 
 For iteration $k$ this gives us 
 \[ \min_{T,V} \max_{\lambda \geq 0} E_{s}(T^{k-1}) + \lambda \big( E_{d}(T^{k-1}, U^{k-1}) - b_d\big) - \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2 \]
@@ -37,7 +37,7 @@ And we can first solve closed form for $\lambda$ as
 giving us 
 \[ \lambda^{k} \leftarrow \max\big(0,\kappa \big( E_{d}(T^{k-1}, U^{k-1}) -b \big) + \lambda^{k-1}\big) \]
 We then can update the primal variables towards solving
-\[ \min_{T,V}  E_{s}(T) + \lambda^{k}  E_{d}(T, U) \]
+\[ \min_{T,V}  E_{s}(T) + \lambda^{k}  (E_{d}(T, U) - b_d) \]
 (Section~\ref{sec:DCSearch}), followed by the next update of dual variable $\lambda$.
 
 \danny{(Notice that throughout the above we can define a progressive $\lambda$ without needing to employ subgradients to reason about nonsmoothness in our sparsity energy.)}\justin{didn't follow this, not sure it's needed}

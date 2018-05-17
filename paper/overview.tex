@@ -2,7 +2,7 @@
 
 \section{Problem Statement}
 %\minchen{As Vova suggested, describe Self-Weighting as our main formulation before Joint Discrete-Continuous Search, so does Abstract, Introduction, and Section 4 and 5.}
-\danny{Also took a pretty heavy pass at re-organizing this section and the next.}
+% \danny{Also took a pretty heavy pass at re-organizing this section and the next.}
 
 Given an input triangle mesh $M$ of a 3D surface with $n$ vertices we seek a locally optimal UV map with topology $T^*$ and coordinates $U^* \in \mathbb{R}^{2n}$ that are local minimizers of the constrained parametrization problem
 \begin{align}
@@ -40,7 +40,7 @@ Here $\lambda \in \mathbb{R_+}$ is the Lagrange multiplier for our distortion bo
 by a user-specified distortion bound. Within our algorithm to solve \eqref{eq:p1}, $\lambda$ will thus grow as we threaten to violate our distortion bound and so prioritize distortion minimization; similarly, $\lambda$ will decrease toward $0$ as our bound is strictly satisfied to prioritize seam quality.
 
 
-\danny{Moved and reorganized a good portion of what was here to the next section.}
+% \danny{Moved and reorganized a good portion of what was here to the next section.}
 
 
 
@@ -74,6 +74,6 @@ by a user-specified distortion bound. Within our algorithm to solve \eqref{eq:p1
  
 \paragraph{Variations}
 
-When formulating the joint optimization, besides any kinds of distortion constraints measured by smooth energy $E_d(T,U)$, we can also add more constraints to enforce extra features such as bijectivity.
+When formulating the joint optimization, besides any kinds of distortion constraints measured by smooth energy $E_d(T,U)$, we can also add more constraints to enforce extra features such as global bijectivity.
 This is also true for the nonsmooth objective $E_s(T)$, which can be augmented to measure more seam features like regional preference. 
 The key is that with all these variations (Section~\ref{sec:results_variations}), our framework stays the same, and it efficiently generates optimal seams for the specific problem formulation.

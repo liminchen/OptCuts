@@ -30,27 +30,31 @@ Computing $f_v$ for one UV topology, however, requires a proper setting of initi
 
 \subsection{Primal Update}
 
-In iteration $k$, given UV map $(T^{k-1}, U^{k-1})$ of the input surface mesh $M$, we conduct a joint discrete-continuous search to update both $T$ and $U$ towards minimizing $L$ (See Algorithm~\ref{alg:DCSearch}).
-
-Similar to continuous search in smooth descent steps (Algorithm~\ref{alg:descentStep}), topology search is also composed of two stages: First decide a search direction (initiating a seam edit), and then compute a proper step size (extending the edit) to ensure sufficient energy decrease. There is no point in searching for every neighboring UV topology since, for example, initiating a cut in near-isometric regions will not help improve the map much. Thus we have a filtered candidate operation set $\hat{\mathcal{E}}^i_T$ for each topology descent step $i$ (Section~\ref{sec:topologyStep}). When deciding a direction, we fill the set with all promising operations produced by operation filtering (Section~\ref{sec:operationFiltering}), while when computing the step size, we fill then set with only the same operation as in the previous topology descent step for extending the step size.
+In iteration $k+1$, given UV map $(T^{k}, U^{k})$ of the input surface mesh $M$ and $\lambda^{k+1}$, we conduct a joint discrete-continuous search to update both $T$ and $U$ towards minimizing $L(T,U,\lambda^{k+1})$ (See Algorithm~\ref{alg:DCSearch}).
 
 \begin{algorithm}[h]
 \SetAlgoLined
-\KwData{$M$, $T^{k-1}$, $U^{k-1}$}
-\KwResult{$T^k$, $U^k$}
-$i \leftarrow 1$, $T^{k,1} \leftarrow T^{k-1}$, $U^{k,1} \leftarrow U^{k-1}$\;
-$\hat{\mathcal{E}}^{k,1}_T \leftarrow$ operationFiltering(), $\delta^{k,1} = 0$\;
+\KwData{$M$, $T^{k}$, $U^{k}$, $\lambda^{k+1}$}
+\KwResult{$T^{k+1}$, $U^{k+1}$}
+$i \leftarrow 1$, $T^{k,0} \leftarrow T^{k}$, $U^{k,0} \leftarrow U^{k}$\;
+$\hat{\mathcal{E}}^{k,0}_T \leftarrow$ operationFiltering(), $\delta^{k,0} \leftarrow 0$\;
 \Do{smooth descent step not converged}
 {
-	($T^{k,i+1}$, $U_a^{k,i}$) $\leftarrow$ topologyDescentStep($M$, $T^{k,i}$, $U^{k,i}$, $\hat{\mathcal{E}}^{k,i}_T$, $\delta^{k,i}$)\;
-	($U^{k,i+1}$, $\delta^{k,i+1}$) $\leftarrow$ smoothDescentStep($M$, $T^{k,i+1}$, $U_a^{k,i}$)\;
-	$\hat{\mathcal{E}}^{k,i+1}_T \leftarrow$ operations for extension\;
+	($T^{k,i}$, $U_a^{k,i-1}$) $\leftarrow$ topologyDescentStep($M$, $T^{k,i-1}$, $U^{k,i-1}$, $\hat{\mathcal{E}}^{k,i-1}_T$, $\delta^{k,i-1}$, $\lambda^{k+1}$)\;
+	($U^{k,i}$, $\delta^{k,i}$) $\leftarrow$ smoothDescentStep($M$, $T^{k,i}$, $U_a^{k,i-1}$)\;
+	$\hat{\mathcal{E}}^{k,i}_T \leftarrow$ operations for extension\;
 	$i \leftarrow i+1$\;
 }
-$T^k \leftarrow T^{k,i}$, $U^k \leftarrow U^{k,i}$
-\caption{Primal Update $k$}
+$T^{k+1} \leftarrow T^{k,i-1}$, $U^{k+1} \leftarrow U^{k,i-1}$
+\caption{Primal Update $k+1$}
 \label{alg:DCSearch}
 \end{algorithm}
+
+Similar to continuous search in smooth descent steps (Algorithm~\ref{alg:descentStep}), topology search is also composed of two stages: First decide a search direction (initiating a local seam edit), and then compute a proper step size (extending the edit) to ensure sufficient energy decrease. While each smooth descent step applies a complete Newton-type iteration with backtracking line search, we interleave topology descent steps with smooth descent steps to perform a forward line search in topology space - their step size is \emph{increased}, rather than backtracked.
+
+There is no point in searching for every neighboring UV topology since, for example, initiating a cut in near-isometric regions will not help improve the map much. Thus we have a filtered candidate operation set $\hat{\mathcal{E}}^{k,i-1}_T$ for each topology descent step $(k+1,i)$ (Section~\ref{sec:topologyStep}). When deciding a direction, we fill the set with all promising operations produced by operation filtering (Section~\ref{sec:operationFiltering}), while when computing the step size, we fill then set with only the same operation as in the previous topology descent step for extending the step size.
+
+Before and after each primal update, our continous search is under convergence. If at the first inner iteration of a primal update there is no neighboring topology that could reduce the multi-objective in the first-order manner, we say our discrete topology search also converges, so does the primal update.
 
 \subsection{Energy Definition}
 
@@ -64,8 +68,6 @@ where $\mathcal{S}$ is the set of all seam edges on the input surface, $|e_i|$ i
 
 With the energies normalized, our $L$ is invariant of coordinate scale and resolution for meshes with the same shape.
 
-\minchen{[TODO] fix iteration super script in Section~\ref{sec:descentStep} and \ref{sec:topologyStep}}
-
 \input{descentSteps}
 
 \input{topologySteps}
@@ -76,6 +78,8 @@ As the number of vertex that could be splitted is in the scale of $n_p$, and ini
 
 \subsection{Convergence}
 \label{sec:convergence}
+
+\minchen{[NOTE] superscript in this section is old}
 
 As our method is defined to guarantee convergence to a local optimum, we now analyze the convergence rate. First, $L$ monotonically decreases in each step. Now we look at smooth descent step $i$ and $i+1$, from $L^i \geq L^{i+1}$ we have
 \[ E^i_{SD} - E^{i+1}_{SD} \geq \frac{1}{\lambda} (E^{i+1}_{se} - E^i_{se}) \geq \frac{1}{\lambda\sqrt{(\sum_t |A_t|)/\pi}} |e|_{min} \]
