@@ -2,73 +2,49 @@
 
 \section{Self-Weighted Objective}
 \label{sec:self_weighting}
-\danny{This section gives the ``outer'' loop details - I'd suggest moving it above the sections on the inner-loop details in the paper as it's short and would help readers understand the algorithm structure (roadmap!). Then jump into the inner loop detail sections - this would follow the structure of the actual algorithm.}
-\subsection{Formulation}
-At each inner iterate $k+1$, we fix some $\lambda^{k+1}$ and minimize the bi-objective 
-\[ \min_{T,V} E_{SE}(V,T) + \lambda^{k+1} E_{SD}(V,T) \]
 
-How do we get $\lambda^{k+1}$? \justin{not sure a rhetorical question is needed}
+% Our overall minimization is inequality constrained with a specified upper bound $b \in \mathbb{R}_+$ on distortion. \justin{I moved a parenthetical to a Minchen comment assuming he'll write it more formally}\minchen{(L2 norm on SD  energy for now - pretty easy to modify to an extremal measure if we want later on.)}
 
-Our overall minimization is inequality constrained with a specified upper bound $b \in \mathbb{R}_+$ on distortion. \justin{I moved a parenthetical to a Minchen comment assuming he'll write it more formally}\minchen{(L2 norm on SD  energy for now - pretty easy to modify to an extremal measure if we want later on.)}
-
-Our model problem minimization is then Eq.~\ref{eq:p1}. Or, equivalently, Eq.~\ref{eq:p2}.
-
-The inner objective is nonsmooth in $\lambda$ since it does not take into account %very nicely 
-the fact that per-iteration we will start away from feasibility and want to iteratively improve both our primal variables $\{V,T\}$ and our dual variable $\lambda$. \justin{I didn't follow the previous sentence} To smoothly update to a current $\lambda^{k+1}$ from a previous estimate $\lambda^k$, we add a simple quadratic regularizer $R(\lambda,\lambda^k) = \frac{1}{2\kappa} (\lambda- \lambda^k)^2$ to make sure $\lambda$ iterates behave reasonably.
-
-For iteration $k+1$ this gives us 
-\[ \min_{T,V} \max_{\lambda \geq 0} E_{SE}(V,T) + \lambda \big( E_{SD}(V,T) - b\big) - \frac{1}{2\kappa} (\lambda- \lambda^k)^2 \]
-
-And now we can first solve closed form for $\lambda$ as 
-\[ \lambda^{k+1} \leftarrow argmax_{\lambda \geq 0} E_{SE}(V,T) + \lambda \big( E_{SD}(V,T) - b\big) - \frac{1}{2\kappa} (\lambda- \lambda^k)^2 \]
-giving us 
-\[ \lambda^{k+1} \leftarrow \max\big(0,\kappa \big( E_{SD}(V,T) -b \big) + \lambda^k\big) \]
-We then can solve the inner iteration (with both discrete topology steps and smooth steps) with the energy 
-\[ \min_{T,V}  E_{SE}(V,T) + \lambda^{k+1}  E_{SD}(V,T), \]
-followed by the next update of dual variable $\lambda$.
-
-(Notice that throughout the above we can define a progressive $\lambda$ without needing to employ subgradients to reason about nonsmoothness in our sparsity energy.)\justin{didn't follow this, not sure it's needed}
-
-\justin{Might be worth adding a few sentences referencing that this is an instance of previous optimization techniques.  Can you call the lambda update a proximal step?}
-
-\subsection{Implementation}
+The inner objective\minchen{Danny: which?} in the saddle-point problem (Eq.~\ref{eq:p2}) is nonsmooth in $\lambda$ since it does not take into account the fact that we might start away from feasibility and want to iteratively improve both our primal variables $(T, U)$ and our dual variable $\lambda$ (Algorithm~\ref{alg:selfWeight}).
 
 \begin{algorithm}[!h]
 \SetAlgoLined
-\KwData{Input model with initial UV map, expected $E_{SD}$ upper bound $b$}
-\KwResult{UV map with $argmin_{v_T} E_{se}$ topology and $E_{SD} <= b$}
+\KwData{$M$, $T^0$, $U^0$, $b_d$}
+\KwResult{$T^*$, $U^*$}
 
-$\lambda \leftarrow 0$\;
+$\lambda^0 \leftarrow 0$, $k \leftarrow 0$\;
 
-\For{each alternating iteration $i$}{
-  topology step\;
-  descent step\;
+\Do{not converged}{
+  $k \leftarrow k + 1$\;
 
-  \If{$(E^i_{se}, E^i_{SD}, \lambda)$ has occurred before}{
-    set to best feasible UV map and break\;
-  }
-  \If{at $\min_{V,T} E_{se} + \lambda E_{SD}$}{
-    \If{$E^i_{SD} <= b$  $E^i_{SD} >= b - tol$}{
-      set to best feasible UV map and break\;
-    }
-  }
-  
-  $\lambda \leftarrow \max\big(0,\kappa(E_{SD}(V,T) -b) + \lambda \big)$\;
-  \If{at $\min_{V,T} E_{se} + \lambda E_{SD}$}{
-    \If{picking the wrong type of operation}{
-      do
-        $\lambda \leftarrow \max\big(0,\kappa(E_{SD}(V,T) -b) + \lambda \big)$\;
-      while picking the wrong type of operation
-    }
-    \Else {
-      while candidate selection didn't change
-        $\lambda \leftarrow \max\big(0,\kappa(E_{SD}(V,T) -b) + \lambda \big)$\;
-      end
-    }
-  }
+  $\lambda^{k} \leftarrow \max\big(0,\kappa(E_{d}(T^{k-1}, U^{k-1}) - b_d) + \lambda^{k-1} \big)$\; 
+
+  $(T^k, U^k)$ $\leftarrow$ primalUpdate($T^{k-1}$, $U^{k-1}$, $\lambda^{k}$)\;
 }
+$(T^*, U^*)$ $\leftarrow$ $(T^k, U^k)$\; 
 
-\caption{Self-Weighted $E_w$}
+\caption{Self-Weighting}
+\label{alg:selfWeight}
 \end{algorithm}
 
-\minchen{[NOTE] To understand alternating lambda updates between PN iterations: lambda update changes the energy manifold, so it couldn't be too frequent or the manifold can't really be explored enough, nor it could be too seldom or it would be trapped in a local region.}
+To smoothly update to a current $\lambda^{k}$ in iteration $k$ from a previous estimate $\lambda^{k-1}$, we add a simple quadratic regularizer $R(\lambda,\lambda^{k-1}) = \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2$ to make sure $\lambda$ iterates behave reasonably.
+
+For iteration $k$ this gives us 
+\[ \min_{T,V} \max_{\lambda \geq 0} E_{s}(T^{k-1}) + \lambda \big( E_{d}(T^{k-1}, U^{k-1}) - b_d\big) - \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2 \]
+
+And we can first solve closed form for $\lambda$ as 
+\[ \lambda^{k} \leftarrow argmax_{\lambda \geq 0} E_{s}(T^{k-1}) + \lambda \big( E_{d}(T^{k-1}, U^{k-1}) - b_d\big) - \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2 \]
+giving us 
+\[ \lambda^{k} \leftarrow \max\big(0,\kappa \big( E_{d}(T^{k-1}, U^{k-1}) -b \big) + \lambda^{k-1}\big) \]
+We then can update the primal variables towards solving
+\[ \min_{T,V}  E_{s}(T) + \lambda^{k}  E_{d}(T, U) \]
+(Section~\ref{sec:DCSearch}), followed by the next update of dual variable $\lambda$.
+
+\danny{(Notice that throughout the above we can define a progressive $\lambda$ without needing to employ subgradients to reason about nonsmoothness in our sparsity energy.)}\justin{didn't follow this, not sure it's needed}
+
+\justin{Can you call the lambda update a proximal step?}
+
+\paragraph{Convergence}
+Theoretically, the primal minimizer $(T^*, U^*)$ will be either inside the feasible region ($E_d(T^*, U^*) < b_d$) with $\lambda^* = 0$ or on the boundary of the feasible region ($E_d(T^*, U^*) = b_d$) with $\lambda^* > 0$ \cite{a computational optimization book}. For the former case, the minimum of $E_s$, which is $0$, will be reached, and this is only true for a small set of nearly developable disk-topology surfaces. We thus look into the latter case that is more common and interesting here.
+
+By formulation, our algorithm converges when $L$ is near-stationary w.r.t. both the primal and dual variables. That is, $E_d(T^*, U^*) = b_d$ and $(T^*, U^*)$ is the local minimizer of the multi-objective $L(T,U,\lambda^*)$. However, since there is only a finite number of configurations of $T$, the near stationary $E_d$'s may not be exactly equal to $b_d$. Instead of setting a relatively large tolerance for detecting convergence, we stop when it first tries to violate distortion bound $b_d$ from being feasible.

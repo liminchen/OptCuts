@@ -29,7 +29,7 @@ Our scaling factor directly falls out from our model as the Lagrange multiplier 
 %(Section~\ref{sec:self_weighting}).
 
 % challenge
-In contrast to previous work building up a parameterization from disconnected triangle soup~\cite{Poranne2017Autocuts} or by cutting between points of maximal predicted distortion~\cite{Gu2002Geometry,Sheffer2002Seamster}, our constrained optimization method minimizes with seams combinatorially, directly extending real-valued distortion minimization to the regime where seams can be introduced and removed. As distortion is typically reduced by line search in UV coordinate space, we accompany this with a secondary search procedure in ``topology space:'' We alternate between reducing stretch and introducing potential topological changes based on the first-order reduction they would cause in the summed distortion and seam length terms of the objective. %in each topology search iteration we first find a search direction that locally decrease the objective the most (in topology step, Section~\ref{sec:topologyStep}); and then we conduct a newly derived forward-tracking line search scheme alternated with distortion minimization iterations to decide the step-size (in descent step, Section~\ref{sec:descentStep}).% too much detail for intro
+In contrast to previous work building up a parameterization from disconnected triangle soup~\cite{Poranne2017Autocuts} or by cutting between points of maximal predicted distortion~\cite{Gu2002Geometry,Sheffer2002Seamster}, our constrained optimization method minimizes with seams combinatorially, directly extending real-valued distortion minimization to the regime where seams can be introduced and removed. As distortion is typically reduced by line search in UV coordinate space, we accompany this with a secondary search procedure in ``topology space:'' We alternate between reducing stretch and introducing potential topological changes based on the first-order reduction they would cause in the summed distortion and seam length terms of the objective. %in each topology search iteration we first find a search direction that locally decrease the objective the most (in topology step, Section~\ref{sec:topologyStep}); and then we conduct a newly derived forward-tracking line search scheme alternated with distortion minimization iterations to decide the step-size (in smooth descent step, Section~\ref{sec:descentStep}).% too much detail for intro
 
 
 % experiments
@@ -44,10 +44,8 @@ We present a novel framework that jointly optimizes seam placement/length and me
 %To do so, we construct a
 Our constrained formulation %that 
 enables users to optimize UV maps with specified distortion bounds and %while gaining 
-locally-minimal seam length without manual intervention (for e.g. changing scaling terms or regularizers). \justin{i don't understand the parenthetical, seems unnecessary}
+locally-minimal seam length without manual intervention.
+% (for e.g. changing scaling terms or regularizers). \justin{i don't understand the parenthetical, seems unnecessary}
 %
 Key to our method are topological search strategies as well as a dual variable treatment searching for optimal cuts with bounded distortion. Our framework naturally handles %is easily extended to handle 
 global bijectivity constraints. \justin{rephrased previous sentence to waffle on Danny's comment for now}% \danny{We should update what we want to say here about bijectivity - seems like there's a nice observation regrading how bijectivity actually makes the optimization both better and easier but we should be clear if this is the case - if so bijectivity is more than an "ad-on" and should be a first class citizen.} 
-and seamlessness. %\justin{what do you mean by seamlessness?} \minchen{I was thinking about global or seamless parameterization. What would be the most practical "seamless" property a user may want?} \vova{since we don't plan to implement seamless parameterization, we can discuss it in future work. } 
-\justin{remove seamlessness?} 
-We also demonstrate that our approach applies to other discrete-continuous geometry processing problems. \danny{Don't think we will have time nor need to do this last item - instead again something good for future work discussion as well}% (Section~\ref{sec:conclusion}).

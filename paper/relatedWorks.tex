@@ -18,9 +18,9 @@ global parameterization methods?
 %Seams, due to its discontinuous property, is not intuitive to be considered in traditional distortion minimization frameworks.
 Due to discontinuities that occur when seams are introduced or removed, it is not intuitive to consider optimization of seam topology in the context of traditional frameworks for minimizing distortion during mesh parameterization.
 %
-\justin{couldn't follow this sentence (what does ``efficient'' or ``sparse'' mean in this context and what does it have to do with L2?):}\minchen{"efficient" and "sparse" means the number of seam edges should be in $O(\sqrt{numOfEdges})$. If one tries to model seam as a continuous energy (e.g.\ \cite{Poranne2017Autocuts}), residuals will be distributed evenly if the objective function is L2-type. To obtain sparsity structure in the result, less smooth energy such as L1-type energy is needed, which is similar to feature selection in statistical learning.}
+\justin{couldn't follow this sentence (what does ``efficient'' or ``sparse'' mean in this context and what does it have to do with L2?):}
 Moreover, for seams to be efficient, it needs to be sparse, which is another challenge for optimizing it with L2-type distortion energies.
-
+\minchen{RE:Justin: what about changing the sentence to:}Distortions are usually measured with smooth L2-type energy, where at local minimum the residual distortions are distributed evenly over the trangles. This is essentially different from the behavior of seams, which is either glued together or separated. Hence, approximating seam topology using UV coordinates would require nonsmooth energy to enforce sparsity structure, which makes the problem ill-conditioned.
 
 The recent AutoCuts~\cite{Poranne2017Autocuts} algorithm measures seam quality using an energy with discontinuities when triangles are glue together or disconnected.  Their procedure progressively builds up a parameterization starting from triangle soup, jointly improving topology and distortion via homotopy optimization. 
 %
