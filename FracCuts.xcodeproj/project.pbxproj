@@ -52,23 +52,14 @@
 		987382CD2076EE9D0040BBCE /* libtriangle.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libtriangle.a; path = ../../../../usr/local/lib/libtriangle.a; sourceTree = "<group>"; };
 		987382CF2076F49A0040BBCE /* Scaffold.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Scaffold.cpp; sourceTree = "<group>"; };
 		987382D02076F49A0040BBCE /* Scaffold.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Scaffold.hpp; sourceTree = "<group>"; };
-		988D819D20AA7F9A0037737D /* libglfw3.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglfw3.a; path = ../../Documents/libigl/external/glfw/build/src/Release/libglfw3.a; sourceTree = "<group>"; };
-		988D819F20AA7FC40037737D /* libtriangle.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libtriangle.a; path = ../../Documents/libigl/external/triangle/build/Release/libtriangle.a; sourceTree = "<group>"; };
-		988D81A120AA7FD40037737D /* libtbb.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbb.dylib; path = ../../Documents/tbb2018_20180312oss/lib/libtbb.dylib; sourceTree = "<group>"; };
-		988D81A320AA7FDF0037737D /* libpardiso600-GNU720-X86-64.so */ = {isa = PBXFileReference; lastKnownFileType = file; name = "libpardiso600-GNU720-X86-64.so"; path = "../../Documents/libpardiso600-GNU720-X86-64.so"; sourceTree = "<group>"; };
-		988D81A520AA7FF10037737D /* libigl_stb_image.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libigl_stb_image.dylib; path = ../../Documents/libigl/external/stb_image/build/Release/libigl_stb_image.dylib; sourceTree = "<group>"; };
 		988D81A820AA80A60037737D /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		988D81AA20AA80E40037737D /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		988D81AC20AA81130037737D /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
-		988D81AE20AA81B70037737D /* libglad.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglad.a; path = ../../Documents/libigl/external/glad/build/Release/libglad.a; sourceTree = "<group>"; };
-		988D81B020AA848D0037737D /* libpardiso600-GNU720-X86-64.so */ = {isa = PBXFileReference; lastKnownFileType = file; name = "libpardiso600-GNU720-X86-64.so"; path = "../../Documents/pardiso/libpardiso600-GNU720-X86-64.so"; sourceTree = "<group>"; };
-		988D81B320AA8ACC0037737D /* libpardiso500-MACOS-X86-64.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libpardiso500-MACOS-X86-64.dylib"; path = "../../Documents/pardiso/libpardiso500-MACOS-X86-64.dylib"; sourceTree = "<group>"; };
 		988D81B820AA98E10037737D /* libglad.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglad.a; path = ../../../../usr/local/lib/libglad.a; sourceTree = "<group>"; };
 		988D81BA20AA98ED0037737D /* libigl_stb_image.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libigl_stb_image.dylib; path = ../../../../usr/local/lib/libigl_stb_image.dylib; sourceTree = "<group>"; };
 		988D81BE20AA99120037737D /* libglfw3.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglfw3.a; path = ../../../../usr/local/lib/libglfw3.a; sourceTree = "<group>"; };
 		988ED1271F57211500B21181 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		988ED1291F57212300B21181 /* lib */ = {isa = PBXFileReference; lastKnownFileType = folder; name = lib; path = ../../../../usr/local/lib; sourceTree = "<group>"; };
-		988ED12B1F57237F00B21181 /* libglfw.3.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.2.dylib; path = ../../../../usr/local/lib/libglfw.3.2.dylib; sourceTree = "<group>"; };
 		988ED12D1F5727F400B21181 /* TriangleSoup.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TriangleSoup.cpp; sourceTree = "<group>"; };
 		988ED12E1F5727F400B21181 /* TriangleSoup.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TriangleSoup.hpp; sourceTree = "<group>"; };
 		988ED1301F575C3C00B21181 /* IglUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IglUtils.cpp; sourceTree = "<group>"; };
@@ -83,14 +74,12 @@
 		98C2D8F21F6348820048B18A /* SeparationEnergy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SeparationEnergy.cpp; sourceTree = "<group>"; };
 		98C2D8F31F6348820048B18A /* SeparationEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SeparationEnergy.hpp; sourceTree = "<group>"; };
 		98CE47671F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libpardiso500-MACOS-X86-64.dylib"; path = "../../../../usr/local/lib/libpardiso500-MACOS-X86-64.dylib"; sourceTree = "<group>"; };
-		98CE47691F71E2DC00627725 /* gfortran */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gfortran; path = ../../../../usr/local/gfortran; sourceTree = "<group>"; };
 		98CE476D1F71E66300627725 /* PardisoSolver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PardisoSolver.cpp; sourceTree = "<group>"; };
 		98CE476E1F71E66300627725 /* PardisoSolver.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PardisoSolver.hpp; sourceTree = "<group>"; };
 		98D10F2B1F5CA12C0010E1A6 /* SymStretchEnergy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SymStretchEnergy.cpp; sourceTree = "<group>"; };
 		98D10F2C1F5CA12C0010E1A6 /* SymStretchEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SymStretchEnergy.hpp; sourceTree = "<group>"; };
 		98D3E7D31F75AEC6000DA61D /* CohesiveEnergy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CohesiveEnergy.cpp; sourceTree = "<group>"; };
 		98D3E7D41F75AEC6000DA61D /* CohesiveEnergy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CohesiveEnergy.hpp; sourceTree = "<group>"; };
-		98D5B20F1F67274100DCE9F4 /* libstb_image.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libstb_image.a; path = ../../../../usr/local/lib/libstb_image.a; sourceTree = "<group>"; };
 		98FD37F51F98806B00C83AAC /* GIF.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = GIF.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -171,23 +160,12 @@
 				988D81BE20AA99120037737D /* libglfw3.a */,
 				988D81BA20AA98ED0037737D /* libigl_stb_image.dylib */,
 				988D81B820AA98E10037737D /* libglad.a */,
-				988D81B320AA8ACC0037737D /* libpardiso500-MACOS-X86-64.dylib */,
-				988D81B020AA848D0037737D /* libpardiso600-GNU720-X86-64.so */,
-				988D81AE20AA81B70037737D /* libglad.a */,
 				988D81AC20AA81130037737D /* CoreVideo.framework */,
 				988D81AA20AA80E40037737D /* Cocoa.framework */,
 				988D81A820AA80A60037737D /* IOKit.framework */,
-				988D81A520AA7FF10037737D /* libigl_stb_image.dylib */,
-				988D81A320AA7FDF0037737D /* libpardiso600-GNU720-X86-64.so */,
-				988D81A120AA7FD40037737D /* libtbb.dylib */,
-				988D819F20AA7FC40037737D /* libtriangle.a */,
-				988D819D20AA7F9A0037737D /* libglfw3.a */,
 				987382CD2076EE9D0040BBCE /* libtriangle.a */,
 				98BFBB1E1FA153EA00142E10 /* libtbb.dylib */,
-				98CE47691F71E2DC00627725 /* gfortran */,
 				98CE47671F71DF6200627725 /* libpardiso500-MACOS-X86-64.dylib */,
-				98D5B20F1F67274100DCE9F4 /* libstb_image.a */,
-				988ED12B1F57237F00B21181 /* libglfw.3.2.dylib */,
 				988ED1291F57212300B21181 /* lib */,
 				988ED1271F57211500B21181 /* OpenGL.framework */,
 			);

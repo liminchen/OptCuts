@@ -100,10 +100,12 @@ namespace FracCuts {
                             // save texture as mesh
                             if(UV.rows() == 0) {
                                 // no input UV
+                                std::cout << "compute harmonic UV map" << std::endl;
                                 Eigen::VectorXi bnd;
                                 igl::boundary_loop(F, bnd); // Find the open boundary
                                 if(bnd.size()) {
-                                    // disk-topology
+                                    std::cout << "disk-topology surface" << std::endl;
+                                    FUV.resize(0, 3);
                                     
                                     //TODO: what if it has multiple boundaries? or multi-components?
                                     // Map the boundary to a circle, preserving edge proportions
@@ -123,6 +125,7 @@ namespace FracCuts {
                                 }
                                 else {
                                     // closed surface
+                                    std::cout << "closed surface" << std::endl;
                                     if(igl::euler_characteristic(V, F) != 2) {
                                         std::cout << "Input surface genus > 0 or has multiple connected components!" << std::endl;
                                         exit(-1);
@@ -132,6 +135,7 @@ namespace FracCuts {
                                     //            temp->farthestPointCut(); // open up a boundary for Tutte embedding
                                     //                temp->highCurvOnePointCut();
                                     temp->onePointCut();
+                                    FUV = temp->F;
                                     
                                     igl::boundary_loop(temp->F, bnd);
                                     assert(bnd.size());
@@ -153,9 +157,11 @@ namespace FracCuts {
                             V_uv << UV, Eigen::VectorXd::Zero(UV.rows(), 1);
                             if(FUV.rows() == 0) {
                                 assert(F.rows() > 0);
+                                std::cout << "output with F" << std::endl;
                                 igl::writeOBJ(outputFolderPath + meshName + "_UV.obj", V_uv, F);
                             }
                             else {
+                                std::cout << "output with FUV" << std::endl;
                                 igl::writeOBJ(outputFolderPath + meshName + "_UV.obj", V_uv, FUV);
                             }
                             

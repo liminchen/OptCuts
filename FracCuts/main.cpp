@@ -646,7 +646,6 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
 {
     Eigen::MatrixXd edgeLengths; igl::edge_lengths(triSoup[channel_result]->V_rest, triSoup[channel_result]->F, edgeLengths);
     const double eps_E_se = 1.0e-3 * edgeLengths.minCoeff() / triSoup[channel_result]->virtualRadius;
-    static bool firstReach = true;
     
     // measurement and energy value computation
     const double E_SD = optimizer->getLastEnergyVal(true) / energyParams[0];
@@ -670,11 +669,12 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
     }
     const double eps_lambda = std::min(1.0e-3, std::abs(updateLambda(measure_bound) - energyParams[0]));
     
+    //TODO?: stop when first violates bounds from feasible, don't go to best feasible. check after each merge whether distortion is violated
     // oscillation detection
     static int iterNum_bestFeasible = -1;
     static FracCuts::TriangleSoup triSoup_bestFeasible;
     static double E_se_bestFeasible = __DBL_MAX__;
-    static int lastStationaryIterNum = 0;
+    static int lastStationaryIterNum = 0; //!!! still necessary because boundary and interior query are with same iterNum
     static std::map<double, std::vector<std::pair<double, double>>> configs_stationaryV; //!!! better also include topology information
     if(iterNum != lastStationaryIterNum) {
         // not a roll back config
@@ -1317,12 +1317,14 @@ int main(int argc, char *argv[])
         case FracCuts::MT_GEOMIMG:
             assert(lambda < 1.0);
             startDS = "GeomImg";
+            bijectiveParam = false;
             break;
             
         case FracCuts::MT_AUTOCUTS:
             assert(lambda > 0.0);
             assert(delta > 0.0);
             startDS = "AutoCuts";
+            bijectiveParam = false;
             break;
             
         case FracCuts::MT_NOCUT:
