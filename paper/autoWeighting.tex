@@ -6,6 +6,8 @@
 % Our overall minimization is inequality constrained with a specified upper bound $b \in \mathbb{R}_+$ on distortion. \justin{I moved a parenthetical to a Minchen comment assuming he'll write it more formally}\minchen{(L2 norm on SD  energy for now - pretty easy to modify to an extremal measure if we want later on.)}
 
 The inner objective\minchen{Danny: which?} in the saddle-point problem (Eq.~\ref{eq:p2}) is nonsmooth in $\lambda$ since it does not take into account the fact that we might start away from feasibility and want to iteratively improve both our primal variables $(T, U)$ and our dual variable $\lambda$ (Algorithm~\ref{alg:selfWeight}).
+%
+\vova{If this section focuses on dual update (as suggested in 3), we should start, ``in this section we describe the update for the dual variable $\lambda^k$ given the current topology and embedding $T^{k-1}, U^{k-1}$,'' and then go into challenges of defining $lambda$, if it's about optimization framework it should probably have $\lambda$ update as a subsection / paragraph, discuss initialization, and start by discussing the framework as a whole. }
 
 \begin{algorithm}[!h]
 \SetAlgoLined
@@ -34,15 +36,23 @@ For iteration $k$ this gives us
 
 And we can first solve closed form for $\lambda$ as 
 \[ \lambda^{k} \leftarrow argmax_{\lambda \geq 0} E_{s}(T^{k-1}) + \lambda \big( E_{d}(T^{k-1}, U^{k-1}) - b_d\big) - \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2 \]
+%
+\vova{I don't think we need the equation above, since it is essentially repeated twice}.
+%
 giving us 
 \[ \lambda^{k} \leftarrow \max\big(0,\kappa \big( E_{d}(T^{k-1}, U^{k-1}) -b \big) + \lambda^{k-1}\big) \]
+%
 We then can update the primal variables towards solving
 \[ \min_{T,V}  E_{s}(T) + \lambda^{k}  (E_{d}(T, U) - b_d) \]
 (Section~\ref{sec:DCSearch}), followed by the next update of dual variable $\lambda$.
+\vova{I don't think we need to say ``we can then update..'' this refers to meta algorithm that should have been described before we talk about dual updates. }
 
 \danny{(Notice that throughout the above we can define a progressive $\lambda$ without needing to employ subgradients to reason about nonsmoothness in our sparsity energy.)}\justin{didn't follow this, not sure it's needed}
 
 \justin{Can you call the lambda update a proximal step?}
+
+\vova{The paragraph below seem to be concerned with convergence of Alg 1, which is beyond self-weighted objective, IMHO... 
+It is also confusing that there a subsection 5.7 on convergence...}
 
 \paragraph{Convergence}
 Theoretically, the primal minimizer $(T^*, U^*)$ will be either inside the feasible region ($E_d(T^*, U^*) < b_d$) with $\lambda^* = 0$ or on the boundary of the feasible region ($E_d(T^*, U^*) = b_d$) with $\lambda^* > 0$ \cite{a computational optimization book}. For the former case, the minimum of $E_s$, which is $0$, will be reached, and this is only true for a small set of nearly developable disk-topology surfaces. We thus look into the latter case that is more common and interesting here.

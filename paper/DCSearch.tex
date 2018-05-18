@@ -4,9 +4,12 @@
 \section{Search Procedure}%Jointly Discrete and Continuous Search}%<--- sounds weird
 \label{sec:DCSearch}
 
-Our primal update is a search procedure towards minimizing \eqref{eq:L} for a temporarily-fixed $\lambda$. 
-% we will address details of how we update $\lambda$ below in Section\ \ref{}. 
-Rather than trying to solve a potentially ill-conditioned real-valued optimization by approximating $T$ with $U$\ \cite{Poranne2017Autocuts}, we alternate local optimizations over $U$ and then $T$. %We augment a smooth descent search with a search over discrete topology. See Section~\ref{sec:DCSearch} for more details.%<--- these two sentences don't make sense, this is the topic of the current section
+\vova{Why not just call this ``primal update'' as we defined earlier? }
+
+Our primal update is a search procedure towards minimizing \eqref{eq:L} for a fixed $\lambda$. 
+Rather than trying to solve a potentially ill-conditioned real-valued optimization by approximating $T$ with $U$\ \cite{Poranne2017Autocuts}, we alternate local optimizations over $U$ and then $T$. 
+\vova{I think we need to explain what's making it ill-conditioned. Also, I think it's unnecessary to cite autocuts here...}
+%We augment a smooth descent search with a search over discrete topology. See Section~\ref{sec:DCSearch} for more details.%<--- these two sentences don't make sense, this is the topic of the current section
 
 Our smooth descent steps apply standard continuous search. We locally minimize distortion $E_d$ over vertices $U$ while holding topology, $T$, fixed. Here we apply Newton-type method detailed in Section~\ref{sec:descentStep}.
 %
@@ -15,6 +18,8 @@ Our topology descent step then applies a discrete search over local topology cha
 In total, by ensuring monotonic decrease in $L$ over both the smooth and topology descent steps, we then prove that a near-stationary point can be reached for any input within a bounded number of alternations (Section~\ref{sec:convergence}). \danny{for varying $\lambda$ - i.e. our constrained problem seems like we need to spend a bit more work on this - see comments below.} 
 
 \subsection{Motivation}
+
+\vova{this subsections seems to be only relevant to topological update (Sec 5.5) why not move it there? }
 
 Our search procedure is essentially a graph search. However, due to the potentially huge computational cost, it is not possible to directly apply common graph search methods.
 
@@ -29,7 +34,7 @@ Thus our problem could be restated as starting from an initial UV topology $v^0_
 Computing $f_v$ for one UV topology, however, requires a proper setting of initial UV coordinates plus a whole process of real-valued optimization. Moreover, even the number of neighbors of one UV topology is in the scale of $n_p$. These in practice prevent us from treating our problem as a usual graph search problem. Consequently, we construct a single search path on $\mathcal{G}_T$ and only approximate $f_v$ and $f_e$ in a topological first-order manner to guide the search along the path, where intermediate UV maps are also served as the initial points of the next search step.
 
 \subsection{Primal Update}
-
+\vova{This subsection seems to be appropriate for section overview (i.e., merge it into paragraphs before 5.1)}
 In iteration $k+1$, given UV map $(T^{k}, U^{k})$ of the input surface mesh $M$ and $\lambda^{k+1}$, we conduct a joint discrete-continuous search to update both $T$ and $U$ towards minimizing $L(T,U,\lambda^{k+1})$ (See Algorithm~\ref{alg:DCSearch}).
 
 \begin{algorithm}[h]
@@ -57,6 +62,7 @@ There is no point in searching for every neighboring UV topology since, for exam
 Before and after each primal update, our continous search is under convergence. If at the first inner iteration of a primal update there is no neighboring topology that could reduce the multi-objective in the first-order manner, we say our discrete topology search also converges, so does the primal update.
 
 \subsection{Energy Definition}
+\vova{This seems to be a part of problem formulation. I'd move it to Sec 3}
 
 To start with, we use symmetric Dirichlet energy~\cite{Smith2015Bijective} as our distortion energy, normalized by surface area:
 \[ E_d = E_{SD} = \frac{1}{\sum_{t\in\mathcal{F}} |A_t|} \sum_{t\in\mathcal{F}} |A_t|(\sigma_{t,1}^2 + \sigma_{t,2}^2 + \sigma_{t,1}^{-2} + \sigma_{t,2}^{-2}) \]
