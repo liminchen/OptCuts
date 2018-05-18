@@ -8,9 +8,9 @@ from os.path import isfile, join
 # meshFolderPath = '/Users/mincli/Downloads/meshes/closed/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/test_/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/interiorSplitExp_/'
-meshFolderPath = '/Users/mincli/Downloads/meshes/bijectivityExp_/'
+# meshFolderPath = '/Users/mincli/Downloads/meshes/bijectivityExp_/'
 # meshFolderPath = '/Users/mincli/Downloads/meshes/small_/'
-# meshFolderPath = '/Users/mincli/Downloads/meshes/fullBatch_/'
+meshFolderPath = '/Users/mincli/Downloads/meshes/fullBatch_/'
 onlyfiles = [f for f in listdir(meshFolderPath) if isfile(join(meshFolderPath, f))]
 
 priority = 'nice -n -10 '
