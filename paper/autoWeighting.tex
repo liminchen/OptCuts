@@ -34,12 +34,7 @@ To smoothly update to a current $\lambda^{k}$ in iteration $k$ from a previous e
 For iteration $k$ this gives us 
 \[ \min_{T,V} \max_{\lambda \geq 0} E_{s}(T^{k-1}) + \lambda \big( E_{d}(T^{k-1}, U^{k-1}) - b_d\big) - \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2 \]
 
-And we can first solve closed form for $\lambda$ as 
-\[ \lambda^{k} \leftarrow argmax_{\lambda \geq 0} E_{s}(T^{k-1}) + \lambda \big( E_{d}(T^{k-1}, U^{k-1}) - b_d\big) - \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2 \]
-%
-\vova{I don't think we need the equation above, since it is essentially repeated twice}.
-%
-giving us 
+And we can first solve closed form for $\lambda$ as
 \[ \lambda^{k} \leftarrow \max\big(0,\kappa \big( E_{d}(T^{k-1}, U^{k-1}) -b \big) + \lambda^{k-1}\big) \]
 %
 We then can update the primal variables towards solving

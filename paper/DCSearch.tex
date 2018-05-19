@@ -1,10 +1,8 @@
 % !TeX root = OptCuts.tex
 
 %\section{Joint Discrete-Continuous Search}
-\section{Search Procedure}%Jointly Discrete and Continuous Search}%<--- sounds weird
+\section{Primal Update}%Jointly Discrete and Continuous Search}%<--- sounds weird
 \label{sec:DCSearch}
-
-\vova{Why not just call this ``primal update'' as we defined earlier? }
 
 Our primal update is a search procedure towards minimizing \eqref{eq:L} for a fixed $\lambda$. 
 Rather than trying to solve a potentially ill-conditioned real-valued optimization by approximating $T$ with $U$\ \cite{Poranne2017Autocuts}, we alternate local optimizations over $U$ and then $T$. 
@@ -60,19 +58,6 @@ Similar to continuous search in smooth descent steps (Algorithm~\ref{alg:descent
 There is no point in searching for every neighboring UV topology since, for example, initiating a cut in near-isometric regions will not help improve the map much. Thus we have a filtered candidate operation set $\hat{\mathcal{E}}^{k,i-1}_T$ for each topology descent step $(k+1,i)$ (Section~\ref{sec:topologyStep}). When deciding a direction, we fill the set with all promising operations produced by operation filtering (Section~\ref{sec:operationFiltering}), while when computing the step size, we fill then set with only the same operation as in the previous topology descent step for extending the step size.
 
 Before and after each primal update, our continous search is under convergence. If at the first inner iteration of a primal update there is no neighboring topology that could reduce the multi-objective in the first-order manner, we say our discrete topology search also converges, so does the primal update.
-
-\subsection{Energy Definition}
-\vova{This seems to be a part of problem formulation. I'd move it to Sec 3}
-
-To start with, we use symmetric Dirichlet energy~\cite{Smith2015Bijective} as our distortion energy, normalized by surface area:
-\[ E_d = E_{SD} = \frac{1}{\sum_{t\in\mathcal{F}} |A_t|} \sum_{t\in\mathcal{F}} |A_t|(\sigma_{t,1}^2 + \sigma_{t,2}^2 + \sigma_{t,1}^{-2} + \sigma_{t,2}^{-2}) \]
-where $\mathcal{F}$ is the set of all triangles, $|A_t|$ is the area of triangle $t$ on the input surface, and $\sigma_{t,i}$ is the $i$-th singular value of the deformation gradient of triangle $t$.
-
-For seam energy, we simply use a normalized seam length:
-\[ E_s = E_{SL} = \frac{1}{\sqrt{(\sum_{t\in\mathcal{F}} |A_t|)/\pi}} \sum_{i \in \mathcal{S}} |e_i| \]
-where $\mathcal{S}$ is the set of all seam edges on the input surface, $|e_i|$ is the original length of edge $i$.
-
-With the energies normalized, our $L$ is invariant of coordinate scale and resolution for meshes with the same shape.
 
 \input{descentSteps}
 
