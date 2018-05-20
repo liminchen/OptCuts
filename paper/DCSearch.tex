@@ -1,63 +1,8 @@
 % !TeX root = OptCuts.tex
 
 %\section{Joint Discrete-Continuous Search}
-\section{Primal Update}%Jointly Discrete and Continuous Search}%<--- sounds weird
-\label{sec:DCSearch}
-
-Our primal update is a search procedure towards minimizing \eqref{eq:L} for a fixed $\lambda$. 
-Rather than trying to solve a potentially ill-conditioned real-valued optimization by approximating $T$ with $U$\ \cite{Poranne2017Autocuts}, we alternate local optimizations over $U$ and then $T$. 
-\vova{I think we need to explain what's making it ill-conditioned. Also, I think it's unnecessary to cite autocuts here...}
-%We augment a smooth descent search with a search over discrete topology. See Section~\ref{sec:DCSearch} for more details.%<--- these two sentences don't make sense, this is the topic of the current section
-
-Our smooth descent steps apply standard continuous search. We locally minimize distortion $E_d$ over vertices $U$ while holding topology, $T$, fixed. Here we apply Newton-type method detailed in Section~\ref{sec:descentStep}.
-%
-Our topology descent step then applies a discrete search over local topology changes. We search neighboring topology to maximize a first-order reduction in the Lagrangian $L$ detailed in Section~\ref{sec:topologyStep}. 
-
-In total, by ensuring monotonic decrease in $L$ over both the smooth and topology descent steps, we then prove that a near-stationary point can be reached for any input within a bounded number of alternations (Section~\ref{sec:convergence}). \danny{for varying $\lambda$ - i.e. our constrained problem seems like we need to spend a bit more work on this - see comments below.} 
-
-\subsection{Motivation}
-
-\vova{this subsections seems to be only relevant to topological update (Sec 5.5) why not move it there? }
-
-Our search procedure is essentially a graph search. However, due to the potentially huge computational cost, it is not possible to directly apply common graph search methods.
-
-The UV topology space we are searching in can be represented using a directed graph $\mathcal{G}_T$ with its vertices $v_T \in \mathcal{V}_T$ being all possible UV topologies of a given 3D surface, and its edges $e_T \in \mathcal{E}_T$ are the local topological operations conducted on the UV map that can transform one UV topology to a nearby topology. Currently we support boundary and interior vertex splits, as well as corner vertex merge operations. \justin{add a small figure with these} 
-
-We define the value $f_v$ of vertex $v^i_T$ as 
-\[ f_v(v^i_T) = \min_{U} L(T^i, U) = E_s(T^i) + \min_{U} E_d(T^i, U) \]
-and the weights $f_e$ of edge $e^{i,j}_{T}$ from $v^i_T$ to $v^j_T$ as 
-\[ f_e(e^{i,j}_T) = f_v(v^j_T) - f_v(v^i_T). \]
-Thus our problem could be restated as starting from an initial UV topology $v^0_T$ on the topology graph $\mathcal{G}_T$, search for a $v^i_T$ where $f_e(e^{i,j}_T) \geq 0$ is true for all $e^{i,j}_T \in \mathcal{E}^i_T$ ($\mathcal{E}^i_T$ is the set of all local topological operations in our dictionary that could be conducted on $v^i_T$).
-
-Computing $f_v$ for one UV topology, however, requires a proper setting of initial UV coordinates plus a whole process of real-valued optimization. Moreover, even the number of neighbors of one UV topology is in the scale of $n_p$. These in practice prevent us from treating our problem as a usual graph search problem. Consequently, we construct a single search path on $\mathcal{G}_T$ and only approximate $f_v$ and $f_e$ in a topological first-order manner to guide the search along the path, where intermediate UV maps are also served as the initial points of the next search step.
-
-\subsection{Primal Update}
-\vova{This subsection seems to be appropriate for section overview (i.e., merge it into paragraphs before 5.1)}
-In iteration $k+1$, given UV map $(T^{k}, U^{k})$ of the input surface mesh $M$ and $\lambda^{k+1}$, we conduct a joint discrete-continuous search to update both $T$ and $U$ towards minimizing $L(T,U,\lambda^{k+1})$ (See Algorithm~\ref{alg:DCSearch}).
-
-\begin{algorithm}[h]
-\SetAlgoLined
-\KwData{$M$, $T^{k}$, $U^{k}$, $\lambda^{k+1}$}
-\KwResult{$T^{k+1}$, $U^{k+1}$}
-$i \leftarrow 1$, $T^{k,0} \leftarrow T^{k}$, $U^{k,0} \leftarrow U^{k}$\;
-$\hat{\mathcal{E}}^{k,0}_T \leftarrow$ operationFiltering(), $\delta^{k,0} \leftarrow 0$\;
-\Do{smooth descent step not converged}
-{
-	($T^{k,i}$, $U_a^{k,i-1}$) $\leftarrow$ topologyDescentStep($M$, $T^{k,i-1}$, $U^{k,i-1}$, $\hat{\mathcal{E}}^{k,i-1}_T$, $\delta^{k,i-1}$, $\lambda^{k+1}$)\;
-	($U^{k,i}$, $\delta^{k,i}$) $\leftarrow$ smoothDescentStep($M$, $T^{k,i}$, $U_a^{k,i-1}$)\;
-	$\hat{\mathcal{E}}^{k,i}_T \leftarrow$ operations for extension\;
-	$i \leftarrow i+1$\;
-}
-$T^{k+1} \leftarrow T^{k,i-1}$, $U^{k+1} \leftarrow U^{k,i-1}$
-\caption{Primal Update $k+1$}
-\label{alg:DCSearch}
-\end{algorithm}
-
-Similar to continuous search in smooth descent steps (Algorithm~\ref{alg:descentStep}), topology search is also composed of two stages: First decide a search direction (initiating a local seam edit), and then compute a proper step size (extending the edit) to ensure sufficient energy decrease. While each smooth descent step applies a complete Newton-type iteration with backtracking line search, we interleave topology descent steps with smooth descent steps to perform a forward line search in topology space - their step size is \emph{increased}, rather than backtracked.
-
-There is no point in searching for every neighboring UV topology since, for example, initiating a cut in near-isometric regions will not help improve the map much. Thus we have a filtered candidate operation set $\hat{\mathcal{E}}^{k,i-1}_T$ for each topology descent step $(k+1,i)$ (Section~\ref{sec:topologyStep}). When deciding a direction, we fill the set with all promising operations produced by operation filtering (Section~\ref{sec:operationFiltering}), while when computing the step size, we fill then set with only the same operation as in the previous topology descent step for extending the step size.
-
-Before and after each primal update, our continous search is under convergence. If at the first inner iteration of a primal update there is no neighboring topology that could reduce the multi-objective in the first-order manner, we say our discrete topology search also converges, so does the primal update.
+% \section{Descent Steps}%Jointly Discrete and Continuous Search}%<--- sounds weird
+% \label{sec:DCSearch}
 
 \input{descentSteps}
 
@@ -67,7 +12,7 @@ Before and after each primal update, our continous search is under convergence. 
 \label{sec:operationFiltering}
 As the number of vertex that could be splitted is in the scale of $n_p$, and initiating a cut in near-isometric regions will not help improve the UV map much, we filter the vertices to be considered in a split operation by computing the standard deviation of the local individual energy gradients on a vertex and only considering the top $n_p^{0.6}$ vertices with large deviation. \minchen{[TODO] why not filtering by energy? how to filter it well for bijective parameterization?}\justin{will this heuristic mess up the convergence theory?}
 
-\subsection{Convergence}
+\subsection{Convergence on Fixed Lambda}
 \label{sec:convergence}
 
 \minchen{[NOTE] superscript in this section is old}

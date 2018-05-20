@@ -6,8 +6,7 @@
 \subsection{Experiments}
 \label{sec:results_exp}
 
-\paragraph{Initial Embedding} For disk-topology surfaces, we map the longest boundary to a circle preserving edge length and obtain a Tutte embedding with uniform weights \minchen{[TODO] see whether using MVC weights converge faster}. For closed surfaces and high-genus surfaces, we first apply some simple heuristics to obtain an initial seam, and then treat them as disk-topology surfaces.  
-The heuristics for genus-0 surfaces include \justin{``include'' isn't enough; you need to say exactly what you did} farthest point cut and random/curvest one point cut \minchen{[TODO] decide one and add description, or use all?}; for high-genus surfaces, we follow Crane et al.~\shortcite{Crane:2013:DGP} to detect homology generators and then cut along all of them \minchen{[TODO]}.
+\paragraph{Initial Embedding} \minchen{compare results by starting from different initial UV maps}
 
 To show that we search for locally optimal UV maps regardless of the given initial embedding, we run our method starting from triangle soup and preliminary UV maps produced by other methods or by the users. The output maps are still with high quality (Figure~\ref{fig:bad_init_still_ends_well}) \minchen{[TODO]}.
 
@@ -37,3 +36,5 @@ Without changing the framework, simply reformulating $L = E_s + \lambda E_d$ acc
 we could bias the seam placement towards regions e.g. where continuity is less in demand (Figure~\ref{fig:regional_seam_placement}).
 
 \minchen{[TODO] add specific analysis to the results}
+
+The key is that with all these variations, our framework stays the same, and it efficiently generates optimal seams for the specific problem formulation.

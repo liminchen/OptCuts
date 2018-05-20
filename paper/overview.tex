@@ -56,6 +56,9 @@ With the energies normalized, our $L$ is invariant of coordinate scale and resol
 \vova{should we that seam penalties and distortion measure choices are analogues to AutoCuts (but our objective is defined differently?)}
 
 
+\paragraph{Energy with Global Bijectivity}
+For most texture applications one needs to ensure global bijecivity, we incorporate this into our energy following Jiang et al.~\shortcite{Jiang2017Simplicial}. This is realized by repeatedly triangulating the void regions of the UV maps and augment our $E_d$ with a degeneracy prevention energy during the optimization. The augmented energy is not considered when checking the distortion bound. Moreover, our framework stays the same when solving this extended problem.
+
 % \danny{Moved and reorganized a good portion of what was here to the next section.}
 
 
@@ -87,25 +90,19 @@ With the energies normalized, our $L$ is invariant of coordinate scale and resol
 %The challenge here is that the initial embedding we start from is usually with high distortion, thus infeasible, and the quality of the output seams is highly affected by the $\lambda$ updating scheme. \minchen{[TODO] briefly describe what we do after finalized}
  
  %\danny{I haven't commented it the next paragraph but would suggest we: 1. remove this next paragraph from paper, 2. make bijection a main part of the algorithm and 3. move everything else to future work (if we don't do it) or results (if we do get to it).}\justin{cool w me} 
- 
-\paragraph{Variations}
-When formulating the joint optimization, besides any kinds of distortion constraints measured by smooth energy $E_d(T,U)$, we can also add more constraints to enforce extra features such as global bijectivity.
-This is also true for the nonsmooth objective $E_s(T)$, which can be augmented to measure more seam features like regional preference. 
-The key is that with all these variations (Section~\ref{sec:results_variations}), our framework stays the same, and it efficiently generates optimal seams for the specific problem formulation.
-%
-\vova{I don't think we need this paragraph here. }
 
-\vova{I think the structure is a bit confusing (e.g., problem is not entirely defined in ``problem statement'', since we lack precise energy formulation, self-weighted objective talks about outer-look  (alg 1) and then about self-weighting. 
-%
-I propose the following structure: \\
-Section 3: first three paragraphs followed by ``dual objective'' (i.e., exclude "concretely we formulate ...)\\
- - then write ``energy definition'' paragraph (from sec 5.3 and ``concretely we formulate'' paragraph) \\
- - then write ``energy with global bijectivity'' paragraph (start ``for most texture applications one needs to ensure global bijecivity, we incorporate this into our energy following Jiang2017...'') \\
- - [this and below is optional] then write ``optimization framework'' paragraph with Algortihm 1 and first paragraph from section 4. Here reference section 4 for dual update and section 5 for primal update. \\
- - Note due to the last paragraph, we might change this section from ``Problem Statement'' to ``Optimization Framework''. Alternatively, we can have a separate section (between current 3 and 4, titled ``optimization framework'')\\
- - Initialization (obtaining $T^0, U^0$ is not described anywhere. We should at least mention it in ``optimization framework'' part of the text. \\
-Section 4: rename into Dual Update \\
-Section 5: rename into Primal Update
-}
+% \vova{
+% I think the structure is a bit confusing (e.g., problem is not entirely defined in ``problem statement'', since we lack precise energy formulation, self-weighted objective talks about outer-look  (alg 1) and then about self-weighting. 
+% %
+% I propose the following structure: \\
+% Section 3: first three paragraphs followed by ``dual objective'' (i.e., exclude "concretely we formulate ...)\\
+%  - then write ``energy definition'' paragraph (from sec 5.3 and ``concretely we formulate'' paragraph) \\
+ % - then write ``energy with global bijectivity'' paragraph (start ``for most texture applications one needs to ensure global bijecivity, we incorporate this into our energy following Jiang2017...'') \\
+ % - [this and below is optional] then write ``optimization framework'' paragraph with Algortihm 1 and first paragraph from section 4. Here reference section 4 for dual update and section 5 for primal update. \\
+ % - Note due to the last paragraph, we might change this section from ``Problem Statement'' to ``Optimization Framework''. Alternatively, we can have a separate section (between current 3 and 4, titled ``optimization framework'')\\
+ % - Initialization (obtaining $T^0, U^0$ is not described anywhere. We should at least mention it in ``optimization framework'' part of the text. \\
+% Section 4: rename into Dual Update \\
+% Section 5: rename into Primal Update
+% }
 
 \vova{I suggest we consistently use paragraphs or subsections across sec 3, 4, 5}

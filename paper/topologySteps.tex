@@ -1,9 +1,26 @@
 % !TeX root = OptCuts.tex
 
-\subsection{Topology Descent Steps}
+\section{Topology Descent Steps}
 \label{sec:topologyStep}
 
-In topology descent steps, starting from the UV map given by last smooth descent step, we move to a neighboring UV topology with the best first-order reduction in $L$, conducting a basic topological operation searched from the given operation set $\hat{\mathcal{E}}^{k,i-1}_T$. The UV coordinates of the edited seam vertices will also be updated. If the first-order reduction does not satisfy the threshold $\delta^i$ given by the last smooth descent step, however, nothing will be changed.
+\subsection{Motivation}
+\label{sec:topologySearch}
+
+Our search procedure is essentially a graph search. However, due to the potentially huge computational cost, it is not possible to directly apply common graph search methods.
+
+The UV topology space we are searching in can be represented using a directed graph $\mathcal{G}_T$ with its vertices $v_T \in \mathcal{V}_T$ being all possible UV topologies of a given 3D surface, and its edges $e_T \in \mathcal{E}_T$ are the local topological operations conducted on the UV map that can transform one UV topology to a nearby topology. Currently we support boundary and interior vertex splits, as well as corner vertex merge operations. \justin{add a small figure with these} 
+
+We define the value $f_v$ of vertex $v^i_T$ as 
+\[ f_v(v^i_T) = \min_{U} L(T^i, U) = E_s(T^i) + \min_{U} E_d(T^i, U) \]
+and the weights $f_e$ of edge $e^{i,j}_{T}$ from $v^i_T$ to $v^j_T$ as 
+\[ f_e(e^{i,j}_T) = f_v(v^j_T) - f_v(v^i_T). \]
+Thus our problem could be restated as starting from an initial UV topology $v^0_T$ on the topology graph $\mathcal{G}_T$, search for a $v^i_T$ where $f_e(e^{i,j}_T) \geq 0$ is true for all $e^{i,j}_T \in \mathcal{E}^i_T$ ($\mathcal{E}^i_T$ is the set of all local topological operations in our dictionary that could be conducted on $v^i_T$).
+
+Computing $f_v$ for one UV topology, however, requires a proper setting of initial UV coordinates plus a whole process of real-valued optimization. Moreover, even the number of neighbors of one UV topology is in the scale of $n_p$. These in practice prevent us from treating our problem as a usual graph search problem. Consequently, we construct a single search path on $\mathcal{G}_T$ and only approximate $f_v$ and $f_e$ in a topological first-order manner to guide the search along the path, where intermediate UV maps are also served as the initial points of the next search step.
+
+\subsection{Implementation}
+
+In topology descent steps, starting from the UV map given by last smooth descent step, we move to a neighboring UV topology with the best first-order reduction in $L$, conducting a basic topological operation searched from the given operation set $\hat{\mathcal{E}}^{k,i-1}_T$. The UV coordinates of the edited seam vertices will also be updated. If the first-order reduction does not satisfy the threshold $\delta^i$ given by the last smooth descent step, however, nothing will be changed (Algorithm~\ref{alg:topologyStep}).
 
 \begin{algorithm}[h]
 \SetAlgoLined
@@ -18,11 +35,12 @@ $U_a^{k,i-1} \leftarrow U^{k,i-1}$\;
   $T^{k,i} \leftarrow T^j$, $U_a^{(k,i-1),j} \leftarrow \argmin_{U^{(k,i-1),j}} E_d(T^j,U)$\;
 }
 \caption{Topology Descent Step $(k+1,i)$}
+\label{alg:topologyStep}
 \end{algorithm}
  
 We compute the first-order reduction \justin{is this defined in an equation?}\minchen{it's in the pseudo-code} in $L$ from $T^{k,i-1}$ to $T^j$ for all $e^{(k,i-1),j}_T \in \mathcal{E}^{k,i-1}_T$ by minimizing distortion, $E_d$, restricted to the local stencil $U^{(k,i-1),j}$ of the edited seam edge and summed with the corresponding change in seam quality, $E_s$. We only moves to \justin{didn't parse ``moves to''}\minchen{graph search..} $v^j_T$ with smallest $\hat{f}_e(e^{(k,i-1),j}_{T})$, if this energy decrease is smaller than $\delta^{k,i-1}$. Recall that the threshold $\delta^{k,i-1}$ is set as the energy decrease in the current smooth descent step. For deciding a search direction, $\delta^{k,i-1}$ is near $0$ as the current smooth descent step converged, while for computing the topology descent step size, $\delta^{k,i-1}$ is not $0$. This together let our alternating process always pick the search step (continous or discrete) that decrease $L$ more to perform.
 
-In practice, after making copies of the one-ring stencil of each candidate vertex to be splitted or merged, we split or merge them following all possible edge combinations, and optimize $E_d$ on them in parallel with the one-ring neighbors fixed. Since no more than 2 vertices are free to move, the system sizes only ranges from 2 to 4 degrees of freedom, which can be computed more efficiently rather than evaluating the true $f_v$ for deciding where to go next on $\mathcal{G}_T$. Our experiments demonstrate that this local analysis is efficient and effective to explore seam edits (Section~\ref{sec:results_exp}).
+In practice, after making copies of the one-ring stencil of each candidate vertex to be splitted or merged, we split or merge them following all possible edge combinations, and optimize $E_d$ on them in parallel with the one-ring neighbors fixed. Since no more than 2 vertices are free to move, the system sizes only ranges from 2 to 4 degrees of freedom, which can be computed more efficiently rather than evaluating the true $f_v$ for deciding where to go next on $\mathcal{G}_T$. Our experiments demonstrate that this local analysis is efficient and effective to explore seam edits.
 
 For splits, the initial position of the split vertex can just be the original position before splitting. For corner merges, however, the merged vertex must have a locally-injective initial position\justin{neighborhood?}\minchen{what do you mean neighborhood?}. Instead of potentially minimizing a distance measure subject to a set of linear inequality constraints preventing element inversion, we first pose the merged vertex to the averaged position of the two vertices been merged. If element inversion is detected, we then apply relaxation method~\cite{Agmon1954Relaxation} to iteratively project from the averaged position to an inversion free position. However, cases are still there when only moving the merged vertex is not enough to obtain an inversion free initial local stencil. In these situations, we will just abandon the candidate. This rarely happens in practice and does not affect our result.\justin{didn't follow the last two sentences, maybe needs a small figure}
 
