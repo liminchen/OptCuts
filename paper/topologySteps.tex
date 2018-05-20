@@ -45,3 +45,22 @@ In practice, after making copies of the one-ring stencil of each candidate verte
 For splits, the initial position of the split vertex can just be the original position before splitting. For corner merges, however, the merged vertex must have a locally-injective initial position\justin{neighborhood?}\minchen{what do you mean neighborhood?}. Instead of potentially minimizing a distance measure subject to a set of linear inequality constraints preventing element inversion, we first pose the merged vertex to the averaged position of the two vertices been merged. If element inversion is detected, we then apply relaxation method~\cite{Agmon1954Relaxation} to iteratively project from the averaged position to an inversion free position. However, cases are still there when only moving the merged vertex is not enough to obtain an inversion free initial local stencil. In these situations, we will just abandon the candidate. This rarely happens in practice and does not affect our result.\justin{didn't follow the last two sentences, maybe needs a small figure}
 
 Splitting a boundary vertex along an edge that connects to another boundary vertex will remove a hole or produce an extra chart in our UV map. For this case, we free both the 2 boundary vertices while computing the energy decrease on the first-order stencil. \minchen{[TODO] 4-vertex merge to support joining two charts together, triangle moving operations?}
+
+
+\subsection{Operation Filtering}
+\label{sec:operationFiltering}
+As the number of vertex that could be splitted is in the scale of $n_p$, and initiating a cut in near-isometric regions will not help improve the UV map much, we filter the vertices to be considered in a split operation by computing the standard deviation of the local individual energy gradients on a vertex and only considering the top $n_p^{0.6}$ vertices with large deviation. \minchen{[TODO] why not filtering by energy? how to filter it well for bijective parameterization?}\justin{will this heuristic mess up the convergence theory?}
+
+\subsection{Convergence on Fixed Lambda}
+\label{sec:convergence}
+
+\minchen{[NOTE] superscript in this section is old}
+
+As our method is defined to guarantee convergence to a local optimum, we now analyze the convergence rate. First, $L$ monotonically decreases in each step. Now we look at smooth descent step $i$ and $i+1$, from $L^i \geq L^{i+1}$ we have
+\[ E^i_{SD} - E^{i+1}_{SD} \geq \frac{1}{\lambda} (E^{i+1}_{se} - E^i_{se}) \geq \frac{1}{\lambda\sqrt{(\sum_t |A_t|)/\pi}} |e|_{min} \]
+if we now only consider splitting operations that keep increasing $E_{se}$. $E_{SD}$ is lower-bounded theoretically by $4$, so we have
+\[ n_{alter} \leq \frac{\lambda\sqrt{(\sum_t |A_t|)/\pi}}{|e|_{min}} (E^0_{SD} - 4) \]
+The most important hint we can read from this is, to accelerate convergence, we can move through multiple vertices on $G_T$ in each topology descent step to increase $E^{i+1}_{se} - E^i_{se}$.
+
+\minchen{[NOTE] seems not intuitive to generalize to involve merge operations}
+\justin{nothing about this discussion seems to involve convergence rate.} \minchen{maybe change "rate" to "speed"?}
