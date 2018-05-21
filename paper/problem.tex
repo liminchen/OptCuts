@@ -50,14 +50,13 @@ We use symmetric Dirichlet energy~\cite{Smith2015Bijective}, normalized by surfa
 \[ E_d = E_{SD} = \frac{1}{\sum_{t\in\mathcal{F}} |A_t|} \sum_{t\in\mathcal{F}} |A_t|(\sigma_{t,1}^2 + \sigma_{t,2}^2 + \sigma_{t,1}^{-2} + \sigma_{t,2}^{-2}) \]
 where $\mathcal{F}$ is the set of all triangles, $|A_t|$ is the area of triangle $t$ on the input surface, and $\sigma_{t,i}$ is the $i$-th singular value of the deformation gradient of triangle $t$.
 We picked this distortion measure among other choices since it efficiently balances between angle and area distortion and preserves local injectivity, however, our method can be used with other metrics as well.
+\vova{should we that seam penalties and distortion measure choices are analogues to AutoCuts (but our objective is defined differently?)}
 
 With the energies normalized, our $L$ is invariant of coordinate scale and resolution for meshes with the same shape.
-%
-\vova{should we that seam penalties and distortion measure choices are analogues to AutoCuts (but our objective is defined differently?)}
 
 
 \paragraph{Energy with Global Bijectivity}
-For most texture applications one needs to ensure global bijecivity, we incorporate this into our energy following Jiang et al.~\shortcite{Jiang2017Simplicial}. This is realized by repeatedly triangulating the void regions of the UV maps and augment our $E_d$ with a degeneracy prevention energy during the optimization. The augmented energy is not considered when checking the distortion bound. Moreover, our framework stays the same when solving this extended problem.
+For most texture applications one needs to ensure global bijecivity, we incorporate this into our energy following Jiang et al.~\shortcite{Jiang2017Simplicial}. This is realized by repeatedly triangulating the void regions of the UV maps and augment our $E_d$ with a degeneracy prevention energy for the added triangles during the optimization. Note that the augmented energy is not considered when checking the distortion bound. Moreover, our framework stays the same when solving this extended problem.
 
 % \danny{Moved and reorganized a good portion of what was here to the next section.}
 

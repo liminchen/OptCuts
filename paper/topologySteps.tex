@@ -1,6 +1,6 @@
 % !TeX root = OptCuts.tex
 
-\section{Topology Descent Steps}
+\section{Discrete Topology Search}
 \label{sec:topologyStep}
 
 \subsection{Motivation}
@@ -18,14 +18,15 @@ Thus our problem could be restated as starting from an initial UV topology $v^0_
 
 Computing $f_v$ for one UV topology, however, requires a proper setting of initial UV coordinates plus a whole process of real-valued optimization. Moreover, even the number of neighbors of one UV topology is in the scale of $n_p$. These in practice prevent us from treating our problem as a usual graph search problem. Consequently, we construct a single search path on $\mathcal{G}_T$ and only approximate $f_v$ and $f_e$ in a topological first-order manner to guide the search along the path, where intermediate UV maps are also served as the initial points of the next search step.
 
-\subsection{Implementation}
+\subsection{Topology Descent Steps}
 
 In topology descent steps, starting from the UV map given by last smooth descent step, we move to a neighboring UV topology with the best first-order reduction in $L$, conducting a basic topological operation searched from the given operation set $\hat{\mathcal{E}}^{k,i-1}_T$. The UV coordinates of the edited seam vertices will also be updated. If the first-order reduction does not satisfy the threshold $\delta^i$ given by the last smooth descent step, however, nothing will be changed (Algorithm~\ref{alg:topologyStep}).
 
 \begin{algorithm}[h]
 \SetAlgoLined
-\KwData{$M$, $T^{k,i-1}$, $U^{k,i-1}$, $\hat{\mathcal{E}}^{k,i-1}_T$, $\delta^{k,i-1}$, $\lambda^{k+1}$}
+\KwData{$M$, $T^{k,i-1}$, $U^{k,i-1}$, $\delta^{k,i-1}$, $\lambda^{k+1}$}
 \KwResult{$T^{k,i}$, $U_a^{k,i-1}$}
+$\hat{\mathcal{E}}^{k,i-1}_T \leftarrow$ operationFiltering($M$, $T^{k,i-1}$, $U^{k,i-1}$); // Section~\ref{sec:operationFiltering}\\
 \For{each $e^{(k,i-1),j}_{T}$ in $\hat{\mathcal{E}}^{k,i-1}_T$}{
   $\hat{f}_e(e^{(k,i-1),j}_{T}) \leftarrow \Big(E^j_s + \lambda^{k+1} \min_{U^{(k,i-1),j}} E_d(T^j,U)\Big) - L(T^{k,i-1},U^{k,i-1},\lambda^{k+1})$\;
 }
@@ -49,7 +50,11 @@ Splitting a boundary vertex along an edge that connects to another boundary vert
 
 \subsection{Operation Filtering}
 \label{sec:operationFiltering}
-As the number of vertex that could be splitted is in the scale of $n_p$, and initiating a cut in near-isometric regions will not help improve the UV map much, we filter the vertices to be considered in a split operation by computing the standard deviation of the local individual energy gradients on a vertex and only considering the top $n_p^{0.6}$ vertices with large deviation. \minchen{[TODO] why not filtering by energy? how to filter it well for bijective parameterization?}\justin{will this heuristic mess up the convergence theory?}
+
+When deciding a search direction, we fill the set with all promising operations produced by operation filtering, while when computing the step size, we fill the set with only the same operation as in the previous topology descent step for extending the step size.
+
+When deciding a search direction related to splitting operations, as the number of vertex that could be splitted is in the scale of $n_p$, and initiating a cut in near-isometric regions will not help improve the UV map much, we filter the vertices to be considered. We compute the standard deviation of the local individual energy gradients on a vertex and only consider the top $n_p^{0.6}$ vertices with large deviation for splitting operation. \minchen{[TODO] why not filtering by energy? how to filter it well for bijective parameterization?}\justin{will this heuristic mess up the convergence theory?}
+
 
 \subsection{Convergence on Fixed Lambda}
 \label{sec:convergence}
