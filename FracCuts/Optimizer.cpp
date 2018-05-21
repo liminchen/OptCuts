@@ -60,7 +60,7 @@ namespace FracCuts {
         }
         
         globalIterNum = 0;
-        relGL2Tol = 1.0e-8;
+        relGL2Tol = 1.0e-12;
         topoIter = 0;
         
         needRefactorize = false;

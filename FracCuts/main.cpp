@@ -53,7 +53,7 @@ double fracThres = 0.0;
 bool altBase = false;
 bool outerLoopFinished = false;
 const int boundMeasureType = 0; // 0: E_SD, 1: L2 Stretch
-const double upperBound = 4.1;
+const double upperBound = 4.05;
 const double convTol_upperBound = 1.0e-3; //TODO!!! related to avg edge len or upperBound?
 std::vector<std::pair<double, double>> energyChanges_bSplit, energyChanges_iSplit, energyChanges_merge;
 std::vector<std::vector<int>> paths_bSplit, paths_iSplit, paths_merge;
@@ -142,7 +142,7 @@ void updateViewerData_seam(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::Matrix
             const auto finder = triSoup[viewChannel]->edge2Tri.find(std::pair<int, int>(cohE[0], cohE[1]));
             assert(finder != triSoup[viewChannel]->edge2Tri.end());
             const Eigen::RowVector3d& sn = triSoup[viewChannel]->triNormal.row(finder->second);
-            if(seamScore[eI] > seamDistThres) {
+            if((seamScore[eI] > seamDistThres) || (methodType != FracCuts::MT_AUTOCUTS)) {
                 // seam edge
                 FracCuts::IglUtils::addThickEdge(V, F, UV, seamColor, color.row(eI), V.row(cohE[0]), V.row(cohE[1]),
                                                  triSoup[viewChannel]->virtualRadius * 0.005 * (viewUV ? texScale : 1.0),
@@ -1407,7 +1407,7 @@ int main(int argc, char *argv[])
             }
             else {
                 FracCuts::TriangleSoup *temp = new FracCuts::TriangleSoup(V, F, Eigen::MatrixXd(), Eigen::MatrixXi(), false);
-    //            temp->farthestPointCut(); // open up a boundary for Tutte embedding
+//                temp->farthestPointCut(); // open up a boundary for Tutte embedding
 //                temp->highCurvOnePointCut();
                 temp->onePointCut();
                 rand1PInitCut = true;

@@ -211,8 +211,8 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "1 3 /Users/mincli/Desktop/output_FracCuts/"
-            isEnabled = "NO">
+            argument = "1 3 /Users/mincli/Desktop/output_AutoCuts/"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "1 2 /Applications/XAMPP/xamppfiles/htdocs/expResults/results17/"
@@ -220,7 +220,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "2 /Users/mincli/Downloads/meshes/fullBatch_/bone_lowres_noInputUV.obj 2"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "2 /Users/mincli/Desktop/meshes/bishop_part_f1000_ours.obj 3"
