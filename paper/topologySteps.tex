@@ -1,14 +1,14 @@
 % !TeX root = OptCuts.tex
 
 \section{Discrete Topology Search}
-\label{sec:topologyStep}
-
-\subsection{Motivation}
 \label{sec:topologySearch}
 
-Our search procedure is essentially a graph search. However, due to the potentially huge computational cost, it is not possible to directly apply common graph search methods.
+\subsection{Motivation}
+\label{sec:motivation}
 
-The UV topology space we are searching in can be represented using a directed graph $\mathcal{G}_T$ with its vertices $v_T \in \mathcal{V}_T$ being all possible UV topologies of a given 3D surface, and its edges $e_T \in \mathcal{E}_T$ are the local topological operations conducted on the UV map that can transform one UV topology to a nearby topology. Currently we support boundary and interior vertex splits, as well as corner vertex merge operations. \justin{add a small figure with these} 
+Our discrete topology search procedure is essentially a graph search. However, due to the potentially huge computational cost, it is not possible to directly apply common graph search methods.
+
+The UV topology space we are searching in can be represented using a directed graph $\mathcal{G}_T$ with its vertices $v_T \in \mathcal{V}_T$ being all possible UV topologies of a given 3D surface, and its edges $e_T \in \mathcal{E}_T$ are the local topological operations, e.g. splitting or merging edges, conducted on the UV map that can transform one UV topology to a nearby topology.
 
 We define the value $f_v$ of vertex $v^i_T$ as 
 \[ f_v(v^i_T) = \min_{U} L(T^i, U) = E_s(T^i) + \min_{U} E_d(T^i, U) \]
@@ -16,11 +16,11 @@ and the weights $f_e$ of edge $e^{i,j}_{T}$ from $v^i_T$ to $v^j_T$ as
 \[ f_e(e^{i,j}_T) = f_v(v^j_T) - f_v(v^i_T). \]
 Thus our problem could be restated as starting from an initial UV topology $v^0_T$ on the topology graph $\mathcal{G}_T$, search for a $v^i_T$ where $f_e(e^{i,j}_T) \geq 0$ is true for all $e^{i,j}_T \in \mathcal{E}^i_T$ ($\mathcal{E}^i_T$ is the set of all local topological operations in our dictionary that could be conducted on $v^i_T$).
 
-Computing $f_v$ for one UV topology, however, requires a proper setting of initial UV coordinates plus a whole process of real-valued optimization. Moreover, even the number of neighbors of one UV topology is in the scale of $n_p$. These in practice prevent us from treating our problem as a usual graph search problem. Consequently, we construct a single search path on $\mathcal{G}_T$ and only approximate $f_v$ and $f_e$ in a topological first-order manner to guide the search along the path, where intermediate UV maps are also served as the initial points of the next search step.
+Computing $f_v$ for one UV topology, however, requires a proper setting of initial UV coordinates plus a whole process of real-valued optimization. Moreover, even the number of neighbors of one UV topology is in the scale of $n$. These in practice prevent us from treating our problem as a usual graph search problem. Consequently, we construct a single search path on $\mathcal{G}_T$ and only approximate $f_e$ in a topological first-order manner to guide the search along the path, where intermediate UV maps are also served as the initial points of the next search step.
 
 \subsection{Topology Descent Steps}
 
-In topology descent steps, starting from the UV map given by last smooth descent step, we move to a neighboring UV topology with the best first-order reduction in $L$, conducting a basic topological operation searched from the given operation set $\hat{\mathcal{E}}^{k,i-1}_T$. The UV coordinates of the edited seam vertices will also be updated. If the first-order reduction does not satisfy the threshold $\delta^{k,i-1}$ given by the last smooth descent step, however, nothing will be changed (Algorithm~\ref{alg:topologyStep}).
+In topology descent steps, starting from the UV map given by last smooth descent step, we change to a neighboring UV topology with the best first-order reduction in $L$, conducting a local topological operation searched from the given operation set $\hat{\mathcal{E}}^{k,i-1}_T$. The UV coordinates of the edited seam vertices will also be updated. If the first-order reduction does not satisfy the threshold $\delta^{k,i-1}$ given by the last smooth descent step, however, nothing will be changed (Algorithm~\ref{alg:topologyStep}).
 
 \begin{algorithm}[h]
 \SetAlgoLined
@@ -38,28 +38,43 @@ $U_a^{k,i-1} \leftarrow U^{k,i-1}$\;
 \caption{Topology Descent Step $(k+1,i)$}
 \label{alg:topologyStep}
 \end{algorithm}
-
-
-When deciding a search direction, we fill the set with all promising operations produced by operation filtering, while when computing the step size, we fill the set with only the same operation as in the previous topology descent step for extending the step size.
  
 We compute the first-order reduction in $L$ from $T^{k,i-1}$ to $T^j$ for all $e^{(k,i-1),j}_T \in \mathcal{E}^{k,i-1}_T$ by minimizing distortion, $E_d$, restricted to the local stencil $U^{(k,i-1),j}$ of the edited seam edge and summed with the corresponding change in seam quality, $E_s$:
 \[\hat{f}_e(e^{(k,i-1),j}_{T}) \leftarrow \Big(E^j_s + \lambda^{k+1} \min_{U^{(k,i-1),j}} E_d(T^j,U)\Big) - L(T^{k,i-1},U^{k,i-1},\lambda^{k+1})\]
- We only moves to \justin{didn't parse ``moves to''}\minchen{graph search..} $v^j_T$ with smallest $\hat{f}_e(e^{(k,i-1),j}_{T})$, if this energy decrease is smaller than $\delta^{k,i-1}$.
-
 In practice, after making copies of the one-ring stencil of each candidate vertex to be splitted or merged, we split or merge them following all possible edge combinations, and optimize $E_d$ on them in parallel with the one-ring neighbors fixed. Since no more than 2 vertices are free to move, the system sizes only ranges from 2 to 4 degrees of freedom, which can be computed more efficiently rather than evaluating the true $f_v$ for deciding where to go next on $\mathcal{G}_T$. Our experiments demonstrate that this local analysis is efficient and effective to explore seam edits.
 
-\subsection{Basic Topological Operations}
 
-\paragraph{Vertex Split}
-Splitting a boundary vertex along an edge that connects to another boundary vertex will remove a hole or produce an extra chart in our UV map. For this case, we free both the 2 boundary vertices while computing the energy decrease on the first-order stencil. \minchen{[TODO] 4-vertex merge to support joining two charts together, triangle moving operations?}
+\subsection{Forward Topological Line Search}
+\label{sec:operationFiltering}
+Since there is no point searching from all neighboring topologies, e.g. initiating a seam in near-isometric regions does not improve the distortion much, we start each topology descent step by filtering the neighboring topologies to search from. Then we only compute the first-order reductions for each candidate topology.
+
+Moreover, in our experiment, once a seam has been initiated on the boundary of the UV map, even we query among all possibilities to place a new cut elsewhere in the following topology descent steps, the new cuts always end up extending the current cut until the region that the current seam is extended towards is near-isometric. This inspired us to design a topological line search scheme by controlling the candidate set.
+
+Similar to standard continuous search, the discrete topology search can also be composed of two stages: First decide a search direction (initiating a local seam edit), and then compute a proper step size (extending the edit) to ensure sufficient energy decrease. We implement this scheme into our framework simply by filling the candidate set with operations for new seam edits or extended edits:
+When deciding a search direction, we fill the set with all promising operations, while when computing the step size, we fill the set with only the same operation as in the previous topology descent step for extending the step size.
+Since the step size is \emph{increased}, rather than backtracked, we name it the \emph{forward line search scheme}.
+Now the threshold $\delta$ produced by the interleaved smooth descent steps automatically serve as an adaptive parameter to ensure sufficient energy decrease, which is analogous to the one in Armijo rule.
+
+When deciding a search direction related to splitting operations, we filter the vertices to be considered by computing the standard deviation of the local individual energy gradients on a vertex and only consider the top $n^{0.8}$ vertices with large deviation. \minchen{[TODO] why not filtering by energy? how to filter it well for bijective parameterization?}\justin{will this heuristic mess up the convergence theory?}
+
+Since now we are only querying for extension after a seam edit has been initiated, each primal update will converge much earlier than before, which in other words makes dual updates more frequent, thus improving the overall convergence rate. Also note that now the near stationary point with respect to both $T$ and $U$ might not be reached after every primal update.
+
+
+\subsection{Local Topological Operations}
+
+We support boundary and interior vertex splits, as well as corner merge operations. \justin{add a small figure with these} Due to the giant number of possibilities on splitting interior vertices, we prioritize the boundary vertex splits and corner merge operations, and only consider interior vertex splits when no appropriate boundary operations are available.
+
+\paragraph{Boundary Vertex Split}
+A boundary vertex can be splitted along all its interior incident edges. Each split will end up with two new vertices that are set free when computing the first-order reduction in $L$.
+Splitting a boundary vertex along an edge that connects to another boundary vertex will remove a hole or produce an extra chart in our UV map. For this case, we free all the 4 new vertices while computing the energy decrease on the first-order stencil. \minchen{[TODO] 4-vertex merge to support joining two charts together, triangle moving operations?}
+
+\paragraph{Interior Vertex Split}
+An interior vertex can be splitted along any pairs of its incident edges. Similar to boundary vertex split, there will be two new vertices as well for computing the first-order reduction in $L$.
+However, we do not query an interior split when the split path is connected to an existing seam, because this is just identical to conduct two boundary splits.
 
 \paragraph{Corner Merge}
-For splits, the initial position of the split vertex can just be the original position before splitting. For corner merges, however, the merged vertex must have a locally-injective initial position\justin{neighborhood?}\minchen{what do you mean neighborhood?}. Instead of potentially minimizing a distance measure subject to a set of linear inequality constraints preventing element inversion, we first pose the merged vertex to the averaged position of the two vertices been merged. If element inversion is detected, we then apply relaxation method~\cite{Agmon1954Relaxation} to iteratively project from the averaged position to an inversion free position. However, cases are still there when only moving the merged vertex is not enough to obtain an inversion free initial local stencil. In these situations, we will just abandon the candidate. This rarely happens in practice and does not affect our result.\justin{didn't follow the last two sentences, maybe needs a small figure}
-
-
-\subsection{Operation Filtering}
-\label{sec:operationFiltering}
-When deciding a search direction related to splitting operations, as the number of vertex that could be splitted is in the scale of $n_p$, and initiating a cut in near-isometric regions will not help improve the UV map much, we filter the vertices to be considered. We compute the standard deviation of the local individual energy gradients on a vertex and only consider the top $n_p^{0.6}$ vertices with large deviation for splitting operation. \minchen{[TODO] why not filtering by energy? how to filter it well for bijective parameterization?}\justin{will this heuristic mess up the convergence theory?}
+We define a corner on the UV map as three UV vertices corresponds to a tail edge of a seam on the input surface. Each merge will only end up with one new vertex that are set free when computing the first-order reduction in $L$.
+Unlike vertex split operations, the merged vertex must have a locally-injective initial position\justin{neighborhood?}\minchen{what do you mean neighborhood?} to start the optimization. We first pose the merged vertex to the averaged position of the two vertices been merged. If element inversion is detected, we then apply relaxation method~\cite{Agmon1954Relaxation} to iteratively project from the averaged position to an inversion free position. However, cases are still there when only moving the merged vertex is not enough to obtain an inversion free initial local stencil. In these situations, we will just abandon the candidate. This rarely happens in practice and does not affect our result.\justin{didn't follow the last two sentences, maybe needs a small figure}
 
 
 \subsection{Convergence on Fixed Lambda}
