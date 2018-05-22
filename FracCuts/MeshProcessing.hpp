@@ -192,6 +192,16 @@ namespace FracCuts {
                             break;
                         }
                             
+                        case 4: {
+                            // output as seamster format
+                            assert(F.rows() > 0);
+                            IglUtils::saveMesh_Seamster(outputFolderPath + meshName + ".seamster",
+                                                        V, F);
+                            
+                            std::cout << "mesh saved into " << outputFolderPath << meshName << ".seamster" << std::endl;
+                            break;
+                        }
+                            
                         default:
                             std::cout << "No procMode " << procMode << std::endl;
                             break;

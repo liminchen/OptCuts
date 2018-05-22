@@ -227,6 +227,10 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "2 /Users/mincli/Downloads/meshes/golf.obj 4"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "0 /Users/mincli/Downloads/meshes/bull.obj 0.025 1 0 test"
             isEnabled = "NO">
          </CommandLineArgument>

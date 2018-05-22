@@ -702,4 +702,26 @@ namespace FracCuts {
             seamColor.bottomRows(2) << color, color;
         }
     }
+    
+    void IglUtils::saveMesh_Seamster(const std::string& filePath,
+                                     const Eigen::MatrixXd& V, const Eigen::MatrixXi& F)
+    {
+        assert((V.rows() > 0) && (V.cols() == 3));
+        assert((F.rows() > 0) && (F.cols() == 3));
+        
+        std::ofstream outFile;
+        outFile.open(filePath);
+        assert(outFile.is_open());
+        
+        outFile << V.rows() << " " << F.rows() << std::endl;
+        for(int vI = 0; vI < V.rows(); vI++) {
+            outFile << vI + 1 << " " << V(vI, 0) << " " << V(vI, 1) << " " << V(vI, 2) << std::endl;
+        }
+        for(int triI = 0; triI < F.rows(); triI++) {
+            outFile << triI + 1 << " " <<
+                F(triI, 0) + 1 << " " << F(triI, 1) + 1 << " " << F(triI, 2) + 1 << std::endl;
+        }
+        
+        outFile.close();
+    }
 }

@@ -106,6 +106,9 @@ namespace FracCuts {
                                  const Eigen::RowVector3d& v0, const Eigen::RowVector3d& v1,
                                  double halfWidth, double texScale, bool UVorSurface = false,
                                  const Eigen::RowVector3d& normal = Eigen::RowVector3d());
+        
+        static void saveMesh_Seamster(const std::string& filePath,
+                                      const Eigen::MatrixXd& V, const Eigen::MatrixXi& F);
     };
     
 }
