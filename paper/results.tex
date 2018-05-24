@@ -5,9 +5,9 @@
 
 \subsection{Comparisons}
 
-Since our method can generate UV maps with locally optimal seams under a certain distortion bound, we are able to directly use the output $E_s$ of different methods at the same distortion level as the evaluation metric. This metric is consistent among comparisons with all methods. Moreover, it also fits in well to practical scenarios where the control of distortions are more intuitive to the users and as-short-as-possible seams is expected.
-
 We demonstrate the capabilities of our framework by comparing to AutoCuts~\cite{Poranne2017Autocuts}, Geometry Images~\cite{Gu2002Geometry}, and Seamster~\cite{Sheffer2002Seamster}.
+
+Since our method can generate UV maps with locally optimal seams under a certain distortion bound, we are able to directly use the output $E_s$ of different methods parameterizating an input surface to the same distortion level as the evaluation metric. This metric is consistent among comparisons with all methods. Moreover, it also fits in well with practical scenarios where the control of distortions are more intuitive to the users and as-short-as-possible seams are expected.
 
 \minchen{[TODO] provide detailed settings on the compared methods, and how much user assistance was needed for other methods}
 
@@ -15,9 +15,43 @@ We demonstrate the capabilities of our framework by comparing to AutoCuts~\cite{
 We first run AutoCuts, and set their output distortions as the upper bounds in our method for each input surface.
 
 \paragraph{Geometry Images}
-Given the same input surface and initial UV maps, we reach identical distortion bounds with shorter seam lengths (Figure~\ref{fig:comp_GI}).
-When we change the settings progressively to obtain nearly isometric UV maps, the quality of the seams by Geometry Images drop drastically while our method keeps generating high-quality seams (Figure~\ref{fig:comp_GI_strictBounds}).
-Using seams output by Geometry Images to construct our initial UV map, we achieve the same distortion bound with bijectivity constraints and shorter seams (Figure~\ref{fig:comp_GI_outputAsInit}).
+Geometry Images iteratively finds an extremal point with maximal $L^2$ stretch~\cite{} on the current UV map and make a cut, connecting the extremal point to the current seam with shortest path on the input surface, to reduce distortion on the newly parameterized map. To fairly compare with Geometry Images' cutting strategy, instead of using shape preserving mesh parameterization~\cite{} to always generate a circled UV map, we here change it by minimizing the symmetric Dirichlet energy for parameterization between each cut. Now that our Geometry Images is based on a free-boundary parameterization, the distortion will always decrease after a new cut is introduced, thus we can also set a distortion bound to terminate the algorithm when the bound is reached.
+
+Given the same input surface with our standard UV initialization, we reach identical distortion bounds with shorter seam length (Figure~\ref{fig:comp_GI}). Note that when we asked for more and more isometric UV maps, the quality of the seams by Geometry Images drop drastically while our method keeps generating high-quality seams (See batch comparison statistics in Table~\ref{tb:comp_GI}).
+
+\begin{figure}[!h]
+\centering
+\includegraphics[width=\linewidth]{fig/comp_GI.png}
+\caption{Comparison between our method and Geometry Images on the bimba model with $b_d = 4.2, 4.1, 4.05$ from left to right.}
+\label{fig:comp_GI}
+\end{figure}
+% also could be face_f10000, male_body_i_f10000, statue_3_i_f10000, statue_4_i_f10000, statue_5_i_f10000
+
+\begin{table}[!h]
+\centering
+\caption{Comparisons between our method without bijectivity constraints and Geometry Images on 70 input surfaces with $3721$ vertices per input in average. Two $E_{se}$ are considered to be similar if their ratio lies inside $[0.95, 1.05]$.\minchen{Percentage when our $E_{se}$ is smaller is 58.9\%, 60.3\%, and 64.0\% for $b_d = 4.2, 4.1, 4.05$. Which stats is stronger?} In the last row we start our optimization from the output seams by GI with $b_d = 4.1$ and generates bijective UV maps.} 
+\label{tb:comp_GI}
+\begin{tabular}{@{}cccccccc@{}}
+\toprule
+\multirow{2}{*}{$b_d$} & \multicolumn{2}{c}{$\overline{E}_{se}$}             & \multicolumn{3}{c}{when our $E_{se}$ is}                         & \multicolumn{2}{c}{average time (s)}       \\ \cmidrule(l){2-8} 
+                   & GI & ours & shorter & similar & longer & GI & ours \\ \midrule
+4.2                & 4.03             & 3.98           &  47.9\%  & 17.8\%  & 34.2\% & 13.0          & 87.0        \\
+4.1                & 4.93             & 4.84           &  43.8\%  & 30.1\%  & 26.0\% & 17.0        & 137.5        \\
+4.05               & 6.33             & 6.14           &  45.3\%  & 36.0\%  & 18.7\% &  24.1        & 213.2        \\ 
+4.1*               & 4.93             & 4.79           &  48.6\%  & 36.1\%  & 15.3\% &  17.0        & 304.0        \\ \bottomrule
+\end{tabular}
+\end{table}
+
+If we take Geometry Images output as a fast heuristic initial guess, we can use OptCuts to improve the seam quality towards the locally optimal point while still satisfying the distortion bound. To make this experiment more challenging, we add bijectivity constraints to our framework, which prevents from reaching below the distortion bound with the initial seams. However, we still efficiently obtain bijective UV maps with even shorter seams (Figure~\ref{fig:comp_GI_outputAsInit}, Table~\ref{tb:comp_GI} last row).
+
+\begin{figure}[!h]
+\centering
+\includegraphics[width=\linewidth]{fig/comp_GI_outputAsInit.png}
+\caption{Using Geometry Images output with $b_d = 4.1$ as our initial UV map and distortion bound, we improve seam quality, reaching a locally optimal seam configuration, even with an extra bijectivity constraints.}
+\label{fig:comp_GI_outputAsInit}
+\end{figure}
+% also could be bimba, bunny
+
 
 \paragraph{Seamster}
 
