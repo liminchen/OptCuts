@@ -12,7 +12,9 @@ Since our method can generate UV maps with locally optimal seams under a certain
 \minchen{[TODO] provide detailed settings on the compared methods, and how much user assistance was needed for other methods}
 
 \paragraph{AutoCuts}
-We first run AutoCuts, and set their output distortions as the upper bounds in our method for each input surface.
+AutoCuts obtains high quality UV maps by involving users into the optimization loop. However, when aiming for convenient, fully-automatic methods, the non-smoothness of their Separation energy not only makes it challenging for global parameter settings, but also often end up the optimization with suboptimal results. To show that we automatically obtain high quality results without suffering these issues, we compare our method with a fully automatic version of AutoCuts obtained under the guidance of AutoCuts authors by constructing appropriate homotopy paths with uniform adaptive parameter settings.
+
+Since AutoCuts does not intuitively support generating UV maps with a certain level of distortion, we first run AutoCuts on a batch of input surfaces, and then set their output distortions as $b_d$ in our method for each input. As demonstrated in Table~\ref{}, we require less time to generate UV maps with not larger distortion and significantly smaller seams. Note that we also enforced bijectivity (Figure~\ref{}), which is only supported in AutoCuts with user assistance on patch manipulation.
 
 \paragraph{Geometry Images}
 Geometry Images iteratively finds an extremal point with maximal $L^2$ stretch~\cite{} on the current UV map and make a cut, connecting the extremal point to the current seam with shortest path on the input surface, to reduce distortion on the newly parameterized map. To fairly compare with Geometry Images' cutting strategy, instead of using shape preserving mesh parameterization~\cite{} to always generate a circled UV map, we here change it by minimizing the symmetric Dirichlet energy for parameterization between each cut. Now that our Geometry Images is based on a free-boundary parameterization, the distortion will always decrease after a new cut is introduced, thus we can also set a distortion bound to terminate the algorithm when the bound is reached.
@@ -22,18 +24,18 @@ Given the same input surface with our standard UV initialization, we reach ident
 \begin{figure}[!h]
 \centering
 \includegraphics[width=\linewidth]{fig/comp_GI.png}
-\caption{Comparison between our method and Geometry Images on the bimba model with $b_d = 4.2, 4.1, 4.05$ from left to right.}
+\caption{Comparison between Geometry Images and our method on the bimba model with $b_d = 4.2, 4.1, 4.05$ from left to right.}
 \label{fig:comp_GI}
 \end{figure}
 % also could be face_f10000, male_body_i_f10000, statue_3_i_f10000, statue_4_i_f10000, statue_5_i_f10000
 
 \begin{table}[!h]
 \centering
-\caption{Comparisons between our method without bijectivity constraints and Geometry Images on 70 input surfaces with $3721$ vertices per input in average. Two $E_{se}$ are considered to be similar if their ratio lies inside $[0.95, 1.05]$.\minchen{Percentage when our $E_{se}$ is smaller is 58.9\%, 60.3\%, and 64.0\% for $b_d = 4.2, 4.1, 4.05$. Which stats is stronger?} In the last row we start our optimization from the output seams by GI with $b_d = 4.1$ and generates bijective UV maps.} 
+\caption{Comparisons between Geometry Images and our method on 70 input surfaces with $3721$ vertices per input in average. Two $E_{se}$ are considered to be similar if their ratio lies inside $[0.95, 1.05]$.\minchen{Percentage when our $E_{se}$ is smaller is 58.9\%, 60.3\%, and 64.0\% for $b_d = 4.2, 4.1, 4.05$. Which kind of stats is stronger?} In the last row we start our optimization from the output seams by GI with $b_d = 4.1$ and generates bijective UV maps.} 
 \label{tb:comp_GI}
 \begin{tabular}{@{}cccccccc@{}}
 \toprule
-\multirow{2}{*}{$b_d$} & \multicolumn{2}{c}{$\overline{E}_{se}$}             & \multicolumn{3}{c}{when our $E_{se}$ is}                         & \multicolumn{2}{c}{average time (s)}       \\ \cmidrule(l){2-8} 
+\multirow{2}{*}{$b_d$} & \multicolumn{2}{c}{average $E_{se}$}             & \multicolumn{3}{c}{when our $E_{se}$ is}                         & \multicolumn{2}{c}{average time (s)}       \\ \cmidrule(l){2-8} 
                    & GI & ours & shorter & similar & longer & GI & ours \\ \midrule
 4.2                & 4.03             & 3.98           &  47.9\%  & 17.8\%  & 34.2\% & 13.0          & 87.0        \\
 4.1                & 4.93             & 4.84           &  43.8\%  & 30.1\%  & 26.0\% & 17.0        & 137.5        \\
