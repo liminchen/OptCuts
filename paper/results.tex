@@ -14,7 +14,28 @@ Since our method can generate UV maps with locally optimal seams under a certain
 \paragraph{AutoCuts}
 AutoCuts obtains high quality UV maps by involving users into the optimization loop. However, when aiming for convenient, fully-automatic methods, the non-smoothness of their Separation energy not only makes it challenging for global parameter settings, but also often end up the optimization with suboptimal results. To show that we automatically obtain high quality results without suffering these issues, we compare our method with a fully automatic version of AutoCuts obtained under the guidance of AutoCuts authors by constructing appropriate homotopy paths with uniform adaptive parameter settings.
 
-Since AutoCuts does not intuitively support generating UV maps with a certain level of distortion, we first run AutoCuts on a batch of input surfaces, and then set their output distortions as $b_d$ in our method for each input. As demonstrated in Table~\ref{}, we require less time to generate UV maps with not larger distortion and significantly smaller seams. Note that we also enforced bijectivity (Figure~\ref{}), which is only supported in AutoCuts with user assistance on patch manipulation.
+Since AutoCuts does not intuitively support generating UV maps with a certain level of distortion, we first run AutoCuts on a batch of input surfaces, and then set their output distortions as $b_d$ in our method for each input. As demonstrated in Table~\ref{tb:comp_AutoCuts}, we require less time to generate UV maps with not larger distortion and significantly smaller seams. Note that we also enforced bijectivity (Figure~\ref{fig:comp_AutoCuts}), which is only supported in AutoCuts with user assistance on patch manipulation.
+
+\begin{table}[!h]
+\centering
+\caption{Comparisons between AutoCuts and our method on 70 input surfaces with $3721$ vertices per input in average. Two $E_{se}$ are considered to be similar if their ratio lies inside $[0.95, 1.05]$.}
+\label{tb:comp_AutoCuts}
+\begin{tabular}{@{}cclclccccl@{}}
+\toprule
+\multirow{2}{*}{method} & \multicolumn{2}{c}{\multirow{2}{*}{$\overline{E}_{SD}$}} & \multicolumn{2}{c}{\multirow{2}{*}{$\overline{E}_{se}$}} & \multicolumn{3}{c}{when our $E_{se}$ is}                                   & \multicolumn{2}{c}{\multirow{2}{*}{$\overline{time}$ (s)}} \\ \cmidrule(lr){6-8}
+                        & \multicolumn{2}{c}{}                                  & \multicolumn{2}{c}{}                                  & smaller                 & similar                & larger                  & \multicolumn{2}{c}{}                                  \\ \cmidrule(){1-10}
+AutoCuts                & \multicolumn{2}{c}{4.074}                             & \multicolumn{2}{c}{7.579}                             & \multirow{2}{*}{85.5\%} & \multirow{2}{*}{7.2\%} & \multirow{2}{*}{7.2\%} & \multicolumn{2}{c}{500.0}                             \\
+ours                    & \multicolumn{2}{c}{4.073}                             & \multicolumn{2}{c}{5.811}                             &                         &                        &                         & \multicolumn{2}{c}{304.0}                             \\ \cmidrule(){1-10}
+\end{tabular}
+\end{table}
+
+\begin{figure}[!h]
+\centering
+\includegraphics[width=\linewidth]{fig/comp_AutoCuts.png}
+\caption{Comparison between AutoCuts and our method on the camel and three man statue model.}
+\label{fig:comp_AutoCuts}
+\end{figure}
+% could also be bone_noInput, bunny_i_f10000, bunny, camel_vova_f10000, cat_noUV, cow_param_closed, dilo, horse, male_2, octopus, wooden_fish, foot_i_f10000, gargoyle, rgb_dragon, statue_i_1, vase, venus
 
 \paragraph{Geometry Images}
 Geometry Images iteratively finds an extremal point with maximal $L^2$ stretch~\cite{} on the current UV map and make a cut, connecting the extremal point to the current seam with shortest path on the input surface, to reduce distortion on the newly parameterized map. To fairly compare with Geometry Images' cutting strategy, instead of using shape preserving mesh parameterization~\cite{} to always generate a circled UV map, we here change it by minimizing the symmetric Dirichlet energy for parameterization between each cut. Now that our Geometry Images is based on a free-boundary parameterization, the distortion will always decrease after a new cut is introduced, thus we can also set a distortion bound to terminate the algorithm when the bound is reached.
