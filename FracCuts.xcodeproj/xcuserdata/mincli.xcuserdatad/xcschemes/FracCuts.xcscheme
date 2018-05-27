@@ -212,22 +212,26 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "1 3 /Users/mincli/Desktop/output_AutoCuts/"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "1 4 /Applications/XAMPP/xamppfiles/htdocs/expResults/results_giComp_4.05/"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "2 /Users/mincli/Downloads/meshes/closed/zoo/triceratops_param.obj 2"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "2 /Applications/XAMPP/xamppfiles/htdocs/expResults/results_giComp_4.1/lucy_o_f8000_Tutte_0.999_106_GeomImg_input_0.999_300_OursBounded/finalResult_mesh.obj 3"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "1 2 /Applications/XAMPP/xamppfiles/htdocs/expResults/results17/"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "2 /Users/mincli/Downloads/meshes/fullBatch_/bone_lowres_noInputUV.obj 2"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "2 /Users/mincli/Desktop/meshes/bishop_part_f1000_ours.obj 3"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
             argument = "2 /Users/mincli/Downloads/meshes/golf.obj 4"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "2 /Users/mincli/Downloads/meshes/closed/zoo/cow_param_closed.obj 5"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument

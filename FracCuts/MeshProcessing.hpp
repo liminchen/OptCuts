@@ -16,6 +16,7 @@
 #include <igl/map_vertices_to_circle.h>
 #include <igl/harmonic.h>
 #include <igl/euler_characteristic.h>
+#include <igl/per_vertex_normals.h>
 
 #include <cstdio>
 
@@ -171,7 +172,7 @@ namespace FracCuts {
                         }
                             
                         case 3: {
-                            // map texture to 0-1
+                            // map texture to 0-1 and output UV boundary path in both 2D and 3D
                             
                             if(UV.rows() == 0) {
                                 std::cout << "no input UV" << std::endl;
@@ -185,9 +186,47 @@ namespace FracCuts {
                                 UV(uvI, 0) = (UV(uvI, 0) - minUV_x) / divider;
                                 UV(uvI, 1) = (UV(uvI, 1) - minUV_y) / divider;
                             }
-                            igl::writeOBJ(outputFolderPath + meshName + "_01UV.obj", V, F, N, FN, UV, FUV);
                             
+                            if(N.rows() == 0) {
+                                igl::per_vertex_normals(V, F, igl::PER_VERTEX_NORMALS_WEIGHTING_TYPE_AREA, N);
+                                FN = F;
+                            }
+                            
+                            igl::writeOBJ(outputFolderPath + meshName + "_with01UV.obj", V, F, N, FN, UV, FUV);
                             std::cout << "texture mapped to [0,1]^2 and saved into " << outputFolderPath << meshName << "_01UV.obj" << std::endl;
+                            
+                            Eigen::MatrixXd V_UV;
+                            V_UV.resize(UV.rows(), 3);
+                            V_UV << UV, Eigen::VectorXd::Zero(UV.rows());
+                            igl::writeOBJ(outputFolderPath + meshName + "_01UV.obj", V_UV, FUV,
+                                          Eigen::MatrixXd(), Eigen::MatrixXi(), UV, FUV);
+                            
+                            
+                            FracCuts::TriangleSoup temp(V, F, UV, FUV, false);
+                            
+                            std::vector<std::vector<int>> bnd_all;
+                            igl::boundary_loop(temp.F, bnd_all);
+                            
+                            FILE *out = fopen((outputFolderPath + meshName + "_with01UV.sp").c_str(), "w");
+                            assert(out);
+                            FILE *out_UV = fopen((outputFolderPath + meshName + "_01UV.sp").c_str(), "w");
+                            assert(out_UV);
+                            
+                            fprintf(out, "%u\n", bnd_all.size());
+                            fprintf(out_UV, "%u\n", bnd_all.size());
+                            for(const auto& bndI : bnd_all) {
+                                fprintf(out, "%u\n", bndI.size());
+                                fprintf(out_UV, "%u\n", bndI.size());
+                                for(const auto& i : bndI) {
+                                    const Eigen::RowVector3d& v = temp.V_rest.row(i);
+                                    fprintf(out, "%le %le %le\n", v[0], v[1], v[2]);
+                                    const Eigen::RowVector2d& uv = temp.V.row(i);
+                                    fprintf(out_UV, "%le %le 0.0\n", uv[0], uv[1]);
+                                }
+                            }
+                            
+                            fclose(out);
+                            fclose(out_UV);
                             
                             break;
                         }
@@ -199,6 +238,35 @@ namespace FracCuts {
                                                         V, F);
                             
                             std::cout << "mesh saved into " << outputFolderPath << meshName << ".seamster" << std::endl;
+                            break;
+                        }
+                            
+                        case 5: {
+                            // merge closed surface mesh file and UV file
+                            Eigen::MatrixXd V_UV;
+                            Eigen::MatrixXi F_UV;
+                            igl::readOBJ(meshPath.substr(0, meshPath.find("_closed.obj")) + "_UV.obj",
+                                                         V_UV, F_UV);
+                            Eigen::VectorXi bnd;
+                            igl::boundary_loop(F_UV, bnd); // Find the open boundary
+                            assert(bnd.size());
+                            Eigen::MatrixXd bnd_uv;
+                            //            igl::map_vertices_to_circle(V, bnd, bnd_uv);
+                            FracCuts::IglUtils::map_vertices_to_circle(V_UV, bnd, bnd_uv);
+                            
+                            //            // Harmonic parametrization
+                            //            igl::harmonic(V, F, bnd, bnd_uv, 1, UV);
+                            
+                            // Harmonic map with uniform weights
+                            Eigen::SparseMatrix<double> A, M;
+                            FracCuts::IglUtils::computeUniformLaplacian(F_UV, A);
+                            igl::harmonic(A, M, bnd, bnd_uv, 1, V_UV);
+                            //            FracCuts::IglUtils::computeMVCMtr(V, F, A);
+                            //            FracCuts::IglUtils::fixedBoundaryParam_MVC(A, bnd, bnd_uv, UV);
+                            
+                            igl::writeOBJ(meshPath.substr(0, meshPath.find("_closed.obj")) +
+                                          "_withSUV.obj", V, F, N, FN, V_UV, F_UV);
+                            std::cout << "mesh saved in " << meshPath.substr(0, meshPath.find("_closed.obj")) + "_withSUV.obj" << std::endl;
                             break;
                         }
                             

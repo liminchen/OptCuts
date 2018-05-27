@@ -53,7 +53,7 @@ double fracThres = 0.0;
 bool altBase = false;
 bool outerLoopFinished = false;
 const int boundMeasureType = 0; // 0: E_SD, 1: L2 Stretch
-const double upperBound = 4.05;
+double upperBound = 4.2;
 const double convTol_upperBound = 1.0e-3; //TODO!!! related to avg edge len or upperBound?
 std::vector<std::pair<double, double>> energyChanges_bSplit, energyChanges_iSplit, energyChanges_merge;
 std::vector<std::vector<int>> paths_bSplit, paths_iSplit, paths_merge;
@@ -353,6 +353,7 @@ void saveInfoForPresent(const std::string fileName = "info.txt")
     if(energyParams[0] == 1.0) {
         // pure distortion minimization mode for models with initial cuts also reflected on the surface as boundary edges...
         triSoup[channel_result]->computeBoundaryLen(seamLen);
+        seamLen /= 2.0;
     }
     else {
         triSoup[channel_result]->computeSeamSparsity(seamLen, !fractureMode);
@@ -1141,26 +1142,7 @@ bool preDrawFunc(igl::opengl::glfw::Viewer& viewer)
                 }
                     
                 case FracCuts::MT_NOCUT: {
-                    infoName = "finalResult";
-                    // perform exact solve
-                    //                        optimizer->setRelGL2Tol(1.0e-10);
-                    optimizer->setAllowEDecRelTol(false);
-                    converged = false;
-                    while(!converged) {
-                        proceedOptimization(1000);
-                    }
-                    secPast += difftime(time(NULL), lastStart_world);
-                    updateViewerData();
-                    
-                    optimization_on = false;
-                    viewer.core.is_animating = false;
-                    std::cout << "optimization converged, with " << secPast << "s." << std::endl;
-                    logFile << "optimization converged, with " << secPast << "s." << std::endl;
-                    homoTransFile.close();
-                    outerLoopFinished = true;
-                    
-                    optimizer->flushEnergyFileOutput();
-                    optimizer->flushGradFileOutput();
+                    converge_preDrawFunc(viewer);
                     break;
                 }
             }
@@ -1267,6 +1249,27 @@ int main(int argc, char *argv[])
 //    FracCuts::TriangleSoup squareMesh(FracCuts::P_SQUARE, 1.0, 0.1, false);
 //    V = squareMesh.V_rest;
 //    F = squareMesh.F;
+    
+//    //!!! for AutoCuts comparison
+//    std::ifstream distFile(outputFolderPath + "distortion.txt");
+//    assert(distFile.is_open());
+//    std::string resultName; double resultDistortion;
+//    bool distFound = false;
+//    while(!distFile.eof()) {
+//        distFile >> resultName >> resultDistortion;
+//        if(resultName.find(meshName + "_Tutte_") != std::string::npos) {
+//            distFound = true;
+//            upperBound = resultDistortion;
+//            break;
+//        }
+//    }
+//    distFile.close();
+//    if(distFound) {
+//        std::cout << "AutoCuts comparison: reset distortion bound to " << upperBound << std::endl;
+//    }
+//    else {
+//        exit(0);
+//    }
     
     // Set lambda
     double lambda = 0.5;

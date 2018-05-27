@@ -13,9 +13,13 @@
 
 #include <igl/readOBJ.h>
 #include <igl/opengl/glfw/Viewer.h>
+#include <igl/boundary_loop.h>
+#include <igl/map_vertices_to_circle.h>
+#include <igl/harmonic.h>
 
 #include <cstdio>
 
+extern std::string outputFolderPath;
 extern igl::opengl::glfw::Viewer viewer;
 extern bool viewUV;
 extern bool showTexture;
@@ -23,6 +27,8 @@ extern int showDistortion;
 extern double texScale;
 extern std::vector<const FracCuts::TriangleSoup*> triSoup;
 extern std::vector<FracCuts::Energy*> energyTerms;
+extern std::vector<double> energyParams;
+extern FracCuts::Optimizer* optimizer;
 extern void updateViewerData(void);
 extern bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier);
 extern bool preDrawFunc(igl::opengl::glfw::Viewer& viewer);
@@ -104,13 +110,17 @@ namespace FracCuts{
                     }
                         
                     case 2: {
-                        // compute and output our metric for AutoCuts output
+                        // compute and output our metric and visualization for AutoCuts output, also output AutoCuts' distortion for comparison
                         const std::string resultsFolderPath(argv[3]);
                         FILE *dirList = fopen((resultsFolderPath + "/folderList.txt").c_str(), "r");
                         assert(dirList);
                         
+                        FILE *distFile = fopen((resultsFolderPath + "/distortion.txt").c_str(), "w");
+                        assert(distFile);
+                        
                         // for rendering:
                         energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
+                        energyParams.emplace_back(1.0);
                         triSoup.resize(2);
                         viewer.core.background_color << 1.0f, 1.0f, 1.0f, 0.0f;
                         viewer.callback_key_down = &key_down;
@@ -151,7 +161,9 @@ namespace FracCuts{
                                 << 0 << " " << 0 << " "
                                 << lambda << " " << lambda << std::endl;
                             
-                            file << 0 << " " << 0 << " " << worldTime << std::endl;
+                            file << "0.0 0.0 " << worldTime << " 0.0 topo0.0 desc0.0 scaf0.0 enUp0.0" <<
+                            " mtrComp0.0 mtrAssem0.0 symFac0.0 numFac0.0 backSolve0.0 lineSearch0.0" <<
+                            " bSplit0.0 iSplit0.0 cMerge0.0" << std::endl;
                             
                             double seamLen;
                             resultMesh.computeSeamSparsity(seamLen, false);
@@ -159,6 +171,7 @@ namespace FracCuts{
                             SymStretchEnergy SD;
                             SD.computeEnergyVal(resultMesh, distortion);
                             file << distortion << " " << seamLen / resultMesh.virtualRadius << std::endl;
+                            fprintf(distFile, "%s %lf\n", buf, distortion);
                             
                             resultMesh.outputStandardStretch(file);
 
@@ -169,6 +182,7 @@ namespace FracCuts{
                             viewUV = true;
                             showTexture = false;
                             showDistortion = true;
+                            optimizer = new FracCuts::Optimizer(*triSoup[0], energyTerms, energyParams, 0, false, false);
                             updateViewerData();
                             viewer.launch_rendering(false);
                             saveScreenshot(resultsFolderPath + '/' + std::string(buf) + "/finalResult.png",
@@ -194,9 +208,11 @@ namespace FracCuts{
                             }
                             
                             std::cout << buf << " processed" << std::endl;
+                            delete optimizer;
                         }
 
                         fclose(dirList);
+                        fclose(distFile);
                         
                         break;
                     }
@@ -223,6 +239,55 @@ namespace FracCuts{
                         
                         fclose(dirList);
                         std::cout << "check finished" << std::endl;
+                        
+                        break;
+                    }
+                        
+                    case 4: {
+                        // output GI/Seamster results as input mesh files for our method
+                        const std::string resultsFolderPath(argv[3]);
+                        FILE *dirList = fopen((resultsFolderPath + "/folderList.txt").c_str(), "r");
+                        assert(dirList);
+                        
+                        char buf[BUFSIZ];
+                        while((!feof(dirList)) && fscanf(dirList, "%s", buf)) {
+                            std::string resultName(buf);
+                            if(resultName.find("GeomImg") != std::string::npos)
+                            {
+                                std::string meshPath(resultsFolderPath + '/' + resultName + "/finalResult_mesh.obj");
+                                Eigen::MatrixXd V, UV, N;
+                                Eigen::MatrixXi F, FUV, FN;
+                                igl::readOBJ(meshPath, V, UV, N, F, FUV, FN);
+                                UV.conservativeResize(UV.rows(), 3);
+                                UV.col(2) = Eigen::VectorXd::Zero(UV.rows());
+                                
+                                Eigen::VectorXi bnd;
+                                igl::boundary_loop(FUV, bnd); // Find the open boundary
+                                if(bnd.size()) {
+                                    Eigen::MatrixXd bnd_uv;
+                                    //            igl::map_vertices_to_circle(V, bnd, bnd_uv);
+                                    FracCuts::IglUtils::map_vertices_to_circle(UV, bnd, bnd_uv);
+                                    
+                                    //            // Harmonic parametrization
+                                    //            igl::harmonic(V, F, bnd, bnd_uv, 1, UV);
+                                    
+                                    // Harmonic map with uniform weights
+                                    Eigen::SparseMatrix<double> A, M;
+                                    FracCuts::IglUtils::computeUniformLaplacian(FUV, A);
+                                    igl::harmonic(A, M, bnd, bnd_uv, 1, UV);
+                                    //            FracCuts::IglUtils::computeMVCMtr(V, F, A);
+                                    //            FracCuts::IglUtils::fixedBoundaryParam_MVC(A, bnd, bnd_uv, UV);
+                                    
+                                    igl::writeOBJ(outputFolderPath + resultName + ".obj",
+                                                  V, F, N, FN, UV, FUV);
+                                    
+                                    std::cout << "mesh saved in " << outputFolderPath + resultName + ".obj" << std::endl;
+                                }
+                            }
+                        }
+                        
+                        fclose(dirList);
+                        std::cout << "output finished" << std::endl;
                         
                         break;
                     }

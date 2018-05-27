@@ -28,16 +28,18 @@ FracCutsPath = '/Users/mincli/Library/Developer/Xcode/DerivedData/FracCuts-agmha
 # 	if subprocess.call([runCommand], shell=True):
 # 		continue
 
-for inputModelNameI in onlyfiles:
-# 	# no prop, no filter
-# 	runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.999 61 0'
-# 	if subprocess.call([runCommand], shell=True):
-# 		continue
+# runCommand = priority + FracCutsPath + ' 1 2 /Users/mincli/Desktop/output_AutoCuts/'
 
-	# compute initial embedding and output for AutoCuts
-	runCommand = priority + FracCutsPath + ' 2 ' + meshFolderPath + inputModelNameI + ' 4'
+for inputModelNameI in onlyfiles:
+	# no prop, no filter
+	runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.999 250 0'
 	if subprocess.call([runCommand], shell=True):
 		continue
+
+	# # compute initial embedding and output for AutoCuts
+	# runCommand = priority + FracCutsPath + ' 2 ' + meshFolderPath + inputModelNameI + ' 4'
+	# if subprocess.call([runCommand], shell=True):
+	# 	continue
 
 	# # prop, no filter
 	# runCommand = priority + FracCutsPath + ' 100 ' + meshFolderPath + inputModelNameI + ' 0.001 35 0'
