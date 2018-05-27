@@ -3,31 +3,49 @@
 \section{Results and Discussion}
 \label{sec:results}
 
-\subsection{Comparisons}
+\minchen{Text possibly needed to be added in the description of how we handle global bijectivity constraints:
+When computing $\hat{f}_e$, besides also including the one-ring triangles on the scaffold mesh for computing energy decrease, we also need to move the splitted vertices slightly apart to leave room for inserting new scaffold mesh triangles.}
 
-We demonstrate the capabilities of our framework by comparing to AutoCuts~\cite{Poranne2017Autocuts}, Geometry Images~\cite{Gu2002Geometry}, and Seamster~\cite{Sheffer2002Seamster}.
+\subsection{Method Evaluation}
 
-Since our method can generate UV maps with locally optimal seams under a certain distortion bound, we are able to directly use the output $E_s$ of different methods parameterizating an input surface to the same distortion level as the evaluation metric. This metric is consistent among comparisons with all methods. Moreover, it also fits in well with practical scenarios where the control of distortions are more intuitive to the users and as-short-as-possible seams are expected.
+We evaluate our method with/without global bijectivity by running them on 70 input surfaces, including both disk-topology and closed surfaces, some are with \minchen{[TODO] high genus}.
 
-\minchen{[TODO] provide detailed settings on the compared methods, and how much user assistance was needed for other methods}
+\paragraph{Evaluation Metric}
+Since our method can generate UV maps with locally optimal seams under a certain distortion bound, we are able to directly use the output normalized $E_s$ as the evaluation metric. This metric can be consistent among comparisons against all methods because given an input surface we are always able to compare the output seam length under the same level of distortion. Moreover, it also fits in well with practical scenarios where the control of distortions are more intuitive to the users and as-short-as-possible seams are expected.
+
+\paragraph{Initial Embedding?}
+To show that we search for locally optimal UV maps regardless of the given initial embedding, we run our method starting from our standard initializations, triangle soups, and preliminary UV maps produced by other methods or by the users. As demonstrated in Figure~\ref{fig:bad_init_still_ends_well}, all the output UV maps are with high quality.
+
+
+\subsection{Comparison}
+
+We demonstrate the capabilities of our framework by comparing to AutoCuts~\cite{Poranne2017Autocuts} and Seamster~\cite{Sheffer2002Seamster}.
 
 \paragraph{AutoCuts}
 AutoCuts obtains high quality UV maps by involving users into the optimization loop. However, when aiming for convenient, fully-automatic methods, the non-smoothness of their Separation energy not only makes it challenging for global parameter settings, but also often end up the optimization with suboptimal results. To show that we automatically obtain high quality results without suffering these issues, we compare our method with a fully automatic version of AutoCuts obtained under the guidance of AutoCuts authors by constructing appropriate homotopy paths with uniform adaptive parameter settings.
 
-Since AutoCuts does not intuitively support generating UV maps with a certain level of distortion, we first run AutoCuts on a batch of input surfaces, and then set their output distortions as $b_d$ in our method for each input. As demonstrated in Table~\ref{tb:comp_AutoCuts}, we require less time to generate UV maps with not larger distortion and significantly smaller seams. Note that we also enforced bijectivity (Figure~\ref{fig:comp_AutoCuts}), which is only supported in AutoCuts with user assistance on patch manipulation.
+Since AutoCuts does not intuitively support generating UV maps with a certain level of distortion, we first run AutoCuts on a batch of input surfaces, and then set their output distortions as $b_d$ in our method for each input. As demonstrated in Table~\ref{tb:comp_AutoCuts}, for both the two versions of our method, we require less time to generate UV maps with same level of distortion but significantly smaller seams. Figure~\ref{fig:EseBar_compAutoCuts} shows a barchart comparison on the output $E_{se}$ of each input surface. Note that we easily enforced bijectivity (Figure~\ref{fig:comp_AutoCuts}), which is only supported in AutoCuts with user assistance on patch manipulation. From the time-resolution scatter plot in Figure~\ref{fig:time_res_compAutoCuts}, we see that for meshes with higher resolution, our method scales better on running time than AutoCuts.
 
 \begin{table}[!h]
 \centering
-\caption{Comparisons between AutoCuts and our method on 70 input surfaces with $3721$ vertices per input in average. Two $E_{se}$ are considered to be similar if their ratio lies inside $[0.95, 1.05]$.}
+\caption{Comparisons between AutoCuts and our method on 69 input surfaces with $3749$ vertices in average.}
 \label{tb:comp_AutoCuts}
-\begin{tabular}{@{}cclclccccl@{}}
-\toprule
-\multirow{2}{*}{method} & \multicolumn{2}{c}{\multirow{2}{*}{$\overline{E}_{SD}$}} & \multicolumn{2}{c}{\multirow{2}{*}{$\overline{E}_{se}$}} & \multicolumn{3}{c}{when our $E_{se}$ is}                                   & \multicolumn{2}{c}{\multirow{2}{*}{$\overline{time}$ (s)}} \\ \cmidrule(lr){6-8}
-                        & \multicolumn{2}{c}{}                                  & \multicolumn{2}{c}{}                                  & smaller                 & similar                & larger                  & \multicolumn{2}{c}{}                                  \\ \cmidrule(){1-10}
-AutoCuts                & \multicolumn{2}{c}{4.074}                             & \multicolumn{2}{c}{7.579}                             & \multirow{2}{*}{85.5\%} & \multirow{2}{*}{7.2\%} & \multirow{2}{*}{7.2\%} & \multicolumn{2}{c}{500.0}                             \\
-ours                    & \multicolumn{2}{c}{4.073}                             & \multicolumn{2}{c}{5.811}                             &                         &                        &                         & \multicolumn{2}{c}{304.0}                             \\ \cmidrule(){1-10}
+\begin{tabular}{|c|ccc|ccc|}
+\hline
+\multirow{2}{*}{method} & \multicolumn{3}{c|}{$E_{se}$} & \multicolumn{3}{c|}{time (s)} \\ \cline{2-7} 
+                        & avg      & min     & max      & avg      & min    & max       \\ \hline
+AutoCuts                & 7.5789   & 1.2069  & 24.6816  & 499.9    & 4.0    & 2677.0    \\
+ours (WB)               & 5.8114   & 0.8979  & 19.7405  & 304.0    & 6.4    & 1267.7     \\
+ours (NB)               & 5.3065   & 0.8992  & 16.1329  & 148.7    & 3.1    & 650.9    \\ \hline
 \end{tabular}
 \end{table}
+
+\begin{figure}[!h]
+\centering
+\includegraphics[width=\linewidth]{fig/EseBar_compAutoCuts.png}
+\caption{$E_se$ barchart of each example generated by AutoCuts, our method with/without bijectivity.}
+\label{fig:EseBar_compAutoCuts}
+\end{figure}
 
 \begin{figure}[!h]
 \centering
@@ -37,7 +55,33 @@ ours                    & \multicolumn{2}{c}{4.073}                             
 \end{figure}
 % could also be bone_noInput, bunny_i_f10000, bunny, camel_vova_f10000, cat_noUV, cow_param_closed, dilo, horse, male_2, octopus, wooden_fish, foot_i_f10000, gargoyle, rgb_dragon, statue_i_1, vase, venus
 
-\paragraph{Geometry Images}
+\begin{figure}[!h]
+\centering
+\includegraphics[width=\linewidth]{fig/time_res_compAutoCuts.png}
+\caption{Time-Resolution scatter plot of all examples generated by AutoCuts, our method with/without bijectivity.}
+\label{fig:time_res_compAutoCuts}
+\end{figure}
+
+\paragraph{Seamster}
+They key difference between our framework and two-pass methods is that, our seams are computed to directly improve the given distortion measure rather than some approximated heuristics. Besides, since the problem is highly nonlinear, seams that benefits one region might be redundant due to the existance of another seam in a near or far region. Our framework is capable of removing those redundancy with our topology search, but the two-pass methods can not.
+
+
+\subsection{Scalability}
+
+
+\subsection{Variations}
+
+Without changing the framework, simply reformulating $L = E_s + \lambda E_d$ according to different needs enables OptCuts to solve mesh parameterization problems in many variations:
+
+\paragraph{Regional Seam Placement}
+On the discrete side, if we reweight $E_{SL}$ with an edge prior provided by the user or an algorithm~\cite{} as
+\[ E_s = \hat{E}_{SL} = \sum_{i\in\mathcal{S}} w_{SL,i} E_{SL,i} \quad w_{SL,i} \in \mathcal{R^+} \]
+we could bias the seam placement towards regions e.g. where continuity is less in demand (Figure~\ref{fig:regional_seam_placement}).
+
+\paragraph{Conformal Parameterization?}
+Using a conformal energy~\cite{Hormann2000MIPS,Sheffer2005ABFPP} for $E_d$ will achieve joint seam placement and conformal parameterization. Figure~\ref{fig:conformal_vs_isometry} shows some results with $E_d = E_{ABForMIPS}$~\cite{} compared to results with $E_d = E_{SD}$, where different seams are generated while our framework stays the same.
+
+\paragraph{Different Cutting Strategy?}
 Geometry Images iteratively finds an extremal point with maximal $L^2$ stretch~\cite{} on the current UV map and make a cut, connecting the extremal point to the current seam with shortest path on the input surface, to reduce distortion on the newly parameterized map. To fairly compare with Geometry Images' cutting strategy, instead of using shape preserving mesh parameterization~\cite{} to always generate a circled UV map, we here change it by minimizing the symmetric Dirichlet energy for parameterization between each cut. Now that our Geometry Images is based on a free-boundary parameterization, the distortion will always decrease after a new cut is introduced, thus we can also set a distortion bound to terminate the algorithm when the bound is reached.
 
 Given the same input surface with our standard UV initialization, we reach identical distortion bounds with shorter seam length (Figure~\ref{fig:comp_GI}). Note that when we asked for more and more isometric UV maps, the quality of the seams by Geometry Images drop drastically while our method keeps generating high-quality seams (See batch comparison statistics in Table~\ref{tb:comp_GI}).
@@ -74,38 +118,5 @@ If we take Geometry Images output as a fast heuristic initial guess, we can use 
 \label{fig:comp_GI_outputAsInit}
 \end{figure}
 % also could be bimba, bunny
-
-
-\paragraph{Seamster}
-
-\minchen{[TODO] add specific analysis to the comparison between ours and the 3 methods}
-
-They key difference between our framework and two-pass methods is that, our seams are computed to directly improve the given distortion measure rather than some approximated heuristics. Besides, since the problem is highly nonlinear, seams that benefits one region might be redundant due to the existance of another seam in a near or far region. Our framework is capable of removing those redundancy with our topology search, but the two-pass methods can not.
-
-
-\subsection{Experiments}
-\label{sec:results_exp}
-
-\paragraph{Initial Embedding}
-To show that we search for locally optimal UV maps regardless of the given initial embedding, we run our method starting from our standard initializations, triangle soups, and preliminary UV maps produced by other methods or by the users. All the output UV maps are with high quality (Figure~\ref{fig:bad_init_still_ends_well}) \minchen{[TODO]}.
-
-\paragraph{Triangulation Invariance} \minchen{[TODO] not sure whether applicable}
-
-\paragraph{Scalability} \minchen{[TODO]}
-
-\subsection{Variations}
-\label{sec:results_variations}
-
-Without changing the framework, simply reformulating $L = E_s + \lambda E_d$ according to different needs enables OptCuts to solve mesh parameterization problems in many variations:
-
-\paragraph{Global Bijectivity} \danny{suggest we no longer consider this a variation and instead use it as a key part of our full algorithm - see my comments earlier.} \minchen{[DOING]} Augmenting our $E_d$ with a collision handling energy $E_b$ will easily achieve joint seam placement and bijective mesh parameterization. We show that by adding a scaffold mesh~\cite{Jiang2017Simplicial} to the voided regions of the UV map and preventing the scaffold mesh from degenerate, our method automatically generate high-quality bijective maps with optimal seams different from that of locally injective parameterization (Figure~\ref{fig:bijective_vs_injective}). When computing $\hat{f}_e$, besides also including the one-ring triangles on the scaffold mesh for computing energy decrease, we also need to move the splitted vertices slightly apart to leave room for inserting new scaffold mesh triangles.
-
-\paragraph{Conformal Parameterization} \minchen{[TODO]} Using a conformal energy~\cite{Hormann2000MIPS,Sheffer2005ABFPP} for $E_d$ will achieve joint seam placement and conformal parameterization. Figure~\ref{fig:conformal_vs_isometry} shows some results with $E_d = E_{ABForMIPS}$~\cite{} compared to results with $E_d = E_{SD}$, where different seams are generated while our framework stays the same.
-
-\paragraph{Regional Seam Placement} \minchen{[TODO]} On the discrete side, if we reweight $E_{SL}$ with an edge prior provided by the user or an algorithm~\cite{} as
-\[ E_s = \hat{E}_{SL} = \sum_{i\in\mathcal{S}} w_{SL,i} E_{SL,i} \quad w_{SL,i} \in \mathcal{R^+} \]
-we could bias the seam placement towards regions e.g. where continuity is less in demand (Figure~\ref{fig:regional_seam_placement}).
-
-\minchen{[TODO] add specific analysis to the results}
 
 The key is that with all these variations, our framework stays the same, and it efficiently generates optimal seams for the specific problem formulation.
