@@ -223,7 +223,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "2 /Applications/XAMPP/xamppfiles/htdocs/expResults/results_giComp_4.1/lucy_o_f8000_Tutte_0.999_106_GeomImg_input_0.999_300_OursBounded/finalResult_mesh.obj 3"
+            argument = "2 /Applications/XAMPP/xamppfiles/htdocs/expResults/results_ACComp_0.4/three_man_statue_i_f10000_Tutte_0.4_202_AutoCutsSrc/finalResult_mesh.obj 3"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

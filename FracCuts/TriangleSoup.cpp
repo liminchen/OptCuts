@@ -203,6 +203,35 @@ namespace FracCuts {
         }
         
         computeFeatures(false, true);
+        
+        vertWeight = Eigen::VectorXd::Ones(V.rows());
+        //TEST: compute gaussian curvature for regional seam placement
+//        vertWeight = Eigen::VectorXd::Ones(V.rows()) * 2.0 * M_PI;
+//        for(int triI = 0; triI < F.rows(); triI++) {
+//            const Eigen::RowVector3i& triVInd = F.row(triI);
+//            const Eigen::RowVector3d v[3] = {
+//                V_rest.row(triVInd[0]),
+//                V_rest.row(triVInd[1]),
+//                V_rest.row(triVInd[2])
+//            };
+//            for(int vI = 0; vI < 3; vI++) {
+//                int vI_post = (vI + 1) % 3;
+//                int vI_pre = (vI + 2) % 3;
+//                const Eigen::RowVector3d e0 = v[vI_pre] - v[vI];
+//                const Eigen::RowVector3d e1 = v[vI_post] - v[vI];
+//                vertWeight[triVInd[vI]] -= std::acos(std::max(-1.0, std::min(1.0, e0.dot(e1) / e0.norm() / e1.norm())));
+//            }
+//        }
+//        const double maxRatio = 4.0;
+//        for(int vI = 0; vI < V.rows(); vI++) {
+//            if(isBoundaryVert(vI)) {
+//                vertWeight[vI] -= M_PI;
+//            }
+//            if(vertWeight[vI] < 0) {
+//                vertWeight[vI] = -vertWeight[vI];
+//            }
+//            vertWeight[vI] = maxRatio - (maxRatio - 1.0) * vertWeight[vI] / (2.0 * M_PI);
+//        }
     }
     
     void initCylinder(double r1_x, double r1_y, double r2_x, double r2_y, double height, int circle_res, int height_resolution,
@@ -791,7 +820,7 @@ namespace FracCuts {
                         if(!connectToBound) {
                             // don't split vertices connected to boundary here
                         //                        if(maxUnweightedEnergyValPerVert[vI] > energyVal) {
-                            sortedCandVerts_in[-divGradPerVert[vI]] = vI;
+                            sortedCandVerts_in[-divGradPerVert[vI] / vertWeight[vI]] = vI;
                         //                        }
                         }
                     }
@@ -806,7 +835,7 @@ namespace FracCuts {
                     
                     if(isBoundaryVert(vI)) {
                         //                        if(maxUnweightedEnergyValPerVert[vI] > energyVal) {
-                        sortedCandVerts_b[-divGradPerVert[vI]] = vI;
+                        sortedCandVerts_b[-divGradPerVert[vI] / vertWeight[vI]] = vI;
                         //                        }
                     }
                 }
@@ -1682,6 +1711,8 @@ namespace FracCuts {
             int nV = static_cast<int>(V_rest.rows());
             V_rest.conservativeResize(nV + 1, 3);
             V_rest.row(nV) = V_rest.row(path[1]);
+            vertWeight.conservativeResize(nV + 1);
+            vertWeight[nV] = vertWeight[path[1]];
             V.conservativeResize(nV + 1, 2);
             if(changePos) {
                 V.row(nV) = newVertPos.block(0, 0, 1, 2);
@@ -2285,14 +2316,15 @@ namespace FracCuts {
             
             if(path_max.size() == 3) {
                 // zipper merge
-                double seDec = (V_rest.row(path_max[0]) - V_rest.row(path_max[1])).norm() / virtualRadius;
+                double seDec = (V_rest.row(path_max[0]) - V_rest.row(path_max[1])).norm() /
+                    virtualRadius * (vertWeight[path_max[0]] + vertWeight[path_max[1]]) / 2.0;
                 // closing up splitted diamond
                 bool closeup = false;
                 for(const auto& nbVI : vNeighbor[path_max[0]]) {
                     if(nbVI != path_max[1]) {
                         if(isBoundaryVert(nbVI)) {
                             if(vNeighbor[path_max[2]].find(nbVI) != vNeighbor[path_max[2]].end()) {
-                                seDec += (V_rest.row(path_max[0]) - V_rest.row(nbVI)).norm() / virtualRadius;
+                                seDec += (V_rest.row(path_max[0]) - V_rest.row(nbVI)).norm() / virtualRadius * (vertWeight[path_max[0]] + vertWeight[nbVI]) / 2.0;
                                 closeup = true;
                                 break;
                             }
@@ -2354,7 +2386,8 @@ namespace FracCuts {
 //                    if(IglUtils::computeRotAngle(a, e) + IglUtils::computeRotAngle(e, b) > 0.0) {
 //                    std::cout << vI << "-" << nbVI << ": " << IglUtils::computeRotAngle(a, e) + IglUtils::computeRotAngle(e, b) << std::endl;
 //                    assert(IglUtils::computeRotAngle(a, e) + IglUtils::computeRotAngle(e, b) > 0.0); //TODO: cut through may violate
-                        const double seInc = (V_rest.row(vI) - V_rest.row(nbVI)).norm() / virtualRadius;
+                        const double seInc = (V_rest.row(vI) - V_rest.row(nbVI)).norm() /
+                            virtualRadius * (vertWeight[vI] + vertWeight[nbVI]) / 2.0;
                         const double curEwDec = (1.0 - lambda_t) * SDDec - lambda_t * seInc;
                         if(curEwDec > maxEwDec) {
                             maxEwDec = curEwDec;
@@ -2457,8 +2490,8 @@ namespace FracCuts {
 //                        }
 //                    }
                     
-                    const double seInc = ((V_rest.row(path[0]) - V_rest.row(path[1])).norm() +
-                                          (V_rest.row(path[1]) - V_rest.row(path[2])).norm()) / virtualRadius;
+                    const double seInc = ((V_rest.row(path[0]) - V_rest.row(path[1])).norm() * (vertWeight[path[0]] + vertWeight[path[1]]) +
+                                          (V_rest.row(path[1]) - V_rest.row(path[2])).norm() * (vertWeight[path[1]] + vertWeight[path[2]])) / virtualRadius / 2.0;
                     const double EwDec = (1.0 - lambda_t) * SDDec - lambda_t * seInc;
                     if(EwDec > EwDec_max) {
                         EwDec_max = EwDec;
@@ -3124,7 +3157,8 @@ namespace FracCuts {
 //        }
     }
     
-    void TriangleSoup::splitEdgeOnBoundary(const std::pair<int, int>& edge, const Eigen::MatrixXd& newVertPos,
+    void TriangleSoup::splitEdgeOnBoundary(const std::pair<int, int>& edge,
+                                           const Eigen::MatrixXd& newVertPos,
                                            bool changeVertPos, bool allowCutThrough)
     {
         assert(vNeighbor.size() == V.rows());
@@ -3175,6 +3209,8 @@ namespace FracCuts {
         int nV = static_cast<int>(V_rest.rows());
         V_rest.conservativeResize(nV + 1, 3);
         V_rest.row(nV) = V_rest.row(vI_boundary);
+        vertWeight.conservativeResize(nV + 1);
+        vertWeight[nV] = vertWeight[vI_boundary];
         V.conservativeResize(nV + 1, 2);
         if(changeVertPos) {
             V.row(nV) = newVertPos.block(1, 0, 1, 2);
@@ -3238,6 +3274,8 @@ namespace FracCuts {
 //            subOptimizerInfo[1].first.insert(nV);
             V_rest.conservativeResize(nV + 1, 3);
             V_rest.row(nV) = V_rest.row(vI_interior);
+            vertWeight.conservativeResize(nV + 1);
+            vertWeight[nV] = vertWeight[vI_interior];
             V.conservativeResize(nV + 1, 2);
             if(changeVertPos) {
                 V.row(nV) = newVertPos.block(2, 0, 1, 2);
@@ -3310,6 +3348,7 @@ namespace FracCuts {
         int vBackI = static_cast<int>(V.rows()) - 1;
         if(edge1.second < vBackI) {
             V_rest.row(edge1.second) = V_rest.row(vBackI);
+            vertWeight[edge1.second] = vertWeight[vBackI];
             V.row(edge1.second) = V.row(vBackI);
             
             auto finder = fracTail.find(vBackI);
@@ -3322,6 +3361,7 @@ namespace FracCuts {
             assert(edge1.second == vBackI);
         }
         V_rest.conservativeResize(vBackI, 3);
+        vertWeight.conservativeResize(vBackI);
         V.conservativeResize(vBackI, 2);
         
 //        for(const auto& nbI : vNeighbor[edge1.second]) {

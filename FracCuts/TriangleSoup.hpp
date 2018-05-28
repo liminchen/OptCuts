@@ -57,6 +57,7 @@ namespace FracCuts{
         std::set<int> fixedVert; // for linear solve
         Eigen::Matrix<double, 2, 3> bbox;
 //        Eigen::MatrixXd cotVals; // cotangent values of rest triangle corners
+        Eigen::VectorXd vertWeight; // for regional seam placement
         
         // indices for fast access
         std::map<std::pair<int, int>, int> edge2Tri;

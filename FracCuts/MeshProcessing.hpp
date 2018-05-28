@@ -196,8 +196,14 @@ namespace FracCuts {
                             std::cout << "texture mapped to [0,1]^2 and saved into " << outputFolderPath << meshName << "_01UV.obj" << std::endl;
                             
                             Eigen::MatrixXd V_UV;
-                            V_UV.resize(UV.rows(), 3);
-                            V_UV << UV, Eigen::VectorXd::Zero(UV.rows());
+                            if(meshPath.find("AutoCuts") != std::string::npos) {
+                                V_UV = UV;
+                                UV.conservativeResize(UV.rows(), 2);
+                            }
+                            else {
+                                V_UV.resize(UV.rows(), 3);
+                                V_UV << UV, Eigen::VectorXd::Zero(UV.rows());
+                            }
                             igl::writeOBJ(outputFolderPath + meshName + "_01UV.obj", V_UV, FUV,
                                           Eigen::MatrixXd(), Eigen::MatrixXi(), UV, FUV);
                             

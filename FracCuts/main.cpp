@@ -53,7 +53,7 @@ double fracThres = 0.0;
 bool altBase = false;
 bool outerLoopFinished = false;
 const int boundMeasureType = 0; // 0: E_SD, 1: L2 Stretch
-double upperBound = 4.2;
+double upperBound = 4.1;
 const double convTol_upperBound = 1.0e-3; //TODO!!! related to avg edge len or upperBound?
 std::vector<std::pair<double, double>> energyChanges_bSplit, energyChanges_iSplit, energyChanges_merge;
 std::vector<std::vector<int>> paths_bSplit, paths_iSplit, paths_merge;
@@ -179,11 +179,21 @@ void updateViewerData_distortion(void)
         case 2: { // show L2 stretch value
             Eigen::VectorXd l2StretchPerElem;
 //            triSoup[viewChannel]->computeL2StretchPerElem(l2StretchPerElem);
-            dynamic_cast<FracCuts::SymStretchEnergy*>(energyTerms[0])->getDivGradPerElem(*triSoup[viewChannel], l2StretchPerElem);
+//            dynamic_cast<FracCuts::SymStretchEnergy*>(energyTerms[0])->getDivGradPerElem(*triSoup[viewChannel], l2StretchPerElem);
 //            std::cout << l2StretchPerElem << std::endl; //DEBUG
 //            FracCuts::IglUtils::mapScalarToColor(l2StretchPerElem, color_distortionVis, 1.0, 2.0);
-            FracCuts::IglUtils::mapScalarToColor(l2StretchPerElem, color_distortionVis,
-                l2StretchPerElem.minCoeff(), l2StretchPerElem.maxCoeff());
+//            FracCuts::IglUtils::mapScalarToColor(l2StretchPerElem, color_distortionVis,
+//                l2StretchPerElem.minCoeff(), l2StretchPerElem.maxCoeff());
+            Eigen::VectorXd faceWeight;
+            faceWeight.resize(triSoup[viewChannel]->F.rows());
+            for(int fI = 0; fI < triSoup[viewChannel]->F.rows(); fI++) {
+                const Eigen::RowVector3i& triVInd = triSoup[viewChannel]->F.row(fI);
+                faceWeight[fI] = (triSoup[viewChannel]->vertWeight[triVInd[0]] +
+                                  triSoup[viewChannel]->vertWeight[triVInd[1]] +
+                                  triSoup[viewChannel]->vertWeight[triVInd[2]]) / 3.0;
+            }
+            FracCuts::IglUtils::mapScalarToColor(faceWeight, color_distortionVis,
+                faceWeight.minCoeff(), faceWeight.maxCoeff());
             break;
         }
     
