@@ -724,4 +724,16 @@ namespace FracCuts {
         
         outFile.close();
     }
+    
+    void IglUtils::smoothVertField(const TriangleSoup& mesh, Eigen::VectorXd& field)
+    {
+        assert(field.size() == mesh.V.rows());
+        Eigen::VectorXd field_copy = field;
+        for(int vI = 0; vI < field.size(); vI++) {
+            for(const auto nbVI : mesh.vNeighbor[vI]) {
+                field[vI] += field_copy[nbVI];
+            }
+            field[vI] /= mesh.vNeighbor[vI].size() + 1;
+        }
+    }
 }

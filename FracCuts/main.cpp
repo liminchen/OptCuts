@@ -1516,6 +1516,20 @@ int main(int argc, char *argv[])
         }
     }
     
+//    //TEST: regional seam placement
+//    std::ifstream vWFile("/Users/mincli/Desktop/output_FracCuts/" + meshName + "_selected.txt");
+//    if(vWFile.is_open()) {
+//        while(!vWFile.eof()) {
+//            int selected;
+//            vWFile >> selected;
+//            if(selected < optimizer->getResult().vertWeight.size()) {
+//                optimizer->getResult().vertWeight[selected] = 100.0;
+//            }
+//        }
+//        vWFile.close();
+//    }
+//    FracCuts::IglUtils::smoothVertField(optimizer->getResult(), optimizer->getResult().vertWeight);
+    
     // Setup viewer and launch
     viewer.core.background_color << 1.0f, 1.0f, 1.0f, 0.0f;
     viewer.callback_key_down = &key_down;
