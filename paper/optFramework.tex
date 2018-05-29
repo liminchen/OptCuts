@@ -2,7 +2,7 @@
 
 \section{Optimization Framework}
 
-To solve the saddle-point problem in Eq.~\ref{eq:p2}, we alternately improve both our primal variables $(T, U)$ and our dual variable $\lambda$ starting from an initial UV map $(T^0, U^0)$ and $\lambda^0 = 0$ (Algorithm~\ref{alg:selfWeight}).
+To solve our constrained optimization (\ref{eq:p1}) we focus on the saddle-point problem (\ref{eq:p2}). To do so we alternate between improving our primal variables $(T, U)$ and dual variable $\lambda$ starting from an initial, valid UV map $(T^0, U^0)$ and dual iterate $\lambda^0 = 0$ (Algorithm~\ref{alg:selfWeight}).
 
 \begin{algorithm}[!h]
 \SetAlgoLined
@@ -24,12 +24,13 @@ $(T^*, U^*)$ $\leftarrow$ $(T^{k-1}, U^{k-1})$\;
 \label{alg:selfWeight}
 \end{algorithm}
 
-\subsection{Initialization}
-To obtain an initial UV map for an input surface, we map its initial seam to a circle preserving edge length and parameterize the rest of the vertices through Tutte embedding with uniform weights.
-
-We compute initial seams for different surfaces according to their topology and geometry. For disk-topology surfaces, we simply pick their longest boundary as the initial seam. For genus-0 closed surfaces, we randomly pick 2 connected edges as the initial seam. \minchen{[TODO] change to curvest one point cut or farthest point cut if they are better} For high-genus surfaces, we follow Crane et al.~\shortcite{Crane:2013:DGP} to detect homology generators and connect all of them as the initial seam \minchen{[TODO]}.
-
-We simply start by ignoring the distortion constraints with $\lambda$ set to $0$, and let our dual update to modify $\lambda$ according to the intermediate distortions.
+%\danny{Suggest moving this to our implementation section 
+%\subsection{Initialization}
+%To obtain an initial UV map for an input surface, we map its initial seam to a circle preserving edge length and parameterize the rest of the vertices through Tutte embedding with uniform weights.
+%
+%We compute initial seams for different surfaces according to their topology and geometry. For disk-topology surfaces, we simply pick their longest boundary as the initial seam. For genus-0 closed surfaces, we randomly pick 2 connected edges as the initial seam. \minchen{[TODO] change to curvest one point cut or farthest point cut if they are better} For high-genus surfaces, we follow Crane et al.~\shortcite{Crane:2013:DGP} to detect homology generators and connect all of them as the initial seam \minchen{[TODO]}.
+%
+%We simply start by ignoring the distortion constraints with $\lambda$ set to $0$, and let our dual update to modify $\lambda$ according to the intermediate distortions.
 
 \subsection{Dual Update}
 \label{sec:self_weighting}
