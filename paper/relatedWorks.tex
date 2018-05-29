@@ -2,14 +2,14 @@
 
 \section{Related Work}
 Surface parameterization is a fundamental research problem with vast prior work~\cite{Hormann2008}. 
-The two technical challenges: seam cutting and distortion minimization have been treated mostly independently. 
+The two technical challenges of seam cutting and distortion minimization have been treated mostly independently. 
 
 The distortion minimization techniques typically assume that surface is cut into a topological disk. Various methods
 have been developed for embedding a disk to a plane, commonly leveraging angle-preserving mappings with different
 boundary conditions~\cite{Floater2003,Sheffer2005ABFPP,Levy2002,Aigerman2015,Sawhney:2017}. 
-These embeddings can be further improved with a gradient descent optimization~\cite{Hormann2000MIPS,Rabinovich2017,Zhu2017BCQN,Shtengel:GOvCM:2017}. 
+These embeddings can be further improved with a gradient-based line search optimization procedure~\cite{Hormann2000MIPS,Rabinovich2017,Zhu2017BCQN,Shtengel:GOvCM:2017,claici2017isometry}. 
 For texture mapping applications it is necessary to maintain bijectivity between the surface and the plane 
-which can be achieved by starting with a bijective map and avoiding fold-overs and global overlaps during iterative optimization ~\cite{Smith2015Bijective,Jiang2017Simplicial}.
+which can be achieved by starting with a bijective map and avoiding fold-overs and global overlaps during iterative optimization~\cite{Smith2015Bijective,Jiang2017Simplicial}.
 %
 \vova{we should cite more in this paragraph above (e.g., missing hughes hoppe papers}.
 \vova{should we discuss seamless mapping?}
