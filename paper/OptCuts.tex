@@ -142,12 +142,16 @@ Seam Placement and Parameterization for 3D Surfaces}
 
 \begin{abstract}
 % context and need
-Mapping 3D surfaces to the plane is a fundamental geometry processing problem. For most surfaces, one has to introduce discontinuities (seams) and distortion to produce a valid map. Most existing techniques largely consider seam placement and distortion minimization independently, first placing seams and then minimizing distortion; this leads to suboptimal output. Some recent attempts to address this issue ask the user to choose a potentially counterintuitive parameter weighting between seam quality and distortion and can require manual intervention to obtain a quality result. 
-\vova{Above does not encapsulate geometry images and olga's greedy seaming approach. At the same time I don't want to over-crowd abstract with these details. 
-Maybe we skip the discussion of previous work here simply motivate our approach? ``A 3D artist typically aims at a UV map that does not exceed certain distortion level (which might lead to stretching artifacts), while minimizing the seam length (which lead to discontinuities). Motivated by this observation, we propose a novel problem formulation and a joint discrete continuous optimization method...''} As an alternative, we propose {\em OptCuts}, a discrete--continuous optimization method that automatically optimizes seam length while satisfying user-specified distortion bounds. Starting with an initial embedding, OptCuts alternates between topology descent steps and smooth descent steps to search for an optimal UV map.  We demonstrate that OptCuts automatically produces high-quality, globally bijective UV maps without user intervention and can generate seams whose structure is informed by a range of standard distortion measures as well as user preferences on regional seam placement.
+Mapping 3D surfaces to the plane is a fundamental geometry processing problem. For most surfaces, one has to introduce discontinuities (seams) and distortion to produce a valid map. 
+%Existing techniques largely consider seam placement and distortion minimization independently, first placing seams and then minimizing distortion; this leads to suboptimal output. Some recent attempts to address this issue ask the user to choose a potentially counterintuitive parameter weighting between seam quality and distortion and can require manual intervention to obtain a quality result. 
+%\vova{Above does not encapsulate geometry images and olga's greedy seaming approach. At the same time I don't want to over-crowd abstract with these details. 
+%Maybe we skip the discussion of previous work here simply motivate our approach? ``A 3D artist typically aims at a UV map that does not exceed certain distortion level (which might lead to stretching artifacts), while minimizing the seam length (which lead to discontinuities). Motivated by this observation, we propose a novel problem formulation and a joint discrete continuous optimization method...''} As an alternative, 
+Artists and engineers tasked with parameterizing surfaces typically need UV maps that do not exceed a certain distortion level to avoid stretching artifacts, while minimizing the seam length to reduce the number of discontinuities. Motivated by this observation,
+%
+we propose {\em OptCuts}, a discrete--continuous optimization method that automatically optimizes seam length while satisfying user-specified distortion bounds. Starting with an initial embedding, OptCuts alternates between topology descent steps and smooth descent steps to search for an optimal UV map.  We demonstrate that OptCuts automatically produces high-quality, globally bijective UV maps without user intervention and can generate seams whose structure is informed by a range of standard distortion measures as well as user preferences on regional seam placement.
 We also demonstrate extensions in our optimization framework enabling global bijectivity and incorporating user guidance. 
 %
-\vova{Removed: ``seamlessness, and other discrete-continuous geometry processing problems''. AFAIK we are not planning to show it, correct?}
+%\vova{Removed: ``seamlessness, and other discrete-continuous geometry processing problems''. AFAIK we are not planning to show it, correct?}
 \end{abstract}
 
 
@@ -173,7 +177,7 @@ We also demonstrate extensions in our optimization framework enabling global bij
 %
 
 
-\keywords{geometry processing, mesh parameterization, seam placement, numerical optimization, ...}
+\keywords{geometry processing, mesh parameterization, seam placement, numerical optimization}
 
 
 

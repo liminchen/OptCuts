@@ -3,25 +3,25 @@
 \section{Introduction}
 % context
 Mapping a mesh to the plane is a critical task in computer graphics.  Planar images are commonly used to store reflectance functions, normals, and displacements
-for the mesh, providing a domain for painting, synthesizing, and manipulating texture and geometric details.
+for the mesh, providing a domain for painting, synthesizing, and manipulating texture and geometric details. 
 %Mesh parameterization is a critical task in computer graphics, with applications including texture mapping, remeshing, and detail transfer.  
-\vova{I removed non-texture apps for now, because I'm not sure if our formulation is as easy to motivate for remeshing and detail transfer.}
+%\vova{I removed non-texture apps for now, because I'm not sure if our formulation is as easy to motivate for remeshing and detail transfer.}
 At its core, parameterization seeks to find a mapping from a surface---typically represented as a triangle mesh---into the plane.  To do so, parameterization tools must cope with intertwined challenges in topology and geometry:  A high-quality parameterization cuts a surface into simple %disk-shape 
 patches so that each can be mapped into the plane with a reasonably small level of stretch or compression.
 
 Given its broad applicability, it comes as no surprise that parameterization has been a focus of research in geometry processing.  Algorithms in this domain focus on two key aspects of the problem.  Particularly well-studied are \emph{geometric} techniques that assume a surface has already been cut into disk-topology pieces that each need to be mapped into the plane while maintaining fixed connectivity; at this point, parameterization becomes a real-valued optimization problem to preserve angles and areas while maintaining local or global injectivity. Complementing these techniques, \emph{topological} algorithms find reasonable seams partitioning a surface into individual pieces that can be parameterized.  
 
-With a few notable exceptions, previous work treats seam placement and fixed-topology mapping as separate steps in the parameterization pipeline.  This is a key drawback, as seam placement and complexity have strong bearing on the best \emph{possible} geometric parameterization of each patch.  Coupling these problems requires navigating between two extremes:  A zero-distortion but topologically complex parameterization maps every triangle into the plane independently, while a high-distortion but topologically simple mapping might only require puncturing a few points in the input surface.
+With a few notable exceptions, previous work treats seam placement and fixed-topology mapping as separate steps in the parameterization pipeline.  This is a key drawback, as seam placement and complexity have strong bearing on the best \emph{possible} geometric parameterization of each patch.  Coupling geometry and topology, however, requires navigating between two extremes:  A zero-distortion but topologically complex parameterization maps every triangle into the plane independently, while a high-distortion but topologically simple mapping might only require puncturing a few points in the input surface.
 %
-\vova{not sure if we need to discuss the two extremes. I also moved some prior work discussion here.}
+%\vova{not sure if we need to discuss the two extremes. I also moved some prior work discussion here.} % justin kind of likes this sentence so he decided to comment out Vova's comment :-)
 %
 Most previous techniques rely on heuristics for seam placement, such as computing minimal spanning tree that traverses all points with high curvature~\cite{Sheffer2002Seamster}, cutting between points of maximal distortion~\cite{Gu2002Geometry}, or greedily introducing seams during iterative flattening~\cite{BoundedDistortParam:2002}. In contrast to these methods, we propose a joint optimization framework, where discrete and continuous steps minimize the same global objective. 
 
 % task and object    
-Our parameterization method, named {\em OptCuts}, couples topology and geometry.
-OptCuts is a joint discrete-continuous optimization framework that progressively updates seam placement between distortion minimization steps to search for the best UV map. 
+Our parameterization method, named {\em OptCuts}, %couples topology and geometry. OptCuts %<--- already said this
+is a joint discrete-continuous optimization framework that progressively updates seam placement between distortion minimization steps to search for the best UV map. 
 %
-We measure the trade-off between topology and geometry by balancing a distortion measure of choice, e.g.\ the symmetric Dirichlet energy~\cite{Smith2015Bijective}, with normalized seam length, reaching a parameterization that is near-stationary with respect to both seam placement and coordinate positions within a bounded number of iterations.
+We measure the trade-off between topology and geometry by balancing a distortion measure of choice, e.g.\ the symmetric Dirichlet energy~\cite{Smith2015Bijective}, with normalized seam length, reaching a parameterization that is near-stationary with respect to both seam placement and coordinate positions. % within a bounded number of iterations. % Justin removed --- I'm not sure this is a feature worth selling unless the bound is favorable
 %\minchen{[NOTE] (Here stationary w.r.t. UV topology is only in the approximation sense, because there might still be basic topological operations that could decrease the objective but end up not chosen because it is filtered out or its locally evaluated energy decrease is not the largest one.)}
 
 % self-weighting
@@ -38,7 +38,7 @@ Our scaling factor directly falls out from our model as the Lagrange multiplier 
 %
 %In contrast to previous work building up a parameterization from disconnected triangle soup~\cite{Poranne2017Autocuts},  or by cutting between points of maximal predicted distortion~\cite{Gu2002Geometry,Sheffer2002Seamster}, 
 %
-Instead of building up a parameterization from disconnected triangle soup~\cite{Poranne2017Autocuts} our constrained optimization method minimizes with seams combinatorially, directly extending real-valued distortion minimization to the regime where seams can be introduced and removed. As distortion is typically reduced by line search in UV coordinate space, we accompany this with a secondary search procedure in ``topology space:'' We alternate between reducing stretch and introducing potential topological changes based on the first-order reduction they would cause in the summed distortion and seam length terms of the objective. %in each topology search iteration we first find a search direction that locally decrease the objective the most (in topology step, Section~\ref{sec:topologyStep}); and then we conduct a newly derived forward-tracking line search scheme alternated with distortion minimization iterations to decide the step-size (in smooth descent step, Section~\ref{sec:descentStep}).% too much detail for intro
+Instead of building up a parameterization from disconnected triangle soup~\cite{Poranne2017Autocuts}, our constrained optimization method minimizes with seams combinatorially, directly extending real-valued distortion minimization to the regime where seams can be introduced and removed. As distortion is typically reduced by line search in UV coordinate space, we accompany this with a secondary search procedure in ``topology space:'' We alternate between reducing stretch and introducing potential topological changes based on the first-order reduction they would cause in the summed distortion and seam length terms of the objective. %in each topology search iteration we first find a search direction that locally decrease the objective the most (in topology step, Section~\ref{sec:topologyStep}); and then we conduct a newly derived forward-tracking line search scheme alternated with distortion minimization iterations to decide the step-size (in smooth descent step, Section~\ref{sec:descentStep}).% too much detail for intro
 %\vova{Maybe the relationship to seam placement heuristics can be discussed earlier...}
 
 
@@ -47,7 +47,7 @@ Instead of building up a parameterization from disconnected triangle soup~\cite{
 % \vova{I agree, and I rephrased the sentence below}
 %We demonstrate our method's capabilities by comparing to AutoCuts~\cite{Poranne2017Autocuts} as well as typical classic seam cutting methods~\cite{Gu2002Geometry,Sheffer2002Seamster}. % (Section~\ref{sec:results}). 
 %Given the same initial UV map, we efficiently reach identical distortion bounds with shorter seam lengths. 
-We evaluate our method on a large benchmark of 3D models, demonstrating that it can successfully reach the desired distortion bound while efficiently minimizing the seam length. We demonstrate that our method outperforms alternative techniques and seam placement strategies, reaching comparable distortions with fewer seams. We also show that our method is robust to tessellation, scales to large inputs, and is stable to changes in mesh structure.~\vova{what are these changes? }
+We evaluate our method on a large benchmark of 3D models, demonstrating that it can successfully reach the desired distortion bound while efficiently minimizing the seam length. We demonstrate that our method outperforms alternative techniques and seam placement strategies, reaching comparable distortions with fewer seams. We also show that our method is robust to tessellation/topology and scales to large inputs.%, and is stable to changes in mesh structure.~\vova{what are these changes? }
 
 % contribution
 \paragraph*{Contributions.} 
