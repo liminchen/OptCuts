@@ -40,7 +40,7 @@ We simply start by ignoring the distortion constraints with $\lambda$ set to $0$
 %
 In this section we describe the update for the dual variable $\lambda^k$ given the current UV map $(T^{k-1}, U^{k-1})$.
 
-The inner objective\minchen{Danny: which?} in the saddle-point problem (Eq.~\ref{eq:p2}) is nonsmooth in $\lambda$ since it does not take into account the fact that we might start away from feasibility and want to iteratively improve both our primal variables $(T, U)$ and our dual variable $\lambda$. To smoothly update to a current $\lambda^{k}$ in iteration $k$ from a previous estimate $\lambda^{k-1}$, we add a simple quadratic regularizer $R(\lambda,\lambda^{k-1}) = \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2$ to make sure $\lambda$ iterates behave reasonably. (We simply set $\kappa = 1$.)
+The inner objective\minchen{Danny: which?} in the saddle-point problem (Eq.~\ref{eq:p2}) is nonsmooth in $\lambda$ since it does not take into account the fact that we might start away from feasibility and want to iteratively improve both our primal variables $(T, U)$ and our dual variable $\lambda$. To smoothly update to a current $\lambda^{k}$ in iteration $k$ from a previous estimate $\lambda^{k-1}$, we add a simple quadratic regularizer $R(\lambda,\lambda^{k-1}) = \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2$ \justin{to what?} to make sure $\lambda$ iterates behave reasonably. \justin{Right now previous sentence sounds quite heuristic; can you cite an optimization algorithm that does this?} In practice, we simply set $\kappa = 1$.
 
 For iteration $k$ this gives us 
 \[ \min_{T,V} \max_{\lambda \geq 0} E_{s}(T^{k-1}) + \lambda \big( E_{d}(T^{k-1}, U^{k-1}) - b_d\big) - \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2 \]
@@ -49,13 +49,10 @@ which can be solved in closed form as
 
 \danny{(Notice that throughout the above we can define a progressive $\lambda$ without needing to employ subgradients to reason about nonsmoothness in our sparsity energy.)}\justin{didn't follow this, not sure it's needed}
 
-\justin{Can you call the lambda update a proximal step?}
-
-
 \subsection{Primal Update}
 \label{sec:primalUpdate}
 
-Our $(k+1)$-th primal update is a joint discrete-continuous search procedure that minimizes \eqref{eq:L} for a fixed $\lambda^{k+1}$ starting from $(T^k, U^k)$.
+Our $(k+1)$-st primal update is a joint discrete-continuous search procedure that minimizes \eqref{eq:L} for a fixed $\lambda^{k+1}$ starting from $(T^k, U^k)$.
 Rather than trying to approximate $T$ with non-smooth energies of $U$ and solve a potentially ill-conditioned real-valued optimization, we alternate local optimizations over $U$ and then $T$ in each inner iteration and obtain $(T^{k+1}, U^{k+1})$ when both are converged (Algorithm~\ref{alg:DCSearch}).
 
 \begin{algorithm}[h]
@@ -75,11 +72,11 @@ $T^{k+1} \leftarrow T^{k,i-1}$, $U^{k+1} \leftarrow U^{k,i-1}$
 \label{alg:DCSearch}
 \end{algorithm}
 
-The discrete topology search is performed in each topology descent step by querying a set of neighboring topologies and changing to the one with largest first-order reduction in $L$ if this reduction is prominent (Section~\ref{sec:topologySearch}).
-
+The discrete topology search is performed in each topology descent step by querying a set of neighboring topologies and changing to the one with largest first-order reduction in $L$ if this reduction is prominent (Section~\ref{sec:topologySearch}). 
+%
 The continuous search is peformed in each smooth descent step, where we conduct a complete Newton-type iteration with backtracking line search towards minimizing distortion $E_d$ over vertices $U$ while holding topology, $T$, fixed (Section~\ref{sec:descentStep}).
 
-By thresholding topology changes using the energy decrease of the last smooth descent step, we always proceed either the discrete topology search or the continuous search that decreases $L$ more.
+By thresholding topology changes using the energy decrease of the last smooth descent step, we always proceed either the discrete topology search or the continuous search that decreases $L$ more.\justin{didn't follow previous sentence.}
 
 % \vova{The section below seem to be concerned with convergence of Alg 1, which is beyond self-weighted objective, IMHO... 
 % It is also confusing that there a subsection 5.7 on convergence...}
@@ -87,4 +84,4 @@ By thresholding topology changes using the energy decrease of the last smooth de
 
 Our primal update converges when the UV map reaches the local minimizer of $L$ in both continuous and discrete searches. Similar to standard continuous search, our discrete topology search also converges at a local minimum, but in topology space, where changing to all neighboring topologies can not decrease $L$. Since we ensured monotonic decrease in $L$ over both the smooth and topology descent steps, we can prove that a near-stationary point with respect to both $T$ and $U$ can be reached for any input within a bounded number of alternations given a fixed lambda (Section~\ref{sec:convergence}).
 
-Theoretically, the dual update converges in two situations: either at $\lambda^* = 0$ when the primal minimizer $(T^*, U^*)$ is inside the feasible region ($E_d(T^*, U^*) < b_d$) with no seams, or at some $\lambda^* > 0$ with $(T^*, U^*)$ on the boundary of the feasible region ($E_d(T^*, U^*) = b_d$) \cite{acomputationaloptimizationbook}. However, for the letter case, since there is only a finite number of configurations of $T$, the near stationary $E_d$'s may not be exactly equal to $b_d$. Instead of setting a relatively large tolerance for detecting convergence, we stop when it first tries to violate distortion bound $b_d$ from being feasible.
+Theoretically, the dual update converges in two situations: either at $\lambda^* = 0$ when the primal minimizer $(T^*, U^*)$ is inside the feasible region ($E_d(T^*, U^*) < b_d$) with no seams, or at some $\lambda^* > 0$ with $(T^*, U^*)$ on the boundary of the feasible region ($E_d(T^*, U^*) = b_d$). However, for the latter case, since there is only a finite number of configurations of $T$, the near stationary $E_d$'s may not be exactly equal to $b_d$. Instead of setting a relatively large tolerance for detecting convergence, we stop when it first tries to violate distortion bound $b_d$ from being feasible. \justin{this was kind of vague; is it in the pseudocode?}

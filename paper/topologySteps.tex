@@ -6,9 +6,11 @@
 \subsection{Motivation}
 \label{sec:motivation}
 
-Our discrete topology search procedure is essentially a graph search. However, due to the potentially huge computational cost, it is not possible to directly apply common graph search methods.
-
-The UV topology space we are searching in can be represented using a directed graph $\mathcal{G}_T$ with its vertices $v_T \in \mathcal{V}_T$ being all possible UV topologies of a given 3D surface, and its edges $e_T \in \mathcal{E}_T$ are the local topological operations, e.g. splitting or merging edges, conducted on the UV map that can transform one UV topology to a nearby topology.
+Our discrete topology search procedure is essentially a graph search. 
+%
+The UV topology space in which we are searching can be represented using a directed graph $\mathcal{G}_T$, whose vertices $v_T \in \mathcal{V}_T$ are all possible UV topologies of a given 3D surface and whose edges $e_T \in \mathcal{E}_T$ are the local topological operations, e.g.\ splitting or merging edges, conducted on the UV map that can transform one UV topology to a nearby topology. 
+%
+Due to the potentially huge computational cost, however, it is not possible to directly apply common graph search methods.
 
 We define the value $f_v$ of vertex $v^i_T$ as 
 \[ f_v(v^i_T) = \min_{U} L(T^i, U) = E_s(T^i) + \min_{U} E_d(T^i, U) \]
@@ -20,7 +22,7 @@ Computing $f_v$ for one UV topology, however, requires a proper setting of initi
 
 \subsection{Topology Descent Steps}
 
-In topology descent steps, starting from the UV map given by last smooth descent step, we change to a neighboring UV topology with the best first-order reduction in $L$, conducting a local topological operation searched from the given operation set $\hat{\mathcal{E}}^{k,i-1}_T$. The UV coordinates of the edited seam vertices will also be updated. If the first-order reduction does not satisfy the threshold $\delta^{k,i-1}$ given by the last smooth descent step, however, nothing will be changed (Algorithm~\ref{alg:topologyStep}).
+In topology descent steps, starting from the UV map given by the last smooth descent step, we change to a neighboring UV topology with the best first-order reduction in $L$, conducting a local topological operation searched from the given operation set $\hat{\mathcal{E}}^{k,i-1}_T$. The UV coordinates of the edited seam vertices will also be updated. If the first-order reduction does not satisfy the threshold $\delta^{k,i-1}$ given by the last smooth descent step, however, nothing will be changed (Algorithm~\ref{alg:topologyStep}).
 
 \begin{algorithm}[h]
 \SetAlgoLined
