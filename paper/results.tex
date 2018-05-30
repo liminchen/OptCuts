@@ -99,16 +99,18 @@ Applying the EB strategy in our framework without bijectivity constraints, we re
 
 \begin{table}[!h]
 \centering
-\caption{Comparisons between extremity-boundary cut and our method on 70 input surfaces with $3721$ vertices per input in average. Two $E_{SL}$ are considered to be similar if their ratio lies inside $[0.95, 1.05]$.\minchen{Percentage when our $E_{SL}$ is smaller is 58.9\%, 60.3\%, and 64.0\% for $b_d = 4.2, 4.1, 4.05$. Which kind of stats is stronger?} In the last row we start our optimization from the output seams by extremity-boundary cut with $b_d = 4.1$ and generates bijective UV maps.} 
+\caption{Comparison between the standard version of our method and using EB cutting strategy in our framework, both without bijectivity. We run the two methods on 70 input surfaces with $3721$ vertices per input in average. With EB cutting strategy, we achieve similar seam length but much faster.} 
 \label{tb:comp_GI}
-\begin{tabular}{@{}cccccccc@{}}
-\toprule
-\multirow{2}{*}{$b_d$} & \multicolumn{2}{c}{average $E_{SL}$}             & \multicolumn{3}{c}{when our $E_{SL}$ is}                         & \multicolumn{2}{c}{average time (s)}       \\ \cmidrule(l){2-8} 
-                   & EB & ours & shorter & similar & longer & EB & ours \\ \midrule
-4.2                & 4.03             & 3.98           &  47.9\%  & 17.8\%  & 34.2\% & 13.0          & 87.0        \\
-4.1                & 4.93             & 4.84           &  43.8\%  & 30.1\%  & 26.0\% & 17.0        & 137.5        \\
-4.05               & 6.33             & 6.14           &  45.3\%  & 36.0\%  & 18.7\% &  24.1        & 213.2        \\ 
-4.1*               & 4.93             & 4.79           &  48.6\%  & 36.1\%  & 15.3\% &  17.0        & 304.0        \\ \bottomrule
+\begin{tabular}{|c|c|ccc|ccc|}
+\hline
+\multirow{2}{*}{$b_d$} & \multirow{2}{*}{method} & \multicolumn{3}{c|}{$E_{se}$} & \multicolumn{3}{c|}{time (s)} \\ \cline{3-8} 
+                       &                         & avg      & min     & max      & avg       & min    & max      \\ \hline
+\multirow{2}{*}{4.2}   & ours                    & 3.819   & 0.080  & 14.545  & 87.0   & 0.3 & 417.8 \\
+                       & ours(EB)                & 3.868   & 0.159  & 14.929  & 13.0   & 0.1 & 72.1  \\ \hline
+\multirow{2}{*}{4.1}   & ours                    & 4.709   & 0.752  & 17.980  & 137.5  & 0.9 & 886.9 \\
+                       & ours(EB)                & 4.795   & 1.207  & 16.895  & 17.0   & 0.1 & 87.2  \\ \hline
+\multirow{2}{*}{4.05}  & ours                    & 6.142   & 0.277  & 21.566  & 213.2  & 3.9 & 1398.1   \\
+                       & ours(EB)                & 6.335   & 0.328  & 23.051  & 24.1   & 0.1 & 115.4 \\ \hline
 \end{tabular}
 \end{table}
 
