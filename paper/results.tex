@@ -6,14 +6,17 @@
 \subsection{Implementation}
 \label{sec:imp}
 
-\danny{Minchen - I added this subsection. Please put here all pertinant details about the implementation that are not core contributions - e.g. the initialization subsection I moved below; the details on your smooth iteration step I also moved below; your missing details about bijectviity that you mention below. Also put here any important details of the libraries you used and the and specs of the machine(s) used to time and evaluate methods, etc.}
+\danny{
+any important details of the libraries you used: triangle, libIGL
+specs of the machine(s) used to time and evaluate methods:
+3.1 GHz quad-core Intel Core i7
+16 GB 2133 MHz LPDDR3
+}
 
-\minchen{Text possibly needed in the description of how we handle global bijectivity:
-When computing $\hat{f}_e$, besides also including the one-ring triangles on the scaffold mesh for computing energy decrease, we also need to move the splitted vertices slightly apart to leave room for inserting new scaffold mesh triangles.}
 \minchen{Add energy plot to show convergence?}
 
-
 \subsubsection{Initialization}
+\minchen{merge initial embedding paragraph}
 To obtain an initial UV map for an input surface, we map its initial seam to a circle preserving edge length and parameterize the rest of the vertices through Tutte embedding with uniform weights.
 
 We compute initial seams for different surfaces according to their topology and geometry. For disk-topology surfaces, we simply pick their longest boundary as the initial seam. For genus-0 closed surfaces, we randomly pick 2 connected edges as the initial seam. \minchen{[TODO] change to curvest one point cut or farthest point cut if they are better} For high-genus surfaces, we follow Crane et al.~\shortcite{Crane:2013:DGP} to detect homology generators and connect all of them as the initial seam \minchen{[TODO]}.
@@ -30,7 +33,7 @@ Our smooth descent steps take in the locally altered UV map by the current topol
 \KwData{$M$, $T^{k,i}$, $U_a^{k,i-1}$}
 \KwResult{$U^{k,i}$, $\delta^{k,i}$}
 $g^{k,i-1} \leftarrow \nabla E_{SD}(T^{k,i}, U_a^{k,i-1})$\;
-\If{$||g^{k,i-1}||^2 < 10^{-8}$}{
+\If{$||g^{k,i-1}||^2 < 10^{-12}$}{
 	converge\;
 }
 compute $E_{SD}$ Hessian proxy $P^{k,i-1}$\;
@@ -45,16 +48,18 @@ $\delta^{k,i} \leftarrow E_{SD}(T^{k,i}, U^{k,i}) - E_{SD}(T^{k,i}, U_a^{k,i-1})
 \caption{Smooth Descent Step $(k+1,i)$}
 \label{alg:descentStep}
 \end{algorithm}
-Since $E_{SD}$ is not convex, we apply the projected Newton method~\cite{Teran2005Robust} to project the Hessian of each energy element to its closest symmetric positive definite (SPD) matrix in parallel, and assemble them to form the SPD Hessian proxy $P$. We use the PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver to solve the linear system $P p = -g$ for search direction $p$. \justin{personally I'd move mention of pardiso to implementation section}\minchen{[TODO] change to use SPD solver by fixing a direction to ensure definiteness} As $E_{SD}$ is also a barrier-type energy, it is essential to ensure that the configuration always stays inside the feasible region. Thus, we follow Smith and Schaefer~\shortcite{Smith2015Bijective} to first compute an initial step size $\alpha_0$ that avoids element inversion and then conduct back-tracking line search with Armijo rule~\cite{Armijo1966Minimization} to ensure sufficient energy decrease.
+Since $E_{SD}$ is not convex, we apply the projected Newton method~\cite{Teran2005Robust} to project the Hessian of each energy element to its closest symmetric positive definite (SPD) matrix in parallel with Intel TBB~\cite{Reinders2007Intel}, and assemble them to form the SPD Hessian proxy $P$. We use the PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver to solve the linear system $P p = -g$ for search direction $p$. \minchen{[TODO] change to use SPD solver by fixing a direction to ensure definiteness} As $E_{SD}$ is also a barrier-type energy, it is essential to ensure that the configuration always stays inside the feasible region. Thus, we follow Smith and Schaefer~\shortcite{Smith2015Bijective} to first compute an initial step size $\alpha_0$ that avoids element inversion and then conduct back-tracking line search with Armijo rule~\cite{Armijo1966Minimization} to ensure sufficient energy decrease.
 
 Besides a relatively small tolerance on $g$ for convergence detection, we apply another relative energy decrease criteria to appropriately stop the process while necessary.
 This can stop our continuous search at the true local optimum infinitesimal better than setting a larger gradient tolerance since our energy is highly nonlinear.
 
 \vova{Explain how to handle bijectivity...}
+When computing $\hat{f}_e$, besides also including the one-ring triangles on the scaffold mesh for computing energy decrease, we also need to move the splitted vertices slightly apart to leave room for inserting new scaffold mesh triangles.
 
 %\paragraph{Potential Accelerations for Practical Use}
 %Since our topological operations only change the mesh locally both on connectivity and coordinates, we could also update the Hessian or the decomposition locally to save time. Besides, it is also interesting to try other Hessian approximation methods like L-BFGS~\cite{Liu1989Limited} or composite majorization~\cite{Shtengel2017Geometric} to explore further acceleration by finding a balance between per-iteration computational cost and convergence rate.
 %\justin{not sure previous paragraph is needed}
+
 
 \subsection{Method Evaluation}
 
