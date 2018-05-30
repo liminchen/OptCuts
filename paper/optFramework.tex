@@ -2,7 +2,8 @@
 
 \section{Optimization Framework}
 
-To solve our constrained optimization (\ref{eq:p1}) we focus on the saddle-point problem (\ref{eq:p2}). To do so we alternate between improving our primal variables $(T, U)$ and dual variable $\lambda$ starting from an initial, valid UV map $(T^0, U^0)$ and dual iterate $\lambda^0 = 0$ (Algorithm~\ref{alg:selfWeight}).
+To solve our constrained optimization (\ref{eq:p1}) we focus on resolving the saddle-point problem (\ref{eq:p2}). 
+We start from an initial, valid UV map $(T^0, U^0)$ and bootstrap our dual variable with $\lambda^0 = 0$. OptCuts then iteratively alternates between primal solves to improve geometry, $(T, U)$, and dual solves to update our multiplier, $\lambda$, to encode the new balancing term between distortion and seam quality for the next primal solve we take. See Algorithm~\ref{alg:selfWeight}.
 
 \begin{algorithm}[!h]
 \SetAlgoLined
@@ -11,13 +12,13 @@ To solve our constrained optimization (\ref{eq:p1}) we focus on the saddle-point
 
 $\lambda^0 \leftarrow 0$, $k \leftarrow 1$\;
 
-\Do{either primal or dual not converged}{
+\Do{either primal or dual not converged}{ 
   $\lambda^{k}$ $\leftarrow$ dualUpdate($T^{k-1}$, $U^{k-1}$, $b_d$, $\lambda^{k-1}$); // Section~\ref{sec:dualUpdate}\\
 
   $(T^{k}, U^{k})$ $\leftarrow$ primalUpdate($M$, $T^{k-1}$, $U^{k-1}$, $\lambda^{k}$); // Section~\ref{sec:primalUpdate}\\
 
   $k \leftarrow k + 1$\;
-}
+} 
 $(T^*, U^*)$ $\leftarrow$ $(T^{k-1}, U^{k-1})$\; 
 
 \caption{OptCuts}
@@ -32,29 +33,14 @@ $(T^*, U^*)$ $\leftarrow$ $(T^{k-1}, U^{k-1})$\;
 %
 %We simply start by ignoring the distortion constraints with $\lambda$ set to $0$, and let our dual update to modify $\lambda$ according to the intermediate distortions.
 
-\subsection{Dual Update}
-\label{sec:self_weighting}
-\label{sec:dualUpdate}
-
-% Our overall minimization is inequality constrained with a specified upper bound $b \in \mathbb{R}_+$ on distortion. \justin{I moved a parenthetical to a Minchen comment assuming he'll write it more formally}\minchen{(L2 norm on SD  energy for now - pretty easy to modify to an extremal measure if we want later on.)}
-
-%
-In this section we describe the update for the dual variable $\lambda^k$ given the current UV map $(T^{k-1}, U^{k-1})$.
-
-The inner objective\minchen{Danny: which?} in the saddle-point problem (Eq.~\ref{eq:p2}) is nonsmooth in $\lambda$ since it does not take into account the fact that we might start away from feasibility and want to iteratively improve both our primal variables $(T, U)$ and our dual variable $\lambda$. To smoothly update to a current $\lambda^{k}$ in iteration $k$ from a previous estimate $\lambda^{k-1}$, we add a simple quadratic regularizer $R(\lambda,\lambda^{k-1}) = \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2$ \justin{to what?} to make sure $\lambda$ iterates behave reasonably. \justin{Right now previous sentence sounds quite heuristic; can you cite an optimization algorithm that does this?} In practice, we simply set $\kappa = 1$.
-
-For iteration $k$ this gives us 
-\[ \min_{T,V} \max_{\lambda \geq 0} E_{s}(T^{k-1}) + \lambda \big( E_{d}(T^{k-1}, U^{k-1}) - b_d\big) - \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2 \]
-which can be solved in closed form as
-\[ \lambda^{k} \leftarrow \max\big(0,\kappa \big( E_{d}(T^{k-1}, U^{k-1}) -b \big) + \lambda^{k-1}\big) \]
-
-\danny{(Notice that throughout the above we can define a progressive $\lambda$ without needing to employ subgradients to reason about nonsmoothness in our sparsity energy.)}\justin{didn't follow this, not sure it's needed}
 
 \subsection{Primal Update}
 \label{sec:primalUpdate}
+Given dual variable $\lambda^k$ the $k$th primal update is a joint discrete-continuous search procedure that minimizes the Lagrangian (\ref{eq:L}) with the fixed $\lambda^{k}$ value starting from the last iterate's geometry $(T^{k-1}, U^{k-1})$.
 
-Our $(k+1)$-st primal update is a joint discrete-continuous search procedure that minimizes \eqref{eq:L} for a fixed $\lambda^{k+1}$ starting from $(T^k, U^k)$.
-Rather than trying to approximate $T$ with non-smooth energies of $U$ and solve a potentially ill-conditioned real-valued optimization, we alternate local optimizations over $U$ and then $T$ in each inner iteration and obtain $(T^{k+1}, U^{k+1})$ when both are converged (Algorithm~\ref{alg:DCSearch}).
+%Rather than trying to approximate $T$ with non-smooth energies of $U$ and solve a potentially ill-conditioned real-valued optimization, we alternate local optimizations over $U$ and then $T$ in each inner iteration and obtain $(T^{k+1}, U^{k+1})$ when both are converged (Algorithm~\ref{alg:DCSearch}).
+
+We initially experimented with solving our primal problem by approximating topology change with non-smooth energies on duplicated vertices of the input mesh. Unfortunately, this quickly leads to problems with strongly ill-conditioned real-valued optimization and to scaling to overly large systems. To counter these challenges we directly optimize in alternating inner steps over vertices $U$ and then topology $T$. These inner iterations loop until a stationary point is reached. \danny{Minchen: correct me if I'm wrong but I don't believe you employ an actual convergence measure - you simply wait until the $(T,U)$ remain unchnged by further iterates. Is this correct?} giving the new iterate $k$'s updated geoemetry $(T^{k}, U^{k})$. See Algorithm~\ref{alg:DCSearch}.
 
 \begin{algorithm}[h]
 \SetAlgoLined
@@ -73,16 +59,61 @@ $T^{k+1} \leftarrow T^{k,i-1}$, $U^{k+1} \leftarrow U^{k,i-1}$
 \label{alg:DCSearch}
 \end{algorithm}
 
-The discrete topology search is performed in each topology descent step by querying a set of neighboring topologies and changing to the one with largest first-order reduction in $L$ if this reduction is prominent (Section~\ref{sec:topologySearch}). 
+Each vertex update step performs a single iteration of Newton-type, smooth descent with line-search towards minimizing our distortion energies over vertices $U$ while holding topology, $T$, fixed. As our distortion energies, including symmetric Dirichlet, are generally nonconvex we employ the projected-Newton\ \cite{Teran2005Robust} approximation of the Hessian here. For more details see Section \ref{sec:imp}.
 %
-The continuous search is peformed in each smooth descent step, where we conduct a complete Newton-type iteration with backtracking line search towards minimizing distortion $E_d$ over vertices $U$ while holding topology, $T$, fixed (Section~\ref{sec:descentStep}).
+%The continuous search is peformed in each smooth descent step, where we conduct a complete Newton-type iteration with backtracking line search towards minimizing distortion $E_d$ over vertices $U$ while holding topology, $T$, fixed (Section~\ref{sec:descentStep}).
+%
+Our topology step requires the construction of a custom discrete topology search method. We defer discussion of the details of this component to Section~\ref{sec:topologySearch}.
+%
+%The discrete topology search is performed in each topology descent step by querying a set of neighboring topologies and changing to the one with largest first-order reduction in $L$ if this reduction is prominent (Section~\ref{sec:topologySearch}). 
+%
 
-By thresholding topology changes using the energy decrease of the last smooth descent step, we always proceed either the discrete topology search or the continuous search that decreases $L$ more.\justin{didn't follow previous sentence.}
+%By thresholding topology changes using the energy decrease of the last smooth descent step, we always proceed either the discrete topology search or the continuous search that decreases $L$ more.\justin{didn't follow previous sentence.}
+
+\subsection{Dual Update}
+\label{sec:self_weighting}
+\label{sec:dualUpdate}
+
+% Our overall minimization is inequality constrained with a specified upper bound $b \in \mathbb{R}_+$ on distortion. \justin{I moved a parenthetical to a Minchen comment assuming he'll write it more formally}\minchen{(L2 norm on SD  energy for now - pretty easy to modify to an extremal measure if we want later on.)}
+
+%
+
+%In this section we describe the update for the dual variable $\lambda^k$ given the current UV map $(T^{k-1}, U^{k-1})$.
+
+
+The Lagrangian in (\ref{eq:p2}) is nonsmooth in $\lambda$. When we exceed the distortion bound, i.e., $E_d(T,U) > b_d$, we have $\lambda = \infty$; when on boundary of the feasible set, $E_d(T,U) = b_d$, we have a finite $\lambda \in \mathbb{R_+}$; and finally, in the strict interior of the set of feasible distortions, we have $\lambda = 0$. While these conditions nicely characterize optimality, we need a way to iterate on $\lambda$ towards the solution in a smooth and robust manner irrespective of whether we are locally exploring a feasible or infeasible distortion. 
+
+At iteration $k$ we thus augment our Lagrangian with a simple quadratic regularizer 
+\begin{align}
+	\min_{T,V} \max_{\lambda \geq 0} E_{s}(T^{k-1}) + \lambda \big( E_{d}(T^{k-1}, U^{k-1}) - b_d\big) - \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2. 
+\end{align} 
+This gives Powell's extension\ \cite{} of the augmented Lagrangian to the inequality constrained setting. In turn optimality gives the corresponding $\lambda$-update in closed form
+\begin{align}
+\lambda^{k} \leftarrow \max\big(0,\kappa \big( E_{d}(T^{k-1}, U^{k-1}) -b \big) + \lambda^{k-1}\big).	
+\end{align}
+\danny{Minchen - is $\kappa = 1$ always? If so brief discussion (1 or 2 short sentences) as to why this choice - if not lets talk.} 
+
+
+
+
+
+
+
+%When distortion is a since it does not take into account the fact that we might start away from feasibility and want to iteratively improve both our primal variables $(T, U)$ and our dual variable $\lambda$. To smoothly update to a current $\lambda^{k}$ in iteration $k$ from a previous estimate $\lambda^{k-1}$, we add a simple quadratic regularizer $R(\lambda,\lambda^{k-1}) = \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2$ \justin{to what?} to make sure $\lambda$ iterates behave reasonably. \justin{Right now previous sentence sounds quite heuristic; can you cite an optimization algorithm that does this?} In practice, we simply set $\kappa = 1$.
+%
+%For iteration $k$ this gives us 
+%\[ \min_{T,V} \max_{\lambda \geq 0} E_{s}(T^{k-1}) + \lambda \big( E_{d}(T^{k-1}, U^{k-1}) - b_d\big) - \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2 \]
+%which can be solved in closed form as
+%\[ \lambda^{k} \leftarrow \max\big(0,\kappa \big( E_{d}(T^{k-1}, U^{k-1}) -b \big) + \lambda^{k-1}\big) \]
+%
+%\danny{(Notice that throughout the above we can define a progressive $\lambda$ without needing to employ subgradients to reason about nonsmoothness in our sparsity energy.)}\justin{didn't follow this, not sure it's needed}
+
+
 
 % \vova{The section below seem to be concerned with convergence of Alg 1, which is beyond self-weighted objective, IMHO... 
 % It is also confusing that there a subsection 5.7 on convergence...}
-\subsection{Convergence}
-
-Our primal update converges when the UV map reaches the local minimizer of $L$ in both continuous and discrete searches. Similar to standard continuous search, our discrete topology search also converges at a local minimum, but in topology space, where changing to all neighboring topologies can not decrease $L$. Since we ensured monotonic decrease in $L$ over both the smooth and topology descent steps, we can prove that a near-stationary point with respect to both $T$ and $U$ can be reached for any input within a bounded number of alternations given a fixed lambda (Section~\ref{sec:convergence}).
-
-Theoretically, the dual update converges in two situations: either at $\lambda^* = 0$ when the primal minimizer $(T^*, U^*)$ is inside the feasible region ($E_d(T^*, U^*) < b_d$) with no seams, or at some $\lambda^* > 0$ with $(T^*, U^*)$ on the boundary of the feasible region ($E_d(T^*, U^*) = b_d$). However, for the latter case, since there is only a finite number of configurations of $T$, the near stationary $E_d$'s may not be exactly equal to $b_d$. Instead of setting a relatively large tolerance for detecting convergence, we stop when it first tries to violate distortion bound $b_d$ from being feasible. \justin{this was kind of vague; is it in the pseudocode?}
+%\subsection{Convergence}
+%
+%Our primal update converges when the UV map reaches the local minimizer of $L$ in both continuous and discrete searches. Similar to standard continuous search, our discrete topology search also converges at a local minimum, but in topology space, where changing to all neighboring topologies can not decrease $L$. Since we ensured monotonic decrease in $L$ over both the smooth and topology descent steps, we can prove that a near-stationary point with respect to both $T$ and $U$ can be reached for any input within a bounded number of alternations given a fixed lambda (Section~\ref{sec:convergence}).
+%
+%Theoretically, the dual update converges in two situations: either at $\lambda^* = 0$ when the primal minimizer $(T^*, U^*)$ is inside the feasible region ($E_d(T^*, U^*) < b_d$) with no seams, or at some $\lambda^* > 0$ with $(T^*, U^*)$ on the boundary of the feasible region ($E_d(T^*, U^*) = b_d$). However, for the latter case, since there is only a finite number of configurations of $T$, the near stationary $E_d$'s may not be exactly equal to $b_d$. Instead of setting a relatively large tolerance for detecting convergence, we stop when it first tries to violate distortion bound $b_d$ from being feasible. \justin{this was kind of vague; is it in the pseudocode?}
