@@ -36,7 +36,7 @@ $(T^*, U^*)$ $\leftarrow$ $(T^{k-1}, U^{k-1})$\;
 
 \subsection{Primal Update}
 \label{sec:primalUpdate}
-Given dual variable $\lambda^k$ the $k$th primal update is a joint discrete-continuous search procedure that minimizes the Lagrangian (\ref{eq:L}) with the fixed $\lambda^{k}$ value starting from the last iterate's geometry $(T^{k-1}, U^{k-1})$.
+Our $k$th primal update is a joint discrete-continuous search over variations in geometry to minimize the Lagrangian (\ref{eq:L}). We hold the current iterate's dual variable, $\lambda^k$, fixed and initialize with the last iterate's geometry $(T^{k-1}, U^{k-1})$.
 
 %Rather than trying to approximate $T$ with non-smooth energies of $U$ and solve a potentially ill-conditioned real-valued optimization, we alternate local optimizations over $U$ and then $T$ in each inner iteration and obtain $(T^{k+1}, U^{k+1})$ when both are converged (Algorithm~\ref{alg:DCSearch}).
 
@@ -91,7 +91,7 @@ At iteration $k$ we thus smoothly approximate the multiplier's behavior by addin
 \label{eq:al}
 	\min_{T,V} \max_{\lambda \geq 0} E_{s}(T) + \lambda \big( E_{d}(T, U) - b_d\big) - \tfrac{1}{2} (\lambda- \lambda^{k-1})^2. 
 \end{align} 
-At each iteration, to find $\lambda^k$ we simply fix vertices and topology to  $U^{k-1},T^{k-1}$. Optimality of (\ref{eq:al} then gives us our corresponding dual update in closed form
+At each iteration, to find $\lambda^k$ we simply fix vertices and topology to  $(T^{k-1},U^{k-1})$. Optimality of (\ref{eq:al}) then gives us our corresponding dual update in closed form
 %\begin{align}
 %\lambda^{k} \leftarrow \max\big(0,\kappa \big( E_{d}(T^{k-1}, U^{k-1}) -b \big) + \lambda^{k-1}\big).	
 %\end{align}
