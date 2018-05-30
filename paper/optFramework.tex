@@ -40,7 +40,7 @@ Given dual variable $\lambda^k$ the $k$th primal update is a joint discrete-cont
 
 %Rather than trying to approximate $T$ with non-smooth energies of $U$ and solve a potentially ill-conditioned real-valued optimization, we alternate local optimizations over $U$ and then $T$ in each inner iteration and obtain $(T^{k+1}, U^{k+1})$ when both are converged (Algorithm~\ref{alg:DCSearch}).
 
-We initially experimented with solving our primal problem by approximating topology change with non-smooth energies on duplicated vertices of the input mesh. Unfortunately, this quickly leads to problems with strongly ill-conditioned real-valued optimization and to scaling to overly large systems. To counter these challenges we directly optimize in alternating inner steps over vertices $U$ and then topology $T$. These inner iterations loop until a stationary point is reached. \danny{Minchen: correct me if I'm wrong but I don't believe you employ an actual convergence measure - you simply wait until the $(T,U)$ remain unchnged by further iterates. Is this correct?} giving the new iterate $k$'s updated geoemetry $(T^{k}, U^{k})$. See Algorithm~\ref{alg:DCSearch}.
+We initially experimented with solving our primal problem by approximating topology change with non-smooth energies on duplicated vertices of the input mesh. Unfortunately, this quickly leads to problems with strongly ill-conditioned real-valued optimization and to scaling to overly large systems. To counter these challenges we directly optimize in alternating inner steps over vertices $U$ and then topology $T$. These inner iterations loop until a stationary point is reached. \danny{Minchen: correct me if I'm wrong but I don't believe you employ an actual convergence measure - you simply wait until the $(T,U)$ remain unchnged by further iterates. Is this correct?} \minchen{Correct. We simply stop the discrete-continuous alternations when continuous search converges since it also means topology search won't go further in the current direction. For continuous search, besides gradient tolerance, I also have a relative energy decrease tolerance ($10^{-6}$). It is not because we have troubles converging to small gradient, which is actually not necessary. Setting extra tolerance on relative energy decrease is more stable than using larger gradient tolerance.} giving the new iterate $k$'s updated geoemetry $(T^{k}, U^{k})$. See Algorithm~\ref{alg:DCSearch}.
 
 \begin{algorithm}[h]
 \SetAlgoLined
@@ -91,7 +91,7 @@ This gives Powell's extension\ \cite{} of the augmented Lagrangian to the inequa
 \begin{align}
 \lambda^{k} \leftarrow \max\big(0,\kappa \big( E_{d}(T^{k-1}, U^{k-1}) -b \big) + \lambda^{k-1}\big).	
 \end{align}
-\danny{Minchen - is $\kappa = 1$ always? If so brief discussion (1 or 2 short sentences) as to why this choice - if not lets talk.} 
+We simply use $\kappa = 1$ for all inputs throughout our paper, since it is appropriately small that would not overly change the Lagrangian.
 
 
 
