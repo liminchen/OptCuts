@@ -141,13 +141,19 @@
 
 \begin{abstract}
 % context and need
-Mapping three-dimensional surfaces to the plane is a fundamental problem in geometry processing. Most such surfaces require cutting and distortion to produce a valid map. 
+Low-distortion mapping of three-dimensional surfaces to the plane is a fundamental problem in geometry processing. The intrinsic distortion introduced by such UV mappings is highly dependent on the choice of surface seams, or cut-lines across which the mapping is not continuous.  
+%Most such surfaces require cutting and distortion to produce a valid map. 
 %Existing techniques largely consider seam placement and distortion minimization independently, first placing seams and then minimizing distortion; this leads to suboptimal output. Some recent attempts to address this issue ask the user to choose a potentially counterintuitive parameter weighting between seam quality and distortion and can require manual intervention to obtain a quality result. 
 %\vova{Above does not encapsulate geometry images and olga's greedy seaming approach. At the same time I don't want to over-crowd abstract with these details. 
 %Maybe we skip the discussion of previous work here simply motivate our approach? ``A 3D artist typically aims at a UV map that does not exceed certain distortion level (which might lead to stretching artifacts), while minimizing the seam length (which lead to discontinuities). Motivated by this observation, we propose a novel problem formulation and a joint discrete continuous optimization method...''} As an alternative, 
-Artists and engineers tasked with such parameterization jobs typically require UV maps with an application-specific upper bound on distortion to avoid mapping artifacts; at the same time they seek to reduce cut lengths to minimize unsightly discontinuities. Motivated by these observations,
+Parameterization applications typically require UV maps with an application-specific upper bound on distortion to avoid mapping artifacts; at the same time they seek to reduce cut lengths to minimize discontinuity artifacts. 
+%Motivated by these observations,
 %
-we propose {\em OptCuts}, a discrete--continuous optimization algorithm that automatically minimizes seam length subject to satisfying a user-provided distortion bound. Starting with an arbitrary initial embedding, OptCuts alternates between discrete topology descent and smooth geometry descent to search for an optimal UV map strictly satisfying a specified distortion bound. Aside from this user-desired bound, OptCuts requires no further parameter setting. We demonstrate OptCuts automatically produces high-quality, globally bijective UV maps without user intervention while, when semantic or other priors on seam placement are desired, user preferences on regional seam placement can be added to be respected by the OptCuts minimization. We demonstrate the scalable performance of OptCuts on a wide range of challenging benchmark parameterization examples.
+We propose {\em OptCuts}, a simultaneous mesh parameterization and cutting algorithm that automatically minimizes seam length subject to satisfying a user-provided bound on the distortion of the mapping computed using these seams. 
+%\alla{what does topology or geometry descent mean?}
+%Starting with an arbitrary initial embedding, OptCuts alternates between discrete topology descent and smooth geometry descent to search for an optimal UV map strictly satisfying a specified distortion bound. 
+Starting with an arbitrary initial embedding, OptCuts alternates between topology and geometry update steps that consistently decrease our combined energy function, producing a UV map with compact boundaries that strictly satisfies a specified distortion bound. 
+Aside from this user-desired bound, OptCuts requires no further parameter setting. As our examples demonstrate OptCuts automatically produces high-quality, globally bijective UV maps without any additional user intervention. We demonstrate the scalable performance of OptCuts on a wide range of challenging benchmark parameterization examples and shows that when semantic or other priors on seam placement are desired these user preferences can be directly added into the OptCuts framework.  
 %
 %and can generate seams whose structure is informed by a range of standard distortion measures as well as user preferences on regional seam placement.
 %We also demonstrate extensions in our optimization framework enabling global bijectivity and incorporating user guidance. 
