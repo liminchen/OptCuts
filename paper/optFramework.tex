@@ -84,15 +84,20 @@ Our topology step requires the construction of a custom discrete topology search
 The Lagrangian in (\ref{eq:p2}) is nonsmooth in $\lambda$. When we exceed the distortion bound, i.e., $E_d(T,U) > b_d$, we have $\lambda = \infty$; when on boundary of the feasible set, $E_d(T,U) = b_d$, we have a finite $\lambda \in \mathbb{R_+}$; and finally, in the strict interior of the set of feasible distortions, we have $\lambda = 0$. While these conditions nicely characterize optimality, we need a way to iterate on $\lambda$ towards the solution in a smooth and robust manner irrespective of whether we are locally exploring a feasible or infeasible distortion. 
 
 At iteration $k$ we thus augment our Lagrangian with a simple quadratic regularizer 
+%\begin{align}
+%	\min_{T,V} \max_{\lambda \geq 0} E_{s}(T^{k-1}) + \lambda \big( E_{d}(T^{k-1}, U^{k-1}) - b_d\big) - \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2. 
+%\end{align} 
 \begin{align}
-	\min_{T,V} \max_{\lambda \geq 0} E_{s}(T^{k-1}) + \lambda \big( E_{d}(T^{k-1}, U^{k-1}) - b_d\big) - \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2. 
+	\min_{T,V} \max_{\lambda \geq 0} E_{s}(T^{k-1}) + \lambda \big( E_{d}(T^{k-1}, U^{k-1}) - b_d\big) - \tfrac{1}{2} (\lambda- \lambda^{k-1})^2. 
 \end{align} 
 This gives Powell's extension\ \cite{} of the augmented Lagrangian to the inequality constrained setting. In turn optimality gives the corresponding $\lambda$-update in closed form
+%\begin{align}
+%\lambda^{k} \leftarrow \max\big(0,\kappa \big( E_{d}(T^{k-1}, U^{k-1}) -b \big) + \lambda^{k-1}\big).	
+%\end{align}
+%We simply use $\kappa = 1$ for all inputs throughout our paper, since it is appropriately small that would not overly change the Lagrangian.
 \begin{align}
-\lambda^{k} \leftarrow \max\big(0,\kappa \big( E_{d}(T^{k-1}, U^{k-1}) -b \big) + \lambda^{k-1}\big).	
+\lambda^{k} \leftarrow \max\big(0,\big( E_{d}(T^{k-1}, U^{k-1}) -b \big) + \lambda^{k-1}\big).	
 \end{align}
-We simply use $\kappa = 1$ for all inputs throughout our paper, since it is appropriately small that would not overly change the Lagrangian.
-
 
 
 
