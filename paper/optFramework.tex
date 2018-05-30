@@ -40,7 +40,7 @@ Given dual variable $\lambda^k$ the $k$th primal update is a joint discrete-cont
 
 %Rather than trying to approximate $T$ with non-smooth energies of $U$ and solve a potentially ill-conditioned real-valued optimization, we alternate local optimizations over $U$ and then $T$ in each inner iteration and obtain $(T^{k+1}, U^{k+1})$ when both are converged (Algorithm~\ref{alg:DCSearch}).
 
-We initially experimented with solving our primal problem by approximating topology change with non-smooth energies on duplicated vertices of the input mesh. Unfortunately, this quickly leads to problems with strongly ill-conditioned real-valued optimization and to scaling to overly large systems. To counter these challenges we directly optimize in alternating inner steps over vertices $U$ and then topology $T$. These inner iterations loop until a stationary point is reached. \danny{Minchen: correct me if I'm wrong but I don't believe you employ an actual convergence measure - you simply wait until the $(T,U)$ remain unchnged by further iterates. Is this correct?} \minchen{Correct. We simply stop the discrete-continuous alternations when continuous search converges since it also means topology search won't go further in the current direction. For continuous search, besides gradient tolerance, I also have a relative energy decrease tolerance ($10^{-6}$). It is not because we have troubles converging to small gradient, which is actually not necessary. Setting extra tolerance on relative energy decrease is more stable than using larger gradient tolerance.} giving the new iterate $k$'s updated geoemetry $(T^{k}, U^{k})$. See Algorithm~\ref{alg:DCSearch}.
+We initially experimented with solving our primal problem by approximating topology change with non-smooth energies on duplicated vertices of the input mesh. Unfortunately, this quickly leads to problems with strongly ill-conditioned real-valued optimization and to scaling to overly large systems. To counter these challenges we directly optimize in alternating inner steps over vertices $U$ and then topology $T$. These inner iterations loop until a stationary point is reached giving the new iterate $k$'s updated geometry $(T^{k}, U^{k})$. See Algorithm~\ref{alg:DCSearch}. \danny{Minchen: correct me if I'm wrong but I don't believe you employ an actual convergence measure - you simply wait until the $(T,U)$ remain unchnged by further iterates. Is this correct?} \minchen{Correct. We simply stop the discrete-continuous alternations when continuous search converges since it also means topology search won't go further in the current direction. For continuous search, besides gradient tolerance, I also have a relative energy decrease tolerance ($10^{-6}$). It is not because we have troubles converging to small gradient, which is actually not necessary. Setting extra tolerance on relative energy decrease is more stable than using larger gradient tolerance.}
 
 \begin{algorithm}[h]
 \SetAlgoLined
@@ -81,16 +81,17 @@ Our topology step requires the construction of a custom discrete topology search
 %In this section we describe the update for the dual variable $\lambda^k$ given the current UV map $(T^{k-1}, U^{k-1})$.
 
 
-The Lagrangian in (\ref{eq:p2}) is nonsmooth in $\lambda$. When we exceed the distortion bound, i.e., $E_d(T,U) > b_d$, we have $\lambda = \infty$; when on boundary of the feasible set, $E_d(T,U) = b_d$, we have a finite $\lambda \in \mathbb{R_+}$; and finally, in the strict interior of the set of feasible distortions, we have $\lambda = 0$. While these conditions nicely characterize optimality, we need a way to iterate on $\lambda$ towards the solution in a smooth and robust manner irrespective of whether we are locally exploring a feasible or infeasible distortion. 
+Our Lagrangian in (\ref{eq:p2}) is nonsmooth in $\lambda$. When we exceed the distortion bound, i.e., $E_d(T,U) > b_d$, we have $\lambda = \infty$; when on boundary of the feasible set, $E_d(T,U) = b_d$, we have a finite $\lambda \in \mathbb{R_+}$; and finally, in the strict interior of the set of feasible distortions, we have $\lambda = 0$. While these conditions nicely characterize optimality, we need a way to iterate on $\lambda$ towards the solution in a smooth and robust manner irrespective of whether we are locally exploring a feasible or infeasible distortion. 
 
-At iteration $k$ we thus augment our Lagrangian with a simple quadratic regularizer 
+At iteration $k$ we thus smoothly approximate the multiplier's behavior by adding a simple quadratic regularizer to the Lagrangian. This keeps the updated multiplier \emph{proximal} to the previous iterate's estimate via Powell's extension\ \cite{}~\danny{Add citation: M.J.D. Powell, On Search Directions for Minimization Algorithms, Mathematical Programming, 4 1973.} of the Augmented Lagrangian to the inequality constrained setting,
 %\begin{align}
 %	\min_{T,V} \max_{\lambda \geq 0} E_{s}(T^{k-1}) + \lambda \big( E_{d}(T^{k-1}, U^{k-1}) - b_d\big) - \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2. 
 %\end{align} 
 \begin{align}
-	\min_{T,V} \max_{\lambda \geq 0} E_{s}(T^{k-1}) + \lambda \big( E_{d}(T^{k-1}, U^{k-1}) - b_d\big) - \tfrac{1}{2} (\lambda- \lambda^{k-1})^2. 
+\label{eq:al}
+	\min_{T,V} \max_{\lambda \geq 0} E_{s}(T) + \lambda \big( E_{d}(T, U) - b_d\big) - \tfrac{1}{2} (\lambda- \lambda^{k-1})^2. 
 \end{align} 
-This gives Powell's extension\ \cite{} of the augmented Lagrangian to the inequality constrained setting. In turn optimality gives the corresponding $\lambda$-update in closed form
+At each iteration, to find $\lambda^k$ we simply fix vertices and topology to  $U^{k-1},T^{k-1}$. Optimality of (\ref{eq:al} then gives us our corresponding dual update in closed form
 %\begin{align}
 %\lambda^{k} \leftarrow \max\big(0,\kappa \big( E_{d}(T^{k-1}, U^{k-1}) -b \big) + \lambda^{k-1}\big).	
 %\end{align}
