@@ -3,9 +3,6 @@
 \section{Evaluation}
 \label{sec:results}
 
-\subsection{Implementation}
-\label{sec:imp}
-
 We implement our methods based on libigl\ \cite{libigl} and test it on a Macbook Pro with 3.1 GHz quad-core Intel Core i7 CPU and 16 GB 2133 MHz LPDDR3 memory.
 % @misc{libigl,
 %   title = {{libigl}: A simple {C++} geometry processing library},
@@ -13,59 +10,6 @@ We implement our methods based on libigl\ \cite{libigl} and test it on a Macbook
 %   note = {http://libigl.github.io/libigl/},
 %   year = {2017},
 % }
-
-\subsubsection{Initialization}
-\minchen{to $E_d$ stationary point}
-To obtain an initial UV map for an input surface, we map its initial seam to a circle preserving edge length and parameterize the rest of the vertices through Tutte embedding with uniform weights to ensure bijectivity.
-
-We compute initial seams for different surfaces according to their topology and geometry. For disk-topology surfaces, we simply pick their longest boundary as the initial seam. For genus-0 closed surfaces, we randomly pick 2 connected edges as the initial seam. For high-genus surfaces, we follow Crane et al.~\shortcite{Crane:2013:DGP} to detect homology generators and connect all of them as the initial seam.
-
-From the initial UV map, we simply start the optimizationn by ignoring the distortion constraints with $\lambda$ set to $0$, and let our dual update to modify $\lambda$ according to the distortion of intermediate results.
-
-\minchen{For closed surfaces, it is important to first obtain an initial seam for our method to construct the initial UV map. To show that we can always find a local optimum with respect to both the UV topology and coordinates regardless of initial embedding, we run our method on a closed input surface with several randomly picked initial seams and a heuristic initial seam that splits the shortest path between two farthest points on the surface. As demonstrated in Figure~\ref{fig:any_init_ends_well}, we produce high quality UV maps under the given distortion bound for all initializations.}
-
-\subsubsection{Continuous Search}
-\label{sec:descentStep}
-
-Our smooth descent steps take in the locally altered UV map by the current topology descent step and conduct one Newton-type iteration towards solving $\min_U E_d$ with $T$ fixed (Algorithm~\ref{alg:descentStep}).
-
-\begin{algorithm}[h]
-\SetAlgoLined
-\KwData{$M$, $T^{k,i}$, $U_a^{k,i-1}$}
-\KwResult{$U^{k,i}$, $\delta^{k,i}$}
-$g^{k,i-1} \leftarrow \nabla E_{d}(T^{k,i}, U_a^{k,i-1})$\;
-\If{$||g^{k,i-1}||^2 < 10^{-12}$}{
-	converge\;
-}
-compute $E_{d}$ Hessian proxy $P^{k,i-1}$\;
-solve $P^{k,i-1} p^{k,i-1} = -g^{k,i-1}$ for search direction $p^{k,i-1}$\;
-compute initial step size $\alpha^{k,i-1}_0$\;
-back-tracking line search with Armijo rule to obtain $\alpha^{k,i-1}$\;
-$U^{k,i} \leftarrow U_a^{k,i-1} + \alpha^{k,i-1} p^{k,i-1}$\;
-$\delta^{k,i} \leftarrow E_{d}(T^{k,i}, U^{k,i}) - E_{d}(T^{k,i}, U_a^{k,i-1})$\;
-\If{$|\delta^{k,i}/E_{d}(T^{k,i}, U_a^{k,i-1})| < 10^{-6}\alpha^{k,i-1}$}{
-	stop\;
-}
-\caption{Smooth Descent Step $(k+1,i)$}
-\label{alg:descentStep}
-\end{algorithm}
-Since $E_{d}$ is not convex, we apply the projected Newton method\ \cite{Teran2005Robust} to project the Hessian of each energy element to its closest symmetric positive definite (SPD) matrix in parallel with Intel TBB~\cite{Reinders2007Intel}, and assemble them to form the SPD Hessian proxy $P$. We use the PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver to solve the linear system $P p = -g$ for search direction $p$. \minchen{[TODO] change to use SPD solver by fixing a direction to ensure definiteness} As $E_{d}$ is also a barrier-type energy, it is essential to ensure that the configuration always stays inside the feasible region. Thus, we follow Smith and Schaefer~\shortcite{Smith2015Bijective} to first compute an initial step size $\alpha_0$ that avoids element inversion and then conduct back-tracking line search with Armijo rule~\cite{Armijo1966Minimization} to ensure sufficient energy decrease.
-
-Besides a relatively small tolerance on $g$ for convergence detection, we apply another relative energy decrease criteria to appropriately stop the process while necessary.
-This can stop our continuous search at the true local optimum infinitesimal better than setting a larger gradient tolerance since our energy is highly nonlinear.
-
-\subsubsection{Global Bijectivity}
-\label{sec:bijectivity}
-Following Jiang et al.\ \shortcite{Jiang2017Simplicial}, we realize this additional constraint on our mapping by first triangulating the void regions of each iterations updated UV map using Triangle library\ \cite{Triangle_Engineering_a_2D_quality_mesh_generator_and_Delaunay_triangulator}. The void regions are consisted of all holes and the surrounding space of the UV map, bounded by its boundaries and a loose bounding box.
-Then we augment our distortion energy $E_d$ with an additional term, \emph{not included in the distortion bound constraint}, to form a collapse preventing energy for the added negative-space triangles during each optimization iteration.
-
-With this augmentation, our continuous search stays the same, while for our topology search, we need to also ensure that the negative-space triangles are added correctly when we query for our local topological operations.
-Instead of re-using a loose bounding box, we take the current negative-space triangles into consideration when building up the local stencil near the edited seam. Since the boundary of the local stencils are all fixed during the query, this naturally prevent potential global overlaps with geodesically faraway UV elements. Similarly, the collapse preventing energy on the negative-space triangles is not involved in the computation of first-order reduction.
-In splitting operations only, we also need to carefully push the splitted vertices in the opposite direction of their curvature normals before the querying optimization. This ensures that the initial local stencil has a collapse-free void region so that it could be triangulated correctly.
-
-%\paragraph{Potential Accelerations for Practical Use}
-%Since our topological operations only change the mesh locally both on connectivity and coordinates, we could also update the Hessian or the decomposition locally to save time. Besides, it is also interesting to try other Hessian approximation methods like L-BFGS~\cite{Liu1989Limited} or composite majorization~\cite{Shtengel2017Geometric} to explore further acceleration by finding a balance between per-iteration computational cost and convergence rate.
-%\justin{not sure previous paragraph is needed}
 
 
 \subsection{Method Evaluation}
