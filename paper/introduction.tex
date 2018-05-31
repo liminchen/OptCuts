@@ -6,33 +6,43 @@ Mapping three-dimensional meshes to the plane is a fundamental task in computer 
 for the mesh, providing a domain for painting, synthesizing, and manipulating texture and geometric details. 
 %Mesh parameterization is a critical task in computer graphics, with applications including texture mapping, remeshing, and detail transfer.  
 %\vova{I removed non-texture apps for now, because I'm not sure if our formulation is as easy to motivate for remeshing and detail transfer.}
-The usability of such 2D embeddings for he tasks at hand is highly dependent on two interconnected factors: the surface distortion introduced by the mapping and the length of the surface cuts, or surface seams that the mapping is discontinuous across~\cite{Sheffer07_ParameterizationSurvey,Hormann07_ParameterizationSurvey}. Both high distortion and longer seams are detrimental to downstream applications. Yet, reducing distortion below some intrinsic surface bound typically requires introducing longer seams. 
+The usability of such 2D embeddings for he tasks at hand is highly dependent on two interconnected factors: the surface distortion introduced by the mapping and the length of the surface cuts, or surface seams that the mapping is discontinuous across~\cite{Sheffer07_ParameterizationSurvey,Hormann2008}. Both high distortion and longer seams are detrimental to downstream applications. Yet, reducing distortion below some intrinsic surface bound typically requires introducing longer seams. 
 % To do so, parameterization tools must cope with intertwined challenges in topology and geometry:  a high-quality parameterization must cut a surface into simple %disk-shape 
 %patches so that each can be mapped to the plane with a reasonably small level of distortion.
 
-Given its broad applicability, it comes as no surprise that parameterization has long been a focus of research in geometry processing.  Algorithms in this domain focus on these two key aspects of the problem \cite{Sheffer07_ParameterizationSurvey,Hormann07_ParameterizationSurvey}.  Particularly well-studied are \emph{geometric} techniques that assume a surface has already been cut into disk-topology charts that each need to be mapped into the plane with minimal distortion while maintaining fixed connectivity; at this point, parameterization becomes a real-valued optimization problem that seeks to minimize changes in mesh angles and areas while maintaining local or global injectivity. Complementing these techniques, \emph{topological} algorithms find reasonable seams, either keeping the surface in one piece or partitioning it into individual charts that can be parameterized with low distortion.   
+Given its broad applicability, it comes as no surprise that parameterization has long been a focus of research in geometry processing.  Algorithms in this domain focus on these two key aspects of the problem \cite{Sheffer07_ParameterizationSurvey,Hormann2008}.  Particularly well-studied are \emph{geometric} techniques that assume a surface has already been cut into disk-topology charts that each need to be mapped into the plane with minimal distortion while maintaining fixed connectivity; at this point, parameterization becomes a real-valued optimization problem that seeks to minimize changes in mesh angles and areas while maintaining local or global injectivity. Complementing these techniques, \emph{topological} algorithms find reasonable seams, either keeping the surface in one piece or partitioning it into individual charts that can be parameterized with low distortion (Section~\ref{sec:related}).   
 
-With a few notable exceptions, previous works treat seam placement and fixed-topology mapping as separate steps in the parameterization pipeline.  This is a key drawback, as seam location and length have strong bearing on the best \emph{possible} geometric parameterization of the resulting charts.  Coupling geometry and topology, however, requires navigating between two extremes: a zero-distortion parameterization whose seams pass through nearly every mesh vertex, or a high-distortion injective mapping created by only introducing the cuts necessary to accomplish disk topology.
-%
-%\vova{not sure if we need to discuss the two extremes. I also moved some prior work discussion here.} % justin kind of likes this sentence so he decided to comment out Vova's comment :-)
-%
-Most previous techniques for seam placement rely on heuristics that seek to balance seam length against distortion, such as computing a minimal spanning tree that traverses well distributed high-curvature surface points~\cite{Sheffer2002Seamster}, incrementally adding cuts that connect current seams to current points of maximal distortion~\cite{Gu2002Geometry}, or greedily introducing seams during iterative flattening based on a hard distortion bound~\cite{BoundedDistortParam:2002}. \alla{should we mention AutoCut here?}
+Contrary to these approaches, we propose a joint optimization framework {\em OptCuts} that simultaneously computes  both a set of seams and its corresponding low-distortion 2D embedding.
+Our framework is based on minimizing an objective function that directly balances seam length against parametric distortion. Naively balancing distortion and seam length requires a choice of a relative scaling factor between these two objectives.  From a practical perspective, it is difficult for users to choose such a coefficient as the two terms measure very different quantities. 
+In contrast users typically have a clear sense of the amount of distortion they consider acceptable. Motivated by this observation we cast the coupled seam and mapping optimization as a \emph{constrained} problem and find locally minimal seam lengths given a user-set distortion bound. Treating distortion bounds as a hard inequality constraint guarantees a pre-specified level of mapping quality, while enabling the exploration of optimal seams satisfying this bound. %In turn, o %<--- not sure what ``in turn'' means in this context
 
-In contrast to these methods, we propose a joint optimization framework {\em OptCuts}, based on minimizing an objective function that directly balances the two core requirements.%, where discrete and continuous steps minimize the same global objective. 
+Contrary to prior methods such as AutoCuts~\cite{Poranne2017Autocuts} our framework is designed to operate in fully automatic mode, with the sole parameter provided by the user being their distortion bound of choice. As demonstrated by our comparisons  (Section~\ref{sec:results},Figure~\ref{fig:autocut}), given the same distortion bound  OptCuts produces much shorter seams than prior methods that couple distortion reduction and seam computation~\cite{BoundedDistortParam:2002,Poranne2017Autocuts}. 
+  
+%As a result, our balancing scaling factor follows directly from our model problem as the \emph{Lagrange multiplier} of the distortion bound and is thus adaptively updated by seeking optimality during the course of the minimization process.
+
+%, where discrete and continuous steps minimize the same global objective. 
 % task and object    
 %Our parameterization algorithm, {\em OptCuts}, %couples topology and geometry. OptCuts %<--- already said this
-OptCuts minimizes this objective function using a joint discrete-continuous optimization that alternates distortion minimization and seam update steps,  seeking for a locally optimal UV map satisfying a user-provided, distortion bound. 
-%
-We measure the trade-off between topology (seams) and geometry (distortion) by balancing a distortion measure of choice, e.g.\ the symmetric Dirichlet energy~\cite{Smith2015Bijective} against normalized seam length; we reach a parameterization that is near-stationary with respect to both seam placement and coordinate positions. % within a bounded number of iterations. % Justin removed --- I'm not sure this is a feature worth selling unless the bound is favorable
+\alla{now we need t provide details on what WE do. This is way short.}
+We achieve this improvement over prior art by casting seam length minimization as a discrete constrained minimization problem, with the distortion bound formulated as an inequality constraint. 
+We use the classical Lagrange multiplier approach to convert this constrained problem into an unconstrained one. As a result, our solutions balance distortion and seam length
+with the Lagrange multiplier acting as the balancing factor.
+OptCuts minimizes the resulting unconstrained objective function using a joint discrete-continuous optimization that alternates distortion minimization and seam update steps.
+Our distortion minimization steps follow the standard model of computing UV vertex positions by minimizing a user's distortion measure of choice, e.g.\ the symmetric Dirichlet energy~\cite{Smith2015Bijective}. Our seam update steps adopt a line-search approach in a topological space, introducing topology changes with respect to the first-order reduction they generate in our objective formed by the local weighted sum of distortion and seam length terms. Each step uses a limited vocabulary of topological operations (Figure~\ref{fig:teaser}a) which include both elongation and shortening of existing seams, and introduction of new, disjoint seam sections. 
+\alla{now need some punchline.}  
+%We measure the trade-off between topology (seams) and geometry (distortion) by balancing a distortion measure of choice, e.g.\ the symmetric Dirichlet energy~\cite{Smith2015Bijective} against normalized seam length; we reach a parameterization that is near-stationary with respect to both seam placement and coordinate positions. % within a bounded number of iterations. % Justin removed --- I'm not sure this is a feature worth selling unless the bound is favorable
 %\minchen{[NOTE] (Here stationary w.r.t. UV topology is only in the approximation sense, because there might still be basic topological operations that could decrease the objective but end up not chosen because it is filtered out or its locally evaluated energy decrease is not the largest one.)}
+
+%,  seeking for a locally optimal UV map satisfying a user-provided, distortion bound. 
+%
 
 % self-weighting
 %Although we acquire adaptivity to various inputs by normalizing the energy, %<-- not sure what this means
-Naively balancing distortion and seam length requires a choice of a relative scaling factor between these two objectives.  From a practical perspective, it is difficult for users to choose such a coefficient as the two terms measure very different quantities. %trading off between the two. 
-%Likewise, i
-To achieve high-quality solutions this balancing factor must often be %somehow 
-manually updated  to achieve desired results~\cite{Poranne2017Autocuts}. In contrast users typically have a clear sense of the amount of distortion they consider acceptable. Motivated by this observation we cast the coupled seam and mapping optimization as a \emph{constrained} problem and find locally minimal seam lengths given a user-set distortion bound. Treating distortion bounds as a hard inequality constraint guarantees a pre-specified level of geometric quality, while enabling the exploration of optimal seams satisfying this bound. %In turn, o %<--- not sure what ``in turn'' means in this context
-As a result, our balancing scaling factor follows directly from our model problem as the \emph{Lagrange multiplier} of the distortion bound and is thus adaptively updated by seeking optimality during the course of the minimization process.  %directly by our optimization method.
+%Naively balancing distortion and seam length requires a choice of a relative scaling factor between these two objectives.  From a practical perspective, it is difficult for users to choose such a coefficient as the two terms measure very different quantities. %trading off between the two. 
+%%Likewise, i
+%To achieve high-quality solutions this balancing factor must often be %somehow 
+%manually updated  to achieve desired results~\cite{Poranne2017Autocuts}. In contrast users typically have a clear sense of the amount of distortion they consider acceptable. Motivated by this observation we cast the coupled seam and mapping optimization as a \emph{constrained} problem and find locally minimal seam lengths given a user-set distortion bound. Treating distortion bounds as a hard inequality constraint guarantees a pre-specified level of geometric quality, while enabling the exploration of optimal seams satisfying this bound. %In turn, o %<--- not sure what ``in turn'' means in this context
+%As a result, our balancing scaling factor follows directly from our model problem as the \emph{Lagrange multiplier} of the distortion bound and is thus adaptively updated by seeking optimality during the course of the minimization process.  %directly by our optimization method.
 %(Section~\ref{sec:self_weighting}).
 
 % challenge
@@ -40,10 +50,10 @@ As a result, our balancing scaling factor follows directly from our model proble
 %
 %In contrast to previous work building up a parameterization from disconnected triangle soup~\cite{Poranne2017Autocuts},  or by cutting between points of maximal predicted distortion~\cite{Gu2002Geometry,Sheffer2002Seamster}, 
 %
-\alla{does this belong here or in related work?} 
-Instead of building up a parameterization from disconnected triangle soup~\cite{Poranne2017Autocuts}, our constrained optimization method minimizes seams combinatorially, directly extending real-valued distortion minimization to the regime where seams can be incrementally introduced by cutting and removed by merging. 
-\alla{line search?  this is not true IMHO...}
-Distortion is typically reduced by line search in UV coordinate space; we now accompany this by introducing a secondary search procedure in ``topology space'': we alternate between reducing distortion on vertex position and introducing topology changes with respect to the first-order reduction they generate in our objective formed by the local weighted sum of distortion and seam length terms. %in each topology search iteration we first find a search direction that locally decrease the objective the most (in topology step, Section~\ref{sec:topologyStep}); and then we conduct a newly derived forward-tracking line search scheme alternated with distortion minimization iterations to decide the step-size (in smooth descent step, Section~\ref{sec:descentStep}).% too much detail for intro
+%\alla{does this belong here or in related work?} 
+%Instead of building up a parameterization from disconnected triangle soup~\cite{Poranne2017Autocuts}, our constrained optimization method minimizes seams combinatorially, directly extending real-valued distortion minimization to the regime where seams can be incrementally introduced by cutting and removed by merging. 
+%\alla{line search?  this is not true IMHO...}
+%Distortion is typically reduced by line search in UV coordinate space; we now accompany this by introducing a secondary search procedure in ``topology space'': we alternate between reducing distortion on vertex position and introducing topology changes with respect to the first-order reduction they generate in our objective formed by the local weighted sum of distortion and seam length terms. %in each topology search iteration we first find a search direction that locally decrease the objective the most (in topology step, Section~\ref{sec:topologyStep}); and then we conduct a newly derived forward-tracking line search scheme alternated with distortion minimization iterations to decide the step-size (in smooth descent step, Section~\ref{sec:descentStep}).% too much detail for intro
 %\vova{Maybe the relationship to seam placement heuristics can be discussed earlier...}
 
 
@@ -52,6 +62,9 @@ Distortion is typically reduced by line search in UV coordinate space; we now ac
 % \vova{I agree, and I rephrased the sentence below}
 %We demonstrate our method's capabilities by comparing to AutoCuts~\cite{Poranne2017Autocuts} as well as typical classic seam cutting methods~\cite{Gu2002Geometry,Sheffer2002Seamster}. % (Section~\ref{sec:results}). 
 %Given the same initial UV map, we efficiently reach identical distortion bounds with shorter seam lengths. 
+
+\alla{talk about extensions here - the user input ,etc..., bijectivity, all the cool and unmentioned bits}
+
 We evaluate our method on a large benchmark of 3D models, demonstrating that across mesh scales and problem difficulties it successfully satisfies user-specified distortion bounds while efficiently minimizing seam length. We demonstrate that our method outperforms alternative techniques and seam placement strategies, reaching comparable distortions with fewer seams. We also show that our method is robust to tessellation/topology and scales to large inputs.%, and is stable to changes in mesh structure.~\vova{what are these changes? }
 
 % contribution
