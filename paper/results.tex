@@ -53,8 +53,14 @@ Since $E_{d}$ is not convex, we apply the projected Newton method\ \cite{Teran20
 Besides a relatively small tolerance on $g$ for convergence detection, we apply another relative energy decrease criteria to appropriately stop the process while necessary.
 This can stop our continuous search at the true local optimum infinitesimal better than setting a larger gradient tolerance since our energy is highly nonlinear.
 
-\vova{Explain how to handle bijectivity...}
-When computing $\hat{f}_e$, besides also including the one-ring triangles on the scaffold mesh for computing energy decrease, we also need to move the splitted vertices slightly apart to leave room for inserting new scaffold mesh triangles.
+\subsubsection{Global Bijectivity}
+\label{sec:bijectivity}
+Following Jiang et al.\ \shortcite{Jiang2017Simplicial}, we realize this additional constraint on our mapping by first triangulating the void regions of each iterations updated UV map using Triangle library\ \cite{Triangle_Engineering_a_2D_quality_mesh_generator_and_Delaunay_triangulator}. The void regions are consisted of all holes and the surrounding space of the UV map, bounded by its boundaries and a loose bounding box.
+Then we augment our distortion energy $E_d$ with an additional term, \emph{not included in the distortion bound constraint}, to form a collapse preventing energy for the added negative-space triangles during each optimization iteration.
+
+With this augmentation, our continuous search stays the same, while for our topology search, we need to also ensure that the negative-space triangles are added correctly when we query for our local topological operations.
+Instead of re-using a loose bounding box, we take the current negative-space triangles into consideration when building up the local stencil near the edited seam. Since the boundary of the local stencils are all fixed during the query, this naturally prevent potential global overlaps with geodesically faraway UV elements. Similarly, the collapse preventing energy on the negative-space triangles is not involved in the computation of first-order reduction.
+In splitting operations only, we also need to carefully push the splitted vertices in the opposite direction of their curvature normals before the querying optimization. This ensures that the initial local stencil has a collapse-free void region so that it could be triangulated correctly.
 
 %\paragraph{Potential Accelerations for Practical Use}
 %Since our topological operations only change the mesh locally both on connectivity and coordinates, we could also update the Hessian or the decomposition locally to save time. Besides, it is also interesting to try other Hessian approximation methods like L-BFGS~\cite{Liu1989Limited} or composite majorization~\cite{Shtengel2017Geometric} to explore further acceleration by finding a balance between per-iteration computational cost and convergence rate.
