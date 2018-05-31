@@ -181,7 +181,14 @@ namespace FracCuts {
                             
                             double minUV_x = UV.col(0).minCoeff(), minUV_y = UV.col(1).minCoeff();
                             double maxUV_x = UV.col(0).maxCoeff(), maxUV_y = UV.col(1).maxCoeff();
-                            double divider = std::max(maxUV_x - minUV_x, maxUV_y - minUV_y);
+                            double divider = 0.0;
+                            for(int triI = 0; triI < F.rows(); triI++) {
+                                const Eigen::Vector3i& triVInd = F.row(triI);
+                                const Eigen::Vector3d e01 = V.row(triVInd[1]) - V.row(triVInd[0]);
+                                const Eigen::Vector3d e02 = V.row(triVInd[2]) - V.row(triVInd[0]);
+                                divider += 0.5 * e01.cross(e02).norm();
+                            }
+                            divider = std::sqrt(divider);
                             for(int uvI = 0; uvI < UV.rows(); uvI++) {
                                 UV(uvI, 0) = (UV(uvI, 0) - minUV_x) / divider;
                                 UV(uvI, 1) = (UV(uvI, 1) - minUV_y) / divider;

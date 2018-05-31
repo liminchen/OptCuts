@@ -219,12 +219,16 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "1 5 /Applications/XAMPP/xamppfiles/htdocs/expResults/results_seamsterComp/"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "2 /Users/mincli/Downloads/meshes/closed/zoo/triceratops_param.obj 2"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "2 /Applications/XAMPP/xamppfiles/htdocs/expResults/results_seamsterComp/cow_param_noInput_Tutte_0_400_NoCut/finalResult_mesh.obj 3"
-            isEnabled = "YES">
+            argument = "2 /Applications/XAMPP/xamppfiles/htdocs/expResults/results_giComp4.05/hand_2_i_f10000_Tutte_0.999_61_OursBounded/finalResult_mesh.obj 3"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "2 /Users/mincli/Downloads/meshes/golf.obj 4"

@@ -292,6 +292,99 @@ namespace FracCuts{
                         break;
                     }
                         
+                    case 5: {
+                        // output for visualization
+                        
+                        const std::string resultsFolderPath(argv[3]);
+                        FILE *dirList = fopen((resultsFolderPath + "/folderList.txt").c_str(), "r");
+                        assert(dirList);
+                        
+                        char buf[BUFSIZ];
+                        while((!feof(dirList)) && fscanf(dirList, "%s", buf)) {
+                            std::string resultName(buf);
+                            std::string meshPath(resultsFolderPath + '/' + resultName + "/finalResult_mesh.obj");
+                            Eigen::MatrixXd V, UV, N;
+                            Eigen::MatrixXi F, FUV, FN;
+                            if(!igl::readOBJ(meshPath, V, UV, N, F, FUV, FN)) {
+                                continue;
+                            }
+                            
+                            // map texture to 0-1 and output UV boundary path in both 2D and 3D
+                            if(UV.rows() == 0) {
+                                std::cout << "no input UV" << std::endl;
+                                continue;
+                            }
+                            
+                            double minUV_x = UV.col(0).minCoeff(), minUV_y = UV.col(1).minCoeff();
+                            double maxUV_x = UV.col(0).maxCoeff(), maxUV_y = UV.col(1).maxCoeff();
+                            double divider = 0.0;
+                            for(int triI = 0; triI < F.rows(); triI++) {
+                                const Eigen::Vector3i& triVInd = F.row(triI);
+                                const Eigen::Vector3d e01 = V.row(triVInd[1]) - V.row(triVInd[0]);
+                                const Eigen::Vector3d e02 = V.row(triVInd[2]) - V.row(triVInd[0]);
+                                divider += 0.5 * e01.cross(e02).norm();
+                            }
+                            divider = std::sqrt(divider);
+                            for(int uvI = 0; uvI < UV.rows(); uvI++) {
+                                UV(uvI, 0) = (UV(uvI, 0) - minUV_x) / divider;
+                                UV(uvI, 1) = (UV(uvI, 1) - minUV_y) / divider;
+                            }
+                            
+                            if(N.rows() == 0) {
+                                igl::per_vertex_normals(V, F, igl::PER_VERTEX_NORMALS_WEIGHTING_TYPE_AREA, N);
+                                FN = F;
+                            }
+                            
+                            igl::writeOBJ(resultsFolderPath + '/' + resultName + "/output_with01UV.obj",
+                                          V, F, N, FN, UV, FUV);
+                            std::cout << "texture mapped to [0,1]^2 and saved into " << outputFolderPath << resultName << " folder" << std::endl;
+                            
+                            Eigen::MatrixXd V_UV;
+                            if(meshPath.find("AutoCuts") != std::string::npos) {
+                                V_UV = UV;
+                                UV.conservativeResize(UV.rows(), 2);
+                            }
+                            else {
+                                V_UV.resize(UV.rows(), 3);
+                                V_UV << UV, Eigen::VectorXd::Zero(UV.rows());
+                            }
+                            igl::writeOBJ(resultsFolderPath + '/' + resultName + "/output_01UV.obj",
+                                          V_UV, FUV, Eigen::MatrixXd(), Eigen::MatrixXi(), UV, FUV);
+                            
+                            
+                            FracCuts::TriangleSoup temp(V, F, UV, FUV, false);
+                            
+                            std::vector<std::vector<int>> bnd_all;
+                            igl::boundary_loop(temp.F, bnd_all);
+                            
+                            FILE *out = fopen((resultsFolderPath + '/' + resultName + "/output_with01UV.sp").c_str(), "w");
+                            assert(out);
+                            FILE *out_UV = fopen((resultsFolderPath + '/' + resultName + "/output_01UV.sp").c_str(), "w");
+                            assert(out_UV);
+                            
+                            fprintf(out, "%u\n", bnd_all.size());
+                            fprintf(out_UV, "%u\n", bnd_all.size());
+                            for(const auto& bndI : bnd_all) {
+                                fprintf(out, "%u\n", bndI.size());
+                                fprintf(out_UV, "%u\n", bndI.size());
+                                for(const auto& i : bndI) {
+                                    const Eigen::RowVector3d& v = temp.V_rest.row(i);
+                                    fprintf(out, "%le %le %le\n", v[0], v[1], v[2]);
+                                    const Eigen::RowVector2d& uv = temp.V.row(i);
+                                    fprintf(out_UV, "%le %le 0.0\n", uv[0], uv[1]);
+                                }
+                            }
+                            
+                            fclose(out);
+                            fclose(out_UV);
+                        }
+                        
+                        fclose(dirList);
+                        std::cout << "output finished" << std::endl;
+                        
+                        break;
+                    }
+                        
                     default:
                         std::cout << "No diagMode " << diagMode << std::endl;
                         break;
