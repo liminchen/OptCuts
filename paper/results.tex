@@ -6,14 +6,13 @@
 \subsection{Implementation}
 \label{sec:imp}
 
-\minchen{
-any important details of the libraries you used: triangle, libIGL
-specs of the machine(s) used to time and evaluate methods:
-3.1 GHz quad-core Intel Core i7
-16 GB 2133 MHz LPDDR3
-}
-
-\minchen{Add energy plot to show convergence?}
+We implement our methods based on libigl\ \cite{libigl} and test it on a Macbook Pro with 3.1 GHz quad-core Intel Core i7 CPU and 16 GB 2133 MHz LPDDR3 memory.
+% @misc{libigl,
+%   title = {{libigl}: A simple {C++} geometry processing library},
+%   author = {Alec Jacobson and Daniele Panozzo and others},
+%   note = {http://libigl.github.io/libigl/},
+%   year = {2017},
+% }
 
 \subsubsection{Initialization}
 \minchen{merge initial embedding paragraph}
@@ -68,6 +67,10 @@ In splitting operations only, we also need to carefully push the splitted vertic
 
 
 \subsection{Method Evaluation}
+\minchen{Add energy plot to show convergence?}
+
+We directly use our normalized seam length $E_{s}$ as the evaluation metric as it is both shape awared and mesh independent. For comparisons, we always generate UV maps under the same distortion bound either set equally or obtained from the output that are compared with.
+Moreover, this metric also fits in well with practical scenarios where the control of distortions are more intuitive to the users and as-short-as-possible seams are expected.
 
 We evaluate our method with/without global bijectivity by running them on 70 input surfaces including both disk-topology and closed surfaces (some are with \minchen{[TODO] high genus}), setting $b_d$ to $4.2$, $4.1$, and $4.05$ (Table~\ref{tb:stats_OptCuts}). Our methods automatically generate high quality UV maps given any distortion bounds for all inputs without any user assistance (Figure~\ref{fig:our_impressive_results}).
 
@@ -97,12 +100,10 @@ We evaluate our method with/without global bijectivity by running them on 70 inp
 \end{figure*}
 %could also be bunny_i, statue_5, wooden_fish
 
-\paragraph{Evaluation Metric}
-We are able to directly use the output normalized $E_{s}$ as the evaluation metric since our method can generate UV maps with locally optimal seams under a certain distortion bound. This metric can be consistent among comparisons against all methods because given an input surface we are always able to compare the output $E_{s}$ under the same level of distortion. Moreover, it also fits in well with practical scenarios where the control of distortions are more intuitive to the users and as-short-as-possible seams are expected.
-
 \paragraph{Initial Embedding}
 \minchen{[TODO?]}
 For closed surfaces, it is important to first obtain an initial seam for our method to construct the initial UV map. To show that we can always find a local optimum with respect to both the UV topology and coordinates regardless of initial embedding, we run our method on an input surface with several randomly picked initial seams and a heuristic initial seam that splits the shortest path between two farthest points on the surface. As demonstrated in Figure~\ref{fig:any_init_ends_well}, we produce high quality UV maps under the given distortion bound for all initializations.
+
 
 \subsection{Comparison to AutoCuts}
 
