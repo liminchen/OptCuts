@@ -4,17 +4,17 @@
 %\minchen{As Vova suggested, describe Self-Weighting as our main formulation before Joint Discrete-Continuous Search, so does Abstract, Introduction, and Section 4 and 5.}
 % \danny{Also took a pretty heavy pass at re-organizing this section and the next.}
 
-Given an input triangle mesh $M$ of a three-dimensional surface with $n$ vertices we seek a UV map with topology $T^*$ and coordinates $U^* \in \mathbb{R}^{2n}$ that locally minimize 
-the constrained parametrization problem
+Given an input triangle mesh $M=(V,F)$ of a three-dimensional surface we seek a UV map with a new topology $T^*=(V_{T^*}, F_{T^*})$ (where $V_{T^*}$ is a superset of $V$ with potential duplicate vertices, and $F_{T^*}$ are faces indexed into the new set of vertices), the new vertices also have 2D embedding coordinates $U^* \in \mathbb{R}^{2 |V_{T^*}|}$ that locally minimize the constrained parametrization problem
+%
 \begin{align}
-	\min_{T,U} E_s(T) \quad s.t. \quad E_d(T,U) \leq b_d\ \ and\ \ (T, U) \in \mathcal{I}.
+	\min_{T,U} E_s(T) \quad s.t. \quad E_d(T,U) \leq b_d\ \ \text{and}\ \ (T, U) \in \mathcal{I}.
 	\label{eq:p1}
 \end{align}
-\justin{Might be worth mentioning in a sentence what your representation of $T$ is} \minchen{I haven't thought about defining $T$ explicitly. If needed, it can be a vector of boolean variables representing whether each edge on the 3D surface is a seam edge, subject to manifold mesh constraints.}
-\vova{Binary value over edges requires additional post-process to identify which of two vertices are duplicated and which triangles they should be assigned to. 
-Why not just define a new mesh $(V_T, F_T)$ and a bijective map $f_T: F \rightarrow F_T$?}\danny{My suggestion is that we stick as closely as possible to the rep used in Minchen's code - I've asked him what he uses - we can monge that into text once he replies.} \minchen{Similar to Vova said, I simply use the vertex indices of each face to represent topology as what .obj file does. Should we mention it here or in the implementation section?}
+%\justin{Might be worth mentioning in a sentence what your representation of $T$ is} \minchen{I haven't thought about defining $T$ explicitly. If needed, it can be a vector of boolean variables representing whether each edge on the 3D surface is a seam edge, subject to manifold mesh constraints.}
+%\vova{Binary value over edges requires additional post-process to identify which of two vertices are duplicated and which triangles they should be assigned to. 
+%Why not just define a new mesh $(V_T, F_T)$ and a bijective map $f_T: F \rightarrow F_T$?}\danny{My suggestion is that we stick as closely as possible to the rep used in Minchen's code - I've asked him what he uses - we can monge that into text once he replies.} \minchen{Similar to Vova said, I simply use the vertex indices of each face to represent topology as what .obj file does. Should we mention it here or in the implementation section?}
 %
-Here we use $\mathcal{I}$ to define the set of \emph{either} locally injective \emph{or} globally bijective UV maps; in the following we will first initially focus on the locally injective set and then later cover our extension to bijectivity in Section\ \ref{}. Energies $E_s$ and $E_d$ respectively measure seam quality and map distortion while $b_d$ is a user-specified \emph{upper bound} on the acceptable distortion of the generated map. This optimization is always feasible as in the limit more cuts will always satisfy any distortion bound. %\danny{If we truly want to make bijectivity a first-class component of our method (I'd suggest we do then we should add the bijectivity constraint to the optimization problem statement above and also the derivation that follows - happy to do this once we decide.}
+Here we use $\mathcal{I}$ to define the set of \emph{either} locally injective \emph{or} globally bijective UV maps; in the following we will first initially focus on the locally injective set and then later cover our extension to bijectivity. Energies $E_s$ and $E_d$ respectively measure seam quality and map distortion while $b_d$ is a user-specified \emph{upper bound} on the acceptable distortion of the generated map. This optimization is always feasible as in the limit more cuts will always satisfy any distortion bound. %\danny{If we truly want to make bijectivity a first-class component of our method (I'd suggest we do then we should add the bijectivity constraint to the optimization problem statement above and also the derivation that follows - happy to do this once we decide.}
 
 In general, distortion measures are smooth albeit \emph{nonconvex}, while seam measures are \emph{nonsmooth} as they take a discrete jump when mesh edges are cut or merged. Hence, we must address both challenges to design a suitable optimization method. 
 
@@ -66,7 +66,7 @@ where $\mathcal{F}$ is the set of all triangles, $|A_t|$ is the area of triangle
 
 
 \subsection{Adding Global Bijectivity}
-Most texture applications additionally require a guarantee of global bijectivity. Following Jiang et al.'s\ \shortcite{Jiang2017Simplicial} observation we realize this additional constraint on our mapping by triangulating the void regions of each iterations updated UV map and then augmenting our distortion energy $E_d$ with an additional term, \emph{not included in the distortion bound constraint}, to form a collapse preventing energy for the added negative-space triangles during each optimization iteration. For details see Section\ \ref{}. 
+Most texture applications additionally require a guarantee of global bijectivity. Following Jiang et al.'s\ \shortcite{Jiang2017Simplicial} observation we realize this additional constraint on our mapping by triangulating the void regions of each iterations updated UV map and then augmenting our distortion energy $E_d$ with an additional term, \emph{not included in the distortion bound constraint}, to form a collapse preventing energy for the added negative-space triangles during each optimization iteration. For details see Section\ \ref{sec:bijectivity}. 
 %As these constraints are implicitly encoded in our constraint. The additional objective terms are not added as a term to the distortion bound. Moreover, our framework stays the same when solving this extended problem.
 
 % \danny{Moved and reorganized a good portion of what was here to the next section.}
