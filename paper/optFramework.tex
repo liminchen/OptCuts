@@ -36,11 +36,18 @@ $(T^*, U^*)$ $\leftarrow$ $(T^{k-1}, U^{k-1})$\;
 
 \subsection{Primal Update}
 \label{sec:primalUpdate}
-Our $k$th primal update is a joint discrete-continuous search over variations in geometry to minimize the Lagrangian (\ref{eq:L}). We hold the current iterate's dual variable, $\lambda^k$, fixed and initialize with the last iterate's geometry $(T^{k-1}, U^{k-1})$.
+Our $k$th primal update is a joint discrete-continuous search over variations in geometry to minimize the weighted sum of seam length and distortion energies in our Lagrangian (\ref{eq:L}). We hold the current iterate's dual variable, $\lambda^k$, fixed and initialize with the last iterate's geometry $(T^{k-1}, U^{k-1})$.
 
 %Rather than trying to approximate $T$ with non-smooth energies of $U$ and solve a potentially ill-conditioned real-valued optimization, we alternate local optimizations over $U$ and then $T$ in each inner iteration and obtain $(T^{k+1}, U^{k+1})$ when both are converged (Algorithm~\ref{alg:DCSearch}).
 
-We initially experimented with solving our primal problem by approximating topology change with non-smooth energies on duplicated vertices of the input mesh. Unfortunately, this quickly leads to problems with strongly ill-conditioned real-valued optimization and to scaling to overly large systems. To counter these challenges we directly optimize in alternating inner steps over vertices $U$ and then topology $T$. These inner iterations loop until a stationary point is reached giving the new iterate $k$'s updated geometry $(T^{k}, U^{k})$. See Algorithm~\ref{alg:DCSearch}. \danny{Minchen: correct me if I'm wrong but I don't believe you employ an actual convergence measure - you simply wait until the $(T,U)$ remain unchnged by further iterates. Is this correct?} \minchen{Correct. We simply stop the discrete-continuous alternations when continuous search converges since it also means topology search won't go further in the current direction. For continuous search, besides gradient tolerance, I also have a relative energy decrease tolerance ($10^{-6}$). It is not because we have troubles converging to small gradient, which is actually not necessary. Setting extra tolerance on relative energy decrease is more stable than using larger gradient tolerance.}
+We initially experimented with solving our primal problem by approximating topology change with non-smooth energies on duplicated vertices of the input mesh; i.e., in a manner similar to AutoCuts\ \cite{Poranne2017Autocuts}. Unfortunately, this quickly led to problems with strongly ill-conditioned real-valued optimization and prevented scaling to larger meshes. 
+
+To counter these challenges we directly optimize in alternating inner steps searching over changes in topology $T$ and then vertices $U$. These inner iterations loop until we 
+%converge to a minimizer of the Lagrangian at the fixed $\lambda^k$, 
+we reach a stationary point, 
+giving us iterate $k$'s newly updated geometry $(T^{k}, U^{k})$. See Algorithm~\ref{alg:DCSearch} and Section\ \ref{sec:topologySearch}. 
+
+%\danny{Minchen: correct me if I'm wrong but I don't believe you employ an actual convergence measure - you simply wait until the $(T,U)$ remain unchnged by further iterates. Is this correct?} \minchen{Correct. We simply stop the discrete-continuous alternations when continuous search converges since it also means topology search won't go further in the current direction. For continuous search, besides gradient tolerance, I also have a relative energy decrease tolerance ($10^{-6}$). It is not because we have troubles converging to small gradient, which is actually not necessary. Setting extra tolerance on relative energy decrease is more stable than using larger gradient tolerance.}
 
 \begin{algorithm}[h]
 \SetAlgoLined
@@ -59,12 +66,17 @@ $T^{k+1} \leftarrow T^{k,i-1}$, $U^{k+1} \leftarrow U^{k,i-1}$
 \label{alg:DCSearch}
 \end{algorithm}
 
-Each vertex update step performs a single iteration of Newton-type, smooth descent with line-search towards minimizing our distortion energies over vertices $U$ while holding topology, $T$, fixed. As our distortion energies, including symmetric Dirichlet, are generally nonconvex we employ the projected-Newton\ \cite{Teran2005Robust} approximation of the Hessian here. For more details see Section \ref{sec:imp}.
+Each vertex step of the primal update performs a single iteration of Newton-type, smooth descent with line-search towards minimizing our distortion energies over vertices $U$ while holding topology, $T$, fixed. As our distortion energies, including symmetric Dirichlet, are generally nonconvex we employ the projected-Newton\ \cite{Teran2005Robust} approximation of the Hessian. This is then coupled with 
+%For more details see Section \ref{sec:imp}.
+search of topology changes to form a customized discrete-continuous topology search method. We defer discussion of the details of this component to Section~\ref{sec:topologySearch}.
 %
-%The continuous search is peformed in each smooth descent step, where we conduct a complete Newton-type iteration with backtracking line search towards minimizing distortion $E_d$ over vertices $U$ while holding topology, $T$, fixed (Section~\ref{sec:descentStep}).
-%
-Our topology step requires the construction of a custom discrete topology search method. We defer discussion of the details of this component to Section~\ref{sec:topologySearch}.
-%
+
+%Each vertex update step performs a single iteration of Newton-type, smooth descent with line-search towards minimizing our distortion energies over vertices $U$ while holding topology, $T$, fixed. As our distortion energies, including symmetric Dirichlet, are generally nonconvex we employ the projected-Newton\ \cite{Teran2005Robust} approximation of the Hessian here. For more details see Section \ref{sec:imp}.
+%%
+%%The continuous search is peformed in each smooth descent step, where we conduct a complete Newton-type iteration with backtracking line search towards minimizing distortion $E_d$ over vertices $U$ while holding topology, $T$, fixed (Section~\ref{sec:descentStep}).
+%%
+%Our topology step requires the construction of a custom discrete topology search method. We defer discussion of the details of this component to Section~\ref{sec:topologySearch}.
+%%
 %The discrete topology search is performed in each topology descent step by querying a set of neighboring topologies and changing to the one with largest first-order reduction in $L$ if this reduction is prominent (Section~\ref{sec:topologySearch}). 
 %
 
@@ -97,7 +109,7 @@ At each iteration, to find $\lambda^k$ we simply fix vertices and topology to  $
 %\end{align}
 %We simply use $\kappa = 1$ for all inputs throughout our paper, since it is appropriately small that would not overly change the Lagrangian.
 \begin{align}
-\lambda^{k} \leftarrow \max\big(0,\big( E_{d}(T^{k-1}, U^{k-1}) -b \big) + \lambda^{k-1}\big).	
+\lambda^{k} \leftarrow \max\big(0,\big( E_{d}(T^{k-1}, U^{k-1}) -b_d \big) + \lambda^{k-1}\big).	
 \end{align}
 
 
