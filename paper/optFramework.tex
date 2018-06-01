@@ -19,7 +19,7 @@ $\lambda^0 \leftarrow 0$, $k \leftarrow 1$\;
 
   $k \leftarrow k + 1$\;
 } 
-$(T^*, U^*)$ $\leftarrow$ $(T^{k-1}, U^{k-1})$\; 
+$(T^*, U^*)$ $ \leftarrow$ $(T^{k-1}, U^{k-1})$\; 
 
 \caption{OptCuts}
 \label{alg:selfWeight}
@@ -45,7 +45,7 @@ We initially experimented with solving our primal problem by approximating topol
 To counter these challenges we directly optimize in alternating inner steps searching over changes in topology $T$ and then vertices $U$. These inner iterations loop until we 
 %converge to a minimizer of the Lagrangian at the fixed $\lambda^k$, 
 we reach a stationary point, 
-giving us iterate $k$'s newly updated geometry $(T^{k}, U^{k})$. See Algorithm~\ref{alg:DCSearch} and Section\ \ref{sec:topologySearch}. 
+giving us iterate $k$'s newly updated geometry $(T^{k}, U^{k})$ (see Algorithm~\ref{alg:DCSearch}).% and Section\ \ref{sec:topologySearch}. 
 
 %\danny{Minchen: correct me if I'm wrong but I don't believe you employ an actual convergence measure - you simply wait until the $(T,U)$ remain unchnged by further iterates. Is this correct?} \minchen{Correct. We simply stop the discrete-continuous alternations when continuous search converges since it also means topology search won't go further in the current direction. For continuous search, besides gradient tolerance, I also have a relative energy decrease tolerance ($10^{-6}$). It is not because we have troubles converging to small gradient, which is actually not necessary. Setting extra tolerance on relative energy decrease is more stable than using larger gradient tolerance.}
 
