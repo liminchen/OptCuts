@@ -71,11 +71,11 @@ To select the candidate mesh operation we first consider all $m$ boundary vertic
 \label{eq:minO}
 o^{i,j} = \argmin_{o \in O^k} d(o).
 \end{align}
-Note that with local support all queried $d$ in this minimization can be evaluated in parallel. If the minimizing operation promises descent, i.e., $d(o^{i,j}) < 0$, we seed our candidate mesh operation with $s^k = o^{i,j}$ to our descent process with this operation. Otherwise we go on to find the $(n-m)^{0.8}$ interior vertices with largest deviation and rebuild $O^k$ as the set of all interior vertex splits on those vertices. A $d$ minimizing interior split operation $o^{i,j} \in O^i$, again using(\ref{eq:minO}), is then set as the seed to $s^k = o^{i,j}$ for our descent process.
+Note that with local support all queried $d$ in this minimization can be evaluated in parallel. If the minimizing operation promises descent, i.e., $d(o^{i,j}) < 0$, we set our candidate mesh operation for our descent process, $s^k$, with this operation, $s^k \leftarrow o^{i,j}$. Otherwise, we go on to find the $(n-m)^{0.8}$ interior vertices with largest deviation and rebuild $O^k$ as the set of all interior vertex splits on those vertices. A $d$ minimizing interior split operation $o^{i,j} \in O^k$, again using (\ref{eq:minO}), is then set as the set $s^k \leftarrow o^{i,j}$ for our descent process.
 
 \subsection{Iterated Search, Propagation and Descent}
 
-Once we have computed our candidate search operation $s^k$, we begin an inner loop iteration, indexed by superscript $i$ (recalling outer iterates are indexed by $k$), to solve the primal variable update. At the start of this process we initialize our desired minimum amount of estimated decrease to $\delta^0 = 0$; this will be updated at each successive iterate. Then, each inner iteration $i$ proceeds by first propagating topology change followed by smooth coordinate update. 
+Once we have computed our candidate search operation $s^k$, we begin an inner loop iteration, indexed by superscript $i$ (recalling outer iterates are indexed by $k$), to solve the primal variable update. At the start of this process we initialize our desired upper bound on estimated decrease to $\delta^0 = 0$; this will be updated at each successive iterate. Then, each inner iteration $i$ proceeds by first propagating topology change followed by smooth coordinate update. 
 
 Each topology propagation step first generates a set of all possible mesh operations $\mathcal{E}(s^k)$ that could continue the seed operation $s^k$, e.g. all edges that could continue to propagate a boundary splitting cut from the current tail. See Figure\ \ref{}  \danny{Minchen please add the figure here.}.
 As in seeking our seed operation we once agin find the $d$ minimizing operation from this small set of candidate operations
@@ -83,7 +83,7 @@ As in seeking our seed operation we once agin find the $d$ minimizing operation 
 \label{eq:minE}
 o^{i,j} = \argmin_{o \in \mathcal{E}(s^k)} d(o).
 \end{align}
-If this minimizer provides sufficient estimated decrease, so that $d(o^{i,j}) \leq \delta^{i-1}$, we accept the topology update setting $T^i \leftarrow T^j$; otherwise, we keep topology unchanged with $T^i \leftarrow T^{i-1}.$ 
+If this minimizer provides sufficient estimated decrease, so that $d(o^{i,j}) < \delta^{i-1}$, we accept the topology update setting $T^i \leftarrow T^j$; otherwise, we keep topology unchanged with $T^i \leftarrow T^{i-1}.$ 
 
 The following coordinate update then simply applies a single step of projected Newton descent with line search to gain the updated vertex coordinates $U^i$; see Section~\ref{} for details. We then ask for the next topology update to gain similar or greater magnitude decrease by setting $\delta^i = E_d(U^i) - E_d(U^{i-1})$.
 
