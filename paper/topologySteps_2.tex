@@ -66,7 +66,7 @@ Corners are formed by three UV vertices corresponding to the tail edge of a cut 
 \subsection{Topology Search Candidates}
 In analogy to a continuous search direction, at the start of each new primal solve we search for a candidate mesh operation to propagate descent with. 
 %
-To select the candidate mesh operation we first consider all $m$ boundary vertices in the current topology $T^k$. \danny{Minchen: confirm this detail:} For each such vertex we compute the standard deviation over all the distortion energy gradients acting on the vertex contributed from incident elements. From the set of $m^{0.8}$ boundary vertices with largest deviation we then build a set of candidate mesh operations $O^k$ formed by boundary vertex splits and corner merges (when valid) on those vertices. We then find a minimizer
+To select the candidate mesh operation we first consider all $m$ boundary vertices in the current topology $T^k$. \danny{Minchen: confirm this detail:} For each such vertex we compute the standard deviation over all the distortion energy gradients acting on the vertex contributed from incident elements. From the set of $m^{0.8}$ boundary vertices with largest deviation we then build a set of candidate mesh operations $O^k$ formed by boundary vertex splits and corner merges (when valid) on those vertices. \minchen{The filtering is only applied on split operations, not on corner merge. We simply query all corners, there's not many of them, and the filtering criteria for splits is not appropriate for merge.} We then find a minimizer
 \begin{align}
 \label{eq:minO}
 o^{i,j} = \argmin_{o \in O^k} d(o).
@@ -77,13 +77,20 @@ Note that with local support all queried $d$ in this minimization can be evaluat
 
 Once we have computed our candidate search operation $s^k$, we begin an inner loop iteration, indexed by superscript $i$ (recalling outer iterates are indexed by $k$), to solve the primal variable update. At the start of this process we initialize our desired upper bound on estimated decrease to $\delta^0 = 0$; this will be updated at each successive iterate. Then, each inner iteration $i$ proceeds by first propagating topology change followed by smooth coordinate update. 
 
-Each topology propagation step first generates a set of all possible mesh operations $\mathcal{E}(s^k)$ that could continue the seed operation $s^k$, e.g. all edges that could continue to propagate a boundary splitting cut from the current tail. See Figure\ \ref{}  \danny{Minchen please add the figure here.}.
-As in seeking our seed operation we once agin find the $d$ minimizing operation from this small set of candidate operations
+Each topology propagation step first generates a set of all possible mesh operations $\mathcal{E}(s^k)$ that could continue the seed operation $s^k$, e.g. all edges that could continue to propagate a boundary splitting cut from the current tail. See Figure\ \ref{fig:propagation} for illustrations on how we propagate each kind of the operations.
+As in seeking our seed operation we once again find the $d$ minimizing operation from this small set of candidate operations
 \begin{align}
 \label{eq:minE}
 o^{i,j} = \argmin_{o \in \mathcal{E}(s^k)} d(o).
 \end{align}
-If this minimizer provides sufficient estimated decrease, so that $d(o^{i,j}) < \delta^{i-1}$, we accept the topology update setting $T^i \leftarrow T^j$; otherwise, we keep topology unchanged with $T^i \leftarrow T^{i-1}.$ 
+If this minimizer provides sufficient estimated decrease, so that $d(o^{i,j}) < \delta^{i-1}$, we accept the topology update setting $T^i \leftarrow T^j$; otherwise, we keep topology unchanged with $T^i \leftarrow T^{i-1}.$
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.8\linewidth]{fig/propagation.png}
+\caption{Propagation of boundary split (orange), corner merge (green), and interior split (blue). When propagating boundary split, all edges that could continue to propagate a boundary splitting cut from the current tail would be considered (a); for corner merge we just query the new corner at the current tail (b); for interior split, once an incident edge of either the two tail is splitted as propagation, in the following iterations it would be the same as propagating boundary split (c).}
+\label{fig:propagation}
+\end{figure}
 
 The following coordinate update then simply applies a single step of projected Newton descent with line search to gain the updated vertex coordinates $U^i$; see Section~\ref{} for details. We then ask for the next topology update to gain similar or greater magnitude decrease by setting $\delta^i = E_d(U^i) - E_d(U^{i-1})$.
 
