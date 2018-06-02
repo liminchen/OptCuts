@@ -25,7 +25,7 @@ To perform our primal update we seek to minimize our Lagrangian
 %, composed of the weighted sum of seam-length, $E_s$ and distortion, $E_d$ jointly 
 over both continuous changes in vertex position \emph{and} discrete changes in topology. 
 %
-In order to optimize over topology we could potentially perform exhaustive search over the graph of all possible mesh changes. However, this clearly becomes impractical for any practical size mesh. 
+In order to optimize over topology we could potentially perform exhaustive search over the graph of all possible mesh changes. However, this clearly becomes intractable for any practical mesh size. 
 Instead, we begin by recalling the standard process of optimizing a smooth energy solely over vertex DoFs. In such cases, each iterate generally forms a localized approximation of the minimized energy and then uses it to propose a candidate direction for decrease. Then, as finding such a direction is expensive, we apply a search along the proposed direction to ensure we will gain a significant decrease in energy (and not increase) along it. 
 
 Here we extend this process to include explorations of discrete variations in topology. In analogy to seeking a continuous search direction, at the start of each new primal solve we will build many localized energy models to search in parallel for a likely candidate mesh operation to repeatedly propagate topology change, i.e., cutting or merging, over our UV mesh. Each inner iterate of the primal solve will successively apply this operation in combination with standard smooth descent to explore discrete-continuous descent until no further progress is made and so a primal update is found.    
