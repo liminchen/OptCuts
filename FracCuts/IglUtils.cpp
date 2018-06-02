@@ -230,7 +230,6 @@ namespace FracCuts {
             double frac = len[i] * 2. * M_PI / total_len;
             UV.row(map_ij[bnd[i]]) << radius * cos(frac), radius * sin(frac);
         }
-        
     }
     
     void splitRGB(char32_t color, double rgb[3]) {

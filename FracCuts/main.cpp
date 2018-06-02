@@ -37,10 +37,10 @@ FracCuts::TriangleSoup triSoup_backup;
 FracCuts::Optimizer* optimizer;
 std::vector<FracCuts::Energy*> energyTerms;
 std::vector<double> energyParams;
-//bool bijectiveParam = false;
-bool bijectiveParam = true; //TODO: set as arguments!
-//bool rand1PInitCut = false;
-bool rand1PInitCut = true; //!!! for fast prototyping
+bool bijectiveParam = false;
+//bool bijectiveParam = true; //TODO: set as arguments!
+bool rand1PInitCut = false;
+//bool rand1PInitCut = true; //!!! for fast prototyping
 double lambda_init;
 bool optimization_on = false;
 int iterNum = 0;
@@ -53,7 +53,7 @@ double fracThres = 0.0;
 bool altBase = false;
 bool outerLoopFinished = false;
 const int boundMeasureType = 0; // 0: E_SD, 1: L2 Stretch
-double upperBound = 4.1;
+double upperBound = 4.0445;
 const double convTol_upperBound = 1.0e-3; //TODO!!! related to avg edge len or upperBound?
 std::vector<std::pair<double, double>> energyChanges_bSplit, energyChanges_iSplit, energyChanges_merge;
 std::vector<std::vector<int>> paths_bSplit, paths_iSplit, paths_merge;
@@ -523,7 +523,7 @@ bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier
             case 'o':
             case 'O': {
                 infoName = std::to_string(iterNum);
-                saveInfo();
+                saveInfo(true, false, true);
                 break;
             }
                 
@@ -1370,9 +1370,57 @@ int main(int argc, char *argv[])
 //        igl::harmonic(A, M, bnd, bnd_uv, 1, UV);
         
         // with input UV
-        triSoup.emplace_back(new FracCuts::TriangleSoup(V, F, UV, FUV, startWithTriSoup));
-        outputFolderPath += meshName + "_input_" + FracCuts::IglUtils::rtos(lambda) + "_" + FracCuts::IglUtils::rtos(delta) +
-            "_" +startDS + folderTail;
+        FracCuts::TriangleSoup *temp = new FracCuts::TriangleSoup(V, F, UV, FUV, startWithTriSoup);
+        outputFolderPath += meshName + "_input_" + FracCuts::IglUtils::rtos(lambda) + "_" +
+            FracCuts::IglUtils::rtos(delta) + "_" +startDS + folderTail;
+        
+        std::vector<std::vector<int>> bnd_all;
+        igl::boundary_loop(temp->F, bnd_all);
+        int UVGridDim = std::ceil(std::sqrt(bnd_all.size()));
+        if(!temp->checkInversion() || (bijectiveParam && (UVGridDim > 1))) {
+            std::cout << "local injectivity violated in given input UV map, " <<
+                "or multi-chart bijective UV map needs to be ensured, " <<
+                "obtaining new initial UV map by applying Tutte's embedding..." << std::endl;
+            
+            Eigen::VectorXi bnd_stacked;
+            Eigen::MatrixXd bnd_uv_stacked;
+            int curBndVAmt = 0;
+            for(int bndI = 0; bndI < bnd_all.size(); bndI++) {
+                // map boundary to unit circle
+                bnd_stacked.conservativeResize(curBndVAmt + bnd_all[bndI].size());
+                bnd_stacked.tail(bnd_all[bndI].size()) = Eigen::VectorXi::Map(bnd_all[bndI].data(),
+                                                                              bnd_all[bndI].size());
+
+                Eigen::MatrixXd bnd_uv;
+                igl::map_vertices_to_circle(temp->V_rest,
+                                            bnd_stacked.tail(bnd_all[bndI].size()),
+                                            bnd_uv);
+                double xOffset = bndI % UVGridDim * 2.1, yOffset = bndI / UVGridDim * 2.1;
+                for(int bnd_uvI = 0; bnd_uvI < bnd_uv.rows(); bnd_uvI++) {
+                    bnd_uv(bnd_uvI, 0) += xOffset;
+                    bnd_uv(bnd_uvI, 1) += yOffset;
+                }
+                bnd_uv_stacked.conservativeResize(curBndVAmt + bnd_uv.rows(), 2);
+                bnd_uv_stacked.bottomRows(bnd_uv.rows()) = bnd_uv;
+
+                curBndVAmt = bnd_stacked.size();
+            }
+            // Harmonic map with uniform weights
+            Eigen::MatrixXd UV_Tutte;
+            Eigen::SparseMatrix<double> A, M;
+            FracCuts::IglUtils::computeUniformLaplacian(temp->F, A);
+            igl::harmonic(A, M, bnd_stacked, bnd_uv_stacked, 1, temp->V);
+            
+            if(!temp->checkInversion()) {
+                std::cout << "local injectivity still violated in the computed initial UV map, " <<
+                    "please carefully check UV topology for e.g. non-manifold vertices. " <<
+                    "Exit program..." << std::endl;
+                exit(-1);
+            }
+        }
+        
+        triSoup.emplace_back(temp);
+//        temp->saveAsMesh("/Users/mincli/Desktop/output_FracCuts/test.obj");//DEBUG
     }
     else {
         // no input UV
@@ -1485,7 +1533,7 @@ int main(int argc, char *argv[])
     texScale = 10.0 / (triSoup[0]->bbox.row(1) - triSoup[0]->bbox.row(0)).maxCoeff();
     if(lambda != 1.0) {
         energyParams.emplace_back(1.0 - lambda);
-    //    energyTerms.emplace_back(new FracCuts::ARAPEnergy());
+//        energyTerms.emplace_back(new FracCuts::ARAPEnergy());
         energyTerms.emplace_back(new FracCuts::SymStretchEnergy());
 //        energyTerms.back()->checkEnergyVal(*triSoup[0]);
 //        energyTerms.back()->checkGradient(*triSoup[0]);

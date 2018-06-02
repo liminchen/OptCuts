@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		980180BC1F552CDA00C64B43 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 980180BB1F552CDA00C64B43 /* main.cpp */; };
+        980180BC1F552CDA00C64B43 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 980180BB1F552CDA00C64B43 /* main.cpp */; };
 		982CE6131F5DB358004176A8 /* Energy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982CE6121F5DB358004176A8 /* Energy.cpp */; };
 		987382D12076F49A0040BBCE /* Scaffold.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 987382CF2076F49A0040BBCE /* Scaffold.cpp */; };
 		988D81A720AA7FFE0037737D /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 988ED1271F57211500B21181 /* OpenGL.framework */; };
@@ -237,7 +237,7 @@
 				98A5A32B1F5F5BB900584EFD /* ARAPEnergy.cpp in Sources */,
 				98C2D8F41F6348820048B18A /* SeparationEnergy.cpp in Sources */,
 				988ED12F1F5727F400B21181 /* TriangleSoup.cpp in Sources */,
-				980180BC1F552CDA00C64B43 /* main.cpp in Sources */,
+                980180BC1F552CDA00C64B43 /* main.cpp in Sources */,
 				987382D12076F49A0040BBCE /* Scaffold.cpp in Sources */,
 				98D3E7D51F75AEC6000DA61D /* CohesiveEnergy.cpp in Sources */,
 			);

@@ -258,7 +258,7 @@ namespace FracCuts {
                             // merge closed surface mesh file and UV file
                             Eigen::MatrixXd V_UV;
                             Eigen::MatrixXi F_UV;
-                            igl::readOBJ(meshPath.substr(0, meshPath.find("_closed.obj")) + "_UV.obj",
+                            igl::readOBJ(meshPath.substr(0, meshPath.find("_closed.obj")) + ".obj",
                                                          V_UV, F_UV);
                             Eigen::VectorXi bnd;
                             igl::boundary_loop(F_UV, bnd); // Find the open boundary

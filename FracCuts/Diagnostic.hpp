@@ -252,7 +252,7 @@ namespace FracCuts{
                         char buf[BUFSIZ];
                         while((!feof(dirList)) && fscanf(dirList, "%s", buf)) {
                             std::string resultName(buf);
-                            if(resultName.find("GeomImg") != std::string::npos)
+//                            if(resultName.find("GeomImg") != std::string::npos)
                             {
                                 std::string meshPath(resultsFolderPath + '/' + resultName + "/finalResult_mesh.obj");
                                 Eigen::MatrixXd V, UV, N;

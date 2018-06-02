@@ -215,19 +215,19 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "1 4 /Applications/XAMPP/xamppfiles/htdocs/expResults/results_giComp_4.05/"
+            argument = "1 4 /Users/mincli/Desktop/output_FracCuts"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "1 5 /Applications/XAMPP/xamppfiles/htdocs/expResults/results_seamsterComp/"
+            argument = "1 5 /Applications/XAMPP/xamppfiles/htdocs/expResults/results_ACComp_user/"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "2 /Users/mincli/Desktop/output_FracCuts/test.obj 2"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "2 /Users/mincli/Downloads/meshes/closed/zoo/triceratops_param.obj 2"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "2 /Applications/XAMPP/xamppfiles/htdocs/expResults/results_giComp4.05/hand_2_i_f10000_Tutte_0.999_61_OursBounded/finalResult_mesh.obj 3"
+            argument = "2 /Users/mincli/Desktop/output_FracCuts/bunny_Tutte_0.999_501_OursBounded_teaser/finalResult_mesh.obj 3"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
