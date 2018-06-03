@@ -150,7 +150,7 @@ Low-distortion mapping of three-dimensional surfaces to the plane is a fundament
 Parameterization applications typically require UV maps with an application-specific upper bound on distortion to avoid mapping artifacts; at the same time they seek to reduce cut lengths to minimize discontinuity artifacts. 
 %Motivated by these observations,
 %
-We propose {\em OptCuts}, an algorithm for jointly optimizing the parameterization and cutting of a three-dimensional mesh. OPtCuts automatically minimizes seam length subject to satisfying a user-provided bound on the distortion of the mapping computed using these seams. 
+We propose {\em OptCuts}, an algorithm for jointly optimizing the parameterization and cutting of a three-dimensional mesh. OptCuts automatically minimizes seam length subject to satisfying a user-provided bound on the distortion of the mapping computed using these seams. 
 %\alla{what does topology or geometry descent mean?}
 %Starting with an arbitrary initial embedding, OptCuts alternates between discrete topology descent and smooth geometry descent to search for an optimal UV map strictly satisfying a specified distortion bound. 
 Starting with an arbitrary initial embedding, OptCuts alternates between topology and geometry update steps that consistently decrease distortion and seam length, producing a UV map with compact boundaries that strictly satisfies a specified distortion bound. 

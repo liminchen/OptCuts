@@ -3,21 +3,29 @@
 \section{Conclusions}
 \label{sec:conclusion}
 
+We propose OptCuts, a novel framework for mesh parameterization that minimizes seam length while satisfying a target distortion bound. Our method jointly optimizes over the space of discrete topological changes and continuous embedding parameters, and successfully finds a locally optimal solution starting from various initial conditions. Our framework is versatile and can be extended to produce globally bijective maps, leverage user guidance (if available), and naturally incorporates existing seam cutting strategies. We compare our method to a wide range of alternative approaches using a benchmark of 70 complex shapes, and in vast majority of cases it yields shorter seams while achieving the same or lower distortion. 
+
 \paragraph{Limitations and Future Works}
-Our method does not provide globally optimal solutions, the results are still locally optimal, but w.r.t. both seam placement and distortion, which is better than previous 2-pass methods that breaks the correlation between seam placement and distortion.
+Our formulation for shape parameterization as a constrained optimization with discrete-continuous search opens novel research challenges. First, it would be interesting to further investigate the space of energy wells, and gain better insights on how initial conditions affect the quality of the final solution. Second, we would like to extend the running time of our method by leveraging some parallelism, for example, some topological searchers can be executed at the same time on distant mesh regions. Third, it would be useful to incorporate additional priors into our framework to favor seamless parameterization, seam smoothness, and creation of charts that efficiently use texture space. 
 
-\begin{itemize}
-\item take advantage of basic SIMD type parallelism for improving results quality by directly evaluating $f_v$ for neighbors and track multiple branches, very useful for practical implementations
-\item multiple fracture
-\item control seam smoothness
-\item seamless parameterization
-\item conformal parameterization
-\item given a symmetric shape, whether symmetrically triangulated or not, generate symmetric UV map
-\item if slightly modifying the triangulation is allowed, we could also create fractures in the interior of an element and locally remesh the stencil, which makes our method more triangulation and resolution invariance
-\item start with input surface and solve in 3D by reducing the curvature. In this way, the need for locally injective initial embedding in parameterization problems could be eliminated, and the result is only "biased" by its 3D shape, which is the most reasonable bias
-\item dynamic impulse for bijectivity parameterization within our framework
-\end{itemize}
+\vova{Minchen has a great list of other ideas for future work (see comments), some points can be added back}
 
-In summary, we proposed a framework that tackles the problems related to both mesh topology and an energy function defined on the surface geometry, thus we expect our framework to be applied on more discrete-continuous geometry processing problems.
+%Our method does not provide globally optimal solutions, the results are still locally optimal, but w.r.t. both seam placement and distortion, which is better than previous 2-pass methods that breaks the correlation between seam placement and distortion.
+%
+%\begin{itemize}
+%\item take advantage of basic SIMD type parallelism for improving results quality by directly evaluating $f_v$ for neighbors and track multiple branches, very useful for practical implementations
+%\item multiple fracture
+%\item control seam smoothness
+%\item seamless parameterization
+%\item conformal parameterization
+%\item given a symmetric shape, whether symmetrically triangulated or not, generate symmetric UV map
+%\item if slightly modifying the triangulation is allowed, we could also create fractures in the interior of an element and locally remesh the stencil, which makes our method more triangulation and resolution invariance
+%\item start with input surface and solve in 3D by reducing the curvature. In this way, the need for locally injective initial embedding in parameterization problems could be eliminated, and the result is only "biased" by its 3D shape, which is the most reasonable bias
+%\item dynamic impulse for bijectivity parameterization within our framework
+%\end{itemize}
+%
+%In summary, we proposed a framework that tackles the problems related to both mesh topology and an energy function defined on the surface geometry, thus we expect our framework to be applied on more discrete-continuous geometry processing problems.
+%
+%\paragraph{Limitations and Future Works}
 
-\section*{Acknowledgements} 
+%\section*{Acknowledgements} 
