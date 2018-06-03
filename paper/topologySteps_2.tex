@@ -1,21 +1,21 @@
 % !TeX root = OptCuts.tex
 
-\begin{algorithm}[h]
-\SetAlgoLined
-\KwData{$M$, $T^{k,i-1}$, $U^{k,i-1}$, $\delta^{k,i-1}$, $\lambda^{k+1}$}
-\KwResult{$T^{k,i}$, $U_a^{k,i-1}$}
-$\hat{\mathcal{E}}^{k,i-1}_T \leftarrow$ operationFiltering($M$, $T^{k,i-1}$, $U^{k,i-1}$); // Section~\ref{sec:operationFiltering}\\
-\For{each $e^{(k,i-1),j}_{T}$ in $\hat{\mathcal{E}}^{k,i-1}_T$}{
-  $\hat{f}_e(e^{(k,i-1),j}_{T}) \leftarrow \Big(E^j_s + \lambda^{k+1} \min_{U^{(k,i-1),j}} E_d(T^j,U)\Big) - L(T^{k,i-1},U^{k,i-1},\lambda^{k+1})$\;
-}
-$U_a^{k,i-1} \leftarrow U^{k,i-1}$\;
-\If{$\min_{e^{(k,i-1),j}_{T} \in \hat{\mathcal{E}}^{k,i-1}_T} \hat{f}_e(e^{(k,i-1),j}_{T}) \leq \delta^{k,i-1}$}
-{
-  $T^{k,i} \leftarrow T^j$, $U_a^{(k,i-1),j} \leftarrow \argmin_{U^{(k,i-1),j}} E_d(T^j,U)$\;
-}
-\caption{Topology Descent Step $(k+1,i)$}
-\label{alg:topologyStep}
-\end{algorithm}
+%\begin{algorithm}[h]
+%\SetAlgoLined
+%\KwData{$M$, $T^{k,i-1}$, $U^{k,i-1}$, $\delta^{k,i-1}$, $\lambda^{k+1}$}
+%\KwResult{$T^{k,i}$, $U_a^{k,i-1}$}
+%$\hat{\mathcal{E}}^{k,i-1}_T \leftarrow$ operationFiltering($M$, $T^{k,i-1}$, $U^{k,i-1}$); // Section~\ref{sec:operationFiltering}\\
+%\For{each $e^{(k,i-1),j}_{T}$ in $\hat{\mathcal{E}}^{k,i-1}_T$}{
+%  $\hat{f}_e(e^{(k,i-1),j}_{T}) \leftarrow \Big(E^j_s + \lambda^{k+1} \min_{U^{(k,i-1),j}} E_d(T^j,U)\Big) - L(T^{k,i-1},U^{k,i-1},\lambda^{k+1})$\;
+%}
+%$U_a^{k,i-1} \leftarrow U^{k,i-1}$\;
+%\If{$\min_{e^{(k,i-1),j}_{T} \in \hat{\mathcal{E}}^{k,i-1}_T} \hat{f}_e(e^{(k,i-1),j}_{T}) \leq \delta^{k,i-1}$}
+%{
+%  $T^{k,i} \leftarrow T^j$, $U_a^{(k,i-1),j} \leftarrow \argmin_{U^{(k,i-1),j}} E_d(T^j,U)$\;
+%}
+%\caption{Topology Descent Step $(k+1,i)$}
+%\label{alg:topologyStep}
+%\end{algorithm}
 
 \section{Coupled Discrete-Continuous Descent}
 %\section{Coupled Topology and Distortion Descent}
@@ -51,19 +51,43 @@ d(o^{i,j}) = E_s(T^i) + \lambda^k \min_{U^{i,j}} E_d \big( T^i, (U^{i,j}, U_s) \
 We consider descent with topology changes propagated by three mesh operations.
 
 \paragraph{Boundary Vertex Split}
-Boundary vertices can be split along any interior incident edges. Each such candidate split generates two duplicate vertices forming the stencil to compute $d$.
+Boundary vertices can be split along any interior incident edges. 
+Each such candidate split generates two duplicate vertices forming the stencil to compute $d$.
+\begin{wrapfigure}[5]{r}{0.4\linewidth}
+  \begin{center}
+  \vspace{-4mm}
+    \includegraphics[width=1\linewidth]{fig/bSplit}
+  \end{center}
+\end{wrapfigure}
 When splitting a boundary vertex along an edge connecting to another boundary vertex we either remove a hole or else produce a new chart in our UV map. For the latter case, we generate four duplicate vertices forming the stencil to compute $d$.
 %\minchen{[TODO] 4-vertex merge to support joining two charts together, triangle moving operations?}
 
 \paragraph{Interior Vertex Split}
-Interior vertices can be split along any pair of incident edges. Each such candidate split generates two duplicate vertices forming the stencil to compute $d$. 
+\begin{wrapfigure}[4]{r}{0.4\linewidth}
+  \begin{center}
+  \vspace{-4mm}
+    \includegraphics[width=1\linewidth]{fig/iSplit}
+  \vspace{-1mm}
+  \end{center}
+\end{wrapfigure}
+Interior vertices can be split along 
+any pair of incident edges. Each such candidate split generates two duplicate vertices forming the stencil to compute $d$. 
 %We ignore potential interior splits when this would be connected to an existing seam, as this is overloaded with propagating the boundary vertex split operation.
 
 \paragraph{Corner Merge}
-Corners are formed by three UV vertices corresponding to the tail edge \justin{not sure what this is} of a cut seam on the input surface. Merging the end vertices generates a single new vertex forming the stencil to compute $d$. Merging requires extra care here. Unlike vertex splitting, an initial location for the newly merged vertex must be selected. Na\"ive merging can violate local injectivity and so prevent progress if we are working with barrier-type energies like symmetric Dirichlet. We initialize a merged vertex to the average of its parent vertices. If inversion is detected, we then apply Agmon's relaxation~\shortcite{Agmon1954Relaxation} to iteratively project to an inversion-free position. On rare occasions this will not suffice and so we remove the proposed operation from our queue; see below.
+Corners are formed by three UV vertices corresponding to the tail edge of a cut seam on the input surface. 
+\begin{wrapfigure}[5]{r}{0.4\linewidth}
+  \begin{center}
+  \vspace{-5mm}
+    \includegraphics[width=1\linewidth]{fig/cMerge}
+  \vspace{-4mm}
+  \end{center}
+\end{wrapfigure}
+Merging the end vertices generates a single new vertex forming the stencil to compute $d$. Merging requires extra care here. Unlike vertex splitting, an initial location for the newly merged vertex must be selected. Na\"ive merging can violate local injectivity and so prevent progress if we are working with barrier-type energies like symmetric Dirichlet. We initialize a merged vertex to the average of its parent vertices. If inversion is detected, we then apply Agmon's relaxation~\shortcite{Agmon1954Relaxation} to iteratively project to an inversion-free position. On rare occasions this will not suffice and so we remove the proposed operation from our queue; see below.
 %However, cases are still there when only moving the merged vertex is not enough to obtain an inversion free initial local stencil. In these situations, we will just abandon the candidate. This rarely happens in practice and does not affect our result.\justin{didn't follow the last two sentences, maybe needs a small figure}
 
 \subsection{Topology Search Candidates}
+\label{sec:descent_op}
 In analogy to a continuous search direction, at the start of each new primal solve we search for a candidate mesh operation to propagate descent. 
 %
 To select the candidate mesh operation we first consider all $m$ boundary vertices in the current topology $T^k$. \danny{Minchen: confirm this detail:} For each such vertex we compute the standard deviation over all the distortion energy gradients acting on the vertex contributed from incident elements. From the set of $m^{0.8}$ boundary vertices with largest deviation we then build a set of candidate mesh operations $O^k$ formed by boundary vertex splits and corner merges (when valid) on those vertices. \minchen{The filtering is only applied on split operations, not on corner merge. We simply query all corners, there's not many of them, and the filtering criteria for splits is not appropriate for merge.} We then find a minimizer
@@ -77,7 +101,7 @@ With local support, all queried $d$ in this minimization can be evaluated in par
 
 Once we have computed our candidate search operation $s^k$, we begin an inner loop iteration, indexed by superscript $i$ (recalling outer iterates are indexed by $k$), to solve the primal variable update. At the start of this process we initialize our desired upper bound on estimated decrease to $\delta^0 = 0$; this will be updated at each successive iterate. Then, each inner iteration $i$ proceeds by first propagating topology change followed by smooth coordinate update. 
 
-Each topology propagation step first generates a set of all possible mesh operations $\mathcal{E}(s^k)$ that could continue the seed operation $s^k$, e.g. all edges that could continue to propagate a boundary splitting cut from the current tail. See Figure\ \ref{fig:propagation} for illustrations on how we propagate each kind of the operations.
+Each topology propagation step first generates a set of all possible mesh operations $\mathcal{E}(s^k, T^{i-1})$ that could continue to propagate the seed operation $s^k$ on topology $T^{i-1}$, e.g. all edges that could continue to propagate a boundary splitting cut from the current tail. See Figure\ \ref{fig:propagation} for illustrations on how we propagate each operation.
 As in seeking our seed operation we once again find the $d$-minimizing operation from this small set of candidate operations
 \begin{align}
 \label{eq:minE}
@@ -92,7 +116,7 @@ If this minimizer provides sufficient estimated decrease, so that $d(o^{i,j}) < 
 \label{fig:propagation}
 \end{figure}
 
-The subsequent coordinate update then simply applies a single step of projected Newton descent with line search to update the vertex coordinates $U^i$; see \minchen{Section~\ref{}} for details. We then ask for the next topology update to gain similar or greater magnitude decrease by setting $\delta^i = E_d(U^i) - E_d(U^{i-1})$.
+The subsequent coordinate update then simply applies a single step of projected Newton descent with line search to update the vertex coordinates $U^i$; see Section~\ref{sec:descentStep} for details. We then ask for the next topology update to gain similar or greater magnitude decrease by setting $\delta^i = E_d(U^i) - E_d(U^{i-1})$.
 
 This process terminates at iteration $i+1$ when smooth iterations have converged (either by gradient or relative error norm) \emph{and} the propagation of the seed mesh operation produces no further descent. We then set $(T^k,U^k) \leftarrow (T^{i+1},U^{i+1})$ and begin the next outer iterate $k+1$ with the dual variable update. 
 

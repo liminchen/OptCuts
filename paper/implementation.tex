@@ -3,6 +3,87 @@
 \section{Implementation Details}
 \label{sec:imp}
 
+\begin{algorithm}[h!]
+\label{alg:OptCuts}
+\caption{OptCuts}
+
+\textbf{Given:} $M$, $T^0$, $U^0$, $b_d$ 
+
+\textbf{Initialize:} $k \leftarrow 0,$ \hspace{2pt} $\lambda^k \leftarrow 0$, \texttt{converged} $\leftarrow$ \textbf{false}, \\
+
+$k \leftarrow 1$ \\
+
+\textbf{while} \hspace{2pt} \textbf{!}  \texttt{converged} \hspace{2pt} \textbf{do} \\
+
+%%%----%%%
+
+\hspace{10pt} $\lambda^{k} \leftarrow \max\big(0,\big( E_{d}(T^{k-1}, U^{k-1}) -b_d \big) + \lambda^{k-1}\big)$ \hspace{10pt} // Dual Update (\S\ref{sec:dualUpdate})\\
+\hspace{10pt} \texttt{d\_stationary} $\leftarrow$ $| \lambda^{k} - \lambda^{k-1} | < 10^{-3}$ \\
+
+%%%----%%%
+\hspace{10pt} $i \leftarrow 0$, $(T^{i},U^{i}) \leftarrow (T^{k},U^{k})$, \hspace{2pt} $\delta^{i} \leftarrow 0$ \\
+\hspace{10pt} \texttt{v\_converged} $\leftarrow$ \textbf{false}, \texttt{t\_stationary} $\leftarrow$ \textbf{false}, \texttt{t\_stopped} $\leftarrow$ \textbf{false} \\
+\hspace{10pt} $s_k \leftarrow \argmin_{o \in \mathcal{O}^k} d(o)$ \hspace{10pt}//  Get best mesh operation for descent (\S\ref{sec:descent_op})\\
+
+\hspace{10pt} \textbf{if} $d(s_k) \geq 0$ \\
+\hspace{20pt} \texttt{t\_stationary} $\leftarrow$ \textbf{true}\\
+\hspace{10pt} \textbf{end if} \\
+
+\hspace{10pt} // Primal update loop (\S\ref{sec:primalUpdate}): \\
+\hspace{10pt} $i \leftarrow 1$ \\
+\hspace{10pt} \textbf{while}  \textbf{!}  ( \texttt{v\_converged} \hspace{2pt} \textbf{and} \hspace{2pt}  \texttt{t\_stopped} ) \hspace{2pt}   \textbf{do} 
+
+%%%----\hspace{20pt} // Topology descent step: \\
+\hspace{20pt} \texttt{t\_stopped} $\leftarrow$ \textbf{true} \\
+\hspace{20pt} \textbf{if}  \textbf{!} \texttt{t\_stationary} \\
+\hspace{30pt} $o^{i,j} \leftarrow \argmin_{o \in \mathcal{E}(s^k, T^{i-1})} d(o)$ \hspace{3pt}// Get candidate op (\S\ref{sec:descent_op})  \\
+\hspace{30pt} \textbf{if} $d(o^{i,j}) < \delta^{i-1}$ \\
+\hspace{40pt} $T^i \leftarrow T^j$ \hspace{10pt} // Sufficient decrease, update topology (\S\ref{sec:descent_op}) \\
+\hspace{40pt} $U^{i-1} \leftarrow (U^{i,j}, U_s) $ \hspace{10pt} // Initialize new geometry (\S\ref{sec:descent_op}) \\
+\hspace{40pt} \texttt{t\_stopped} $\leftarrow$ \textbf{false} \\
+\hspace{30pt} \textbf{end if} \\
+\hspace{20pt} \textbf{end if} \\
+%%%----\hspace{20pt} // Vertex descent step: \\
+
+\hspace{20pt}  $g \leftarrow \nabla_{\small{U}} E_{d}(T^i,U^{i-1})$ \hspace{10pt}//  Distortion energy gradient 
+
+\hspace{20pt}\textbf{if} $\|g\| > 10^{-6}$ \hspace{2pt} \\
+
+\hspace{30pt} $H \leftarrow \text{Project}(\nabla_{\small{U}}^2 E_d(T^i,U^{i-1}))$ \hspace{10pt}// Projected-Hessian (\S\ref{sec:descentStep}) \\
+
+\hspace{30pt} Solve: $H p = -g$ \hspace{10pt} // Get smooth descent direction $p$ (\S\ref{sec:descentStep}) \\
+
+\hspace{30pt} $\alpha \leftarrow \text{LineSearch}(U^{i-1}, p, E_d)$ \hspace{10pt} // Line-search (\S\ref{sec:descentStep}) \\
+
+\hspace{30pt} $U^{i} \leftarrow U^{i-1} + \alpha p$  \\
+		
+\hspace{30pt} $\delta^{i} \leftarrow E_{d}(T^i,U^{i}) - E_{d}(T^i,U^{i-1})$  \\
+
+\hspace{30pt}\textbf{if} $|\delta^{i}/E_{d}(T^i,U^{i-1})| < 10^{-6}\alpha$ \textbf{and} \textbf{!}  \texttt{t\_stationary} \\
+\hspace{40pt} \textbf{break} \hspace{10pt} // Safe to early exit \\
+\hspace{30pt} \textbf{end if} \\
+
+\hspace{20pt} \textbf{else}  \\
+\hspace{30pt} \texttt{v\_converged} $\leftarrow $ \textbf{true} \\
+\hspace{20pt} \textbf{end if} \\
+
+\hspace{20pt} $i \leftarrow i + 1$ \\
+
+\hspace{10pt} $\textbf{end while}$ \\
+
+\hspace{10pt}  $(T^{k},U^{k}) \leftarrow (T^{i-1},U^{i-1})$ \\
+
+\hspace{10pt} $k \leftarrow k + 1$ \\
+
+\hspace{10pt} \texttt{converged} $\leftarrow$ \texttt{v\_converged} \textbf{and}   \texttt{t\_stationary}  \textbf{and} \texttt{d\_stationary} \\
+
+ $\textbf{end while}$ \\
+ 
+ $(T^{*},U^{*}) \leftarrow (T^{k-1},U^{k-1})$
+
+\end{algorithm}
+
+
 In this section we provide remaining technical details of our framework. First, we describe our choices for obtaining the initial embeddings. Second, we provide details on continuous search that we use during our smooth descent step. Finally, we provide some details on enforcing and maintaining bijectivity. 
 
 \subsection{Initialization}
@@ -21,26 +102,26 @@ we run our method on a closed input surface with several randomly picked initial
 
 Our smooth descent steps take in the locally-altered UV map by the current topology descent step and conduct one Newton-type iteration reducing $E_d$ over $U$ with $T$ fixed (Algorithm~\ref{alg:descentStep}).
 
-\begin{algorithm}[h]
-\SetAlgoLined
-\KwData{$M$, $T^{k,i}$, $U_a^{k,i-1}$}
-\KwResult{$U^{k,i}$, $\delta^{k,i}$}
-$g^{k,i-1} \leftarrow \nabla E_{d}(T^{k,i}, U_a^{k,i-1})$\;
-\If{$||g^{k,i-1}||^2 < 10^{-12}$}{
-	converge\;
-}
-compute $E_{d}$ Hessian proxy $P^{k,i-1}$\;
-solve $P^{k,i-1} p^{k,i-1} = -g^{k,i-1}$ for search direction $p^{k,i-1}$\;
-compute initial step size $\alpha^{k,i-1}_0$\;
-back-tracking line search with Armijo rule to obtain $\alpha^{k,i-1}$\;
-$U^{k,i} \leftarrow U_a^{k,i-1} + \alpha^{k,i-1} p^{k,i-1}$\;
-$\delta^{k,i} \leftarrow E_{d}(T^{k,i}, U^{k,i}) - E_{d}(T^{k,i}, U_a^{k,i-1})$\;
-\If{$|\delta^{k,i}/E_{d}(T^{k,i}, U_a^{k,i-1})| < 10^{-6}\alpha^{k,i-1}$}{
-	stop\;
-}
-\caption{Smooth Descent Step $(k+1,i)$}
-\label{alg:descentStep}
-\end{algorithm}
+%\begin{algorithm}[h]
+%\SetAlgoLined
+%\KwData{$M$, $T^{k,i}$, $U_a^{k,i-1}$}
+%\KwResult{$U^{k,i}$, $\delta^{k,i}$}
+%$g^{k,i-1} \leftarrow \nabla E_{d}(T^{k,i}, U_a^{k,i-1})$\;
+%\If{$||g^{k,i-1}||^2 < 10^{-12}$}{
+%	converge\;
+%}
+%compute $E_{d}$ Hessian proxy $P^{k,i-1}$\;
+%solve $P^{k,i-1} p^{k,i-1} = -g^{k,i-1}$ for search direction $p^{k,i-1}$\;
+%compute initial step size $\alpha^{k,i-1}_0$\;
+%back-tracking line search with Armijo rule to obtain $\alpha^{k,i-1}$\;
+%$U^{k,i} \leftarrow U_a^{k,i-1} + \alpha^{k,i-1} p^{k,i-1}$\;
+%$\delta^{k,i} \leftarrow E_{d}(T^{k,i}, U^{k,i}) - E_{d}(T^{k,i}, U_a^{k,i-1})$\;
+%\If{$|\delta^{k,i}/E_{d}(T^{k,i}, U_a^{k,i-1})| < 10^{-6}\alpha^{k,i-1}$}{
+%	stop\;
+%}
+%\caption{Smooth Descent Step $(k+1,i)$}
+%\label{alg:descentStep}
+%\end{algorithm}
 Since $E_{d}$ is not convex, we apply the projected Newton method\ \cite{Teran2005Robust} to project the Hessian of each energy element to its closest symmetric positive definite (SPD) matrix in parallel with Intel TBB~\cite{Reinders2007Intel} and assemble the local Hessians to form an SPD Hessian proxy $P$ for the full mesh. We use the PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver to solve the linear system $P p = -g$ for search direction $p$. \minchen{[TODO] change to use SPD solver by fixing a direction to ensure definiteness} As $E_{d}$ is also a barrier-type energy, it is essential to ensure that the configuration always stays inside the feasible region. Thus, we follow Smith and Schaefer~\shortcite{Smith2015Bijective} to compute an initial step size $\alpha_0$ that avoids element inversion and then conduct back-tracking line search with Armijo rule~\cite{Armijo1966Minimization} to ensure sufficient energy decrease.
 
 Besides a relatively small tolerance on $g$ for convergence detection, we apply another relative energy decrease criteria to appropriately stop the process while necessary.

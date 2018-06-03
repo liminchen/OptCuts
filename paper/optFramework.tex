@@ -3,27 +3,27 @@
 \section{Optimization Framework for OptCuts}
 
 To solve our constrained optimization (\ref{eq:p1}) we focus on resolving the saddle-point problem (\ref{eq:p2}). 
-We start from an initial, valid UV map $(T^0, U^0)$ and bootstrap our dual variable with $\lambda^0 = 0$. OptCuts then iteratively alternates between primal solves to improve geometry, $(T, U)$, and dual solves to update our multiplier, $\lambda$, to encode the new balancing term between distortion and seam quality for the next primal solve we take. See Algorithm~\ref{alg:selfWeight}.
+We start from an initial, valid UV map $(T^0, U^0)$ and bootstrap our dual variable with $\lambda^0 = 0$. OptCuts then iteratively alternates between primal solves to improve geometry, $(T, U)$, and dual solves to update our multiplier, $\lambda$, to encode the new balancing term between distortion and seam quality for the next primal solve we take. See Algorithm 1.
 
-\begin{algorithm}[!h]
-\SetAlgoLined
-\KwData{$M$, $T^0$, $U^0$, $b_d$}
-\KwResult{$T^*$, $U^*$}
-
-$\lambda^0 \leftarrow 0$, $k \leftarrow 1$\;
-
-\Do{either primal or dual not converged}{ 
-  $\lambda^{k}$ $\leftarrow$ dualUpdate($T^{k-1}$, $U^{k-1}$, $b_d$, $\lambda^{k-1}$); // Section~\ref{sec:dualUpdate}\\
-
-  $(T^{k}, U^{k})$ $\leftarrow$ primalUpdate($M$, $T^{k-1}$, $U^{k-1}$, $\lambda^{k}$); // Section~\ref{sec:primalUpdate}\\
-
-  $k \leftarrow k + 1$\;
-} 
-$(T^*, U^*)$ $ \leftarrow$ $(T^{k-1}, U^{k-1})$\; 
-
-\caption{OptCuts}
-\label{alg:selfWeight}
-\end{algorithm}
+%\begin{algorithm}[!h]
+%\SetAlgoLined
+%\KwData{$M$, $T^0$, $U^0$, $b_d$}
+%\KwResult{$T^*$, $U^*$}
+%
+%$\lambda^0 \leftarrow 0$, $k \leftarrow 1$\;
+%
+%\Do{either primal or dual not converged}{ 
+%  $\lambda^{k}$ $\leftarrow$ dualUpdate($T^{k-1}$, $U^{k-1}$, $b_d$, $\lambda^{k-1}$); // Section~\ref{sec:dualUpdate}\\
+%
+%  $(T^{k}, U^{k})$ $\leftarrow$ primalUpdate($M$, $T^{k-1}$, $U^{k-1}$, $\lambda^{k}$); // Section~\ref{sec:primalUpdate}\\
+%
+%  $k \leftarrow k + 1$\;
+%} 
+%$(T^*, U^*)$ $ \leftarrow$ $(T^{k-1}, U^{k-1})$\; 
+%
+%\caption{OptCuts}
+%\label{alg:selfWeight}
+%\end{algorithm}
 
 %\danny{Suggest moving this to our implementation section 
 %\subsection{Initialization}
@@ -45,26 +45,26 @@ We initially experimented with solving our primal problem by approximating topol
 To counter these challenges we directly optimize in alternating inner steps searching over changes in topology $T$ and then vertices $U$. These inner iterations loop until we 
 %converge to a minimizer of the Lagrangian at the fixed $\lambda^k$, 
 we reach a stationary point, 
-giving us iterate $k$'s newly updated geometry $(T^{k}, U^{k})$ (see Algorithm~\ref{alg:DCSearch}).% and Section\ \ref{sec:topologySearch}. 
+giving us iterate $k$'s newly updated geometry $(T^{k}, U^{k})$; see Algorithm 1.% and Section\ \ref{sec:topologySearch}. 
 
 %\danny{Minchen: correct me if I'm wrong but I don't believe you employ an actual convergence measure - you simply wait until the $(T,U)$ remain unchnged by further iterates. Is this correct?} \minchen{Correct. We simply stop the discrete-continuous alternations when continuous search converges since it also means topology search won't go further in the current direction. For continuous search, besides gradient tolerance, I also have a relative energy decrease tolerance ($10^{-6}$). It is not because we have troubles converging to small gradient, which is actually not necessary. Setting extra tolerance on relative energy decrease is more stable than using larger gradient tolerance.}
 
-\begin{algorithm}[h]
-\SetAlgoLined
-\KwData{$M$, $T^{k}$, $U^{k}$, $\lambda^{k+1}$}
-\KwResult{$T^{k+1}$, $U^{k+1}$}
-$i \leftarrow 1$, $T^{k,0} \leftarrow T^{k}$, $U^{k,0} \leftarrow U^{k}$\;
-$\delta^{k,0} \leftarrow 0$\;
-\Do{either step is not converged}
-{
-	($T^{k,i}$, $U_a^{k,i-1}$) $\leftarrow$ topologyDescentStep($M$, $T^{k,i-1}$, $U^{k,i-1}$, $\delta^{k,i-1}$, $\lambda^{k+1}$); // Section~\ref{sec:topologySearch}\\
-	($U^{k,i}$, $\delta^{k,i}$) $\leftarrow$ smoothDescentStep($M$, $T^{k,i}$, $U_a^{k,i-1}$); // Section~\ref{sec:descentStep}\\
-	$i \leftarrow i+1$\;
-}
-$T^{k+1} \leftarrow T^{k,i-1}$, $U^{k+1} \leftarrow U^{k,i-1}$
-\caption{Primal Update $k+1$}
-\label{alg:DCSearch}
-\end{algorithm}
+%\begin{algorithm}[h]
+%\SetAlgoLined
+%\KwData{$M$, $T^{k}$, $U^{k}$, $\lambda^{k+1}$}
+%\KwResult{$T^{k+1}$, $U^{k+1}$}
+%$i \leftarrow 1$, $T^{k,0} \leftarrow T^{k}$, $U^{k,0} \leftarrow U^{k}$\;
+%$\delta^{k,0} \leftarrow 0$\;
+%\Do{either step is not converged}
+%{
+%	($T^{k,i}$, $U_a^{k,i-1}$) $\leftarrow$ topologyDescentStep($M$, $T^{k,i-1}$, $U^{k,i-1}$, $\delta^{k,i-1}$, $\lambda^{k+1}$); // Section~\ref{sec:topologySearch}\\
+%	($U^{k,i}$, $\delta^{k,i}$) $\leftarrow$ smoothDescentStep($M$, $T^{k,i}$, $U_a^{k,i-1}$); // Section~\ref{sec:descentStep}\\
+%	$i \leftarrow i+1$\;
+%}
+%$T^{k+1} \leftarrow T^{k,i-1}$, $U^{k+1} \leftarrow U^{k,i-1}$
+%\caption{Primal Update $k+1$}
+%\label{alg:DCSearch}
+%\end{algorithm}
 
 Each vertex step of the primal update performs a single iteration of Newton-type, smooth descent with line-search towards minimizing our distortion energies over vertices $U$ while holding topology, $T$, fixed. As our distortion energies, including symmetric Dirichlet, are generally nonconvex we employ the projected-Newton\ \cite{Teran2005Robust} approximation of the Hessian. This is then coupled with 
 %For more details see Section \ref{sec:imp}.
