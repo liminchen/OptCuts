@@ -156,6 +156,33 @@ to substantial speedup (since only the vertices along the seam need to be duplic
 \end{figure}
 
 
+\subsection{Comparison to Commercial Software}
+
+% \begin{table}[t]
+% \centering
+% \caption{.}
+% \label{tb:comp_commercial}
+% \begin{tabular}{|c|cc|cc|cc|cc|cc|cc|}
+% \hline
+% \multirow{2}{*}{model} & \multicolumn{2}{c|}{Maya} & \multicolumn{2}{c|}{Unwrella \- Hard Surface} & \multicolumn{2}{c|}{Unwrella \- Organic} & \multicolumn{2}{c|}{OptCuts v.s. Unwrella \- Organic} & \multicolumn{2}{c|}{ZBrush} & \multicolumn{2}{c|}{OptCuts v.s. ZBrush} \\ \cline{2-13} 
+%                        & $E_{d}$     & $E_{s}$     & $E_{d}$               & $E_{s}$              & $E_{d}$            & $E_{s}$            & $E_{d}$                   & $E_{s}$                  & $E_{d}$      & $E_{s}$      & $E_{d}$             & $E_{s}$            \\ \hline
+% lucy                   &             &             & 4.002                 & 115.381              & 4.096              & 19.713             & 4.095                     & 10.644                   & 4.258        & 6.635        & 4.257               & 6.520              \\
+% octopus                & 4.003       & 72.304      & 4.002                 & 81.328               & 4.071              & 21.723             & 4.069                     & 15.725                   & 4.221        & 14.054       & 4.211               & 14.394             \\
+% rgb\_dragon            & 4.005       & 96.370      & 4.002                 & 113.736              & 4.224              & 33.465             & 4.224                     & 16.129                   & 4.743        & 9.249        & 4.743               & 8.633              \\
+% statue\_5              & 4.002       & 48.733      & 4.001                 & 53.633               & 4.076              & 14.298             & 4.075                     & 5.092                    & 4.148        & 4.047        & 4.147               & 2.950              \\
+% three\_man\_statue     & 4.003       & 44.239      & 4.002                 & 46.156               & 4.033              & 19.242             & 4.033                     & 13.457                   & 4.146        & 9.001        & 4.146               & 9.316              \\ \hline
+% \end{tabular}
+% \end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig/comp_commercial.png}
+\caption{\minchen{Comparison between commercial software (left, ZBrush at top, Unwrella organic mode at bottom) and OptCuts with bijectivity (right) on the statue\_5 (left) and rgb\_dragon (right) model. In this experiment the commercial software are all executed in automatic mode with default parameter setting. The distortion bound was set to the same value as the output by the commercial software, and
+our method achieved the bound with shorter seams.}}
+\label{fig:comp_commercial}
+\end{figure}
+
+
 \subsection{Variations}
 
 \paragraph{Regional Seam Placement}
@@ -194,7 +221,7 @@ Our topology descent step leverages a small set of local topological operations 
 \label{tb:comp_GI}
 \begin{tabular}{|c|c|ccc|ccc|}
 \hline
-\multirow{2}{*}{$b_d$} & \multirow{2}{*}{strategy} & \multicolumn{3}{c|}{$E_{se}$} & \multicolumn{3}{c|}{time (s)} \\ \cline{3-8} 
+\multirow{2}{*}{$b_d$} & \multirow{2}{*}{strategy} & \multicolumn{3}{c|}{$E_{s}$} & \multicolumn{3}{c|}{time (s)} \\ \cline{3-8} 
                        &                         & avg      & min     & max      & avg       & min    & max      \\ \hline
 \multirow{2}{*}{4.2}   & OptCuts                    & 3.819   & 0.080  & 14.545  & 87.0   & 0.3 & 417.8 \\
                        & EBCuts                & 3.868   & 0.159  & 14.929  & 13.0   & 0.1 & 72.1  \\ \hline
