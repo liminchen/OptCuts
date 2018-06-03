@@ -95,7 +95,7 @@ search of topology changes to form a customized discrete-continuous topology sea
 
 Our Lagrangian in (\ref{eq:p2}) is nonsmooth in $\lambda$. When we exceed the distortion bound, i.e., $E_d(T,U) > b_d$, we have $\lambda = \infty$; when on boundary of the feasible set, $E_d(T,U) = b_d$, we have a finite $\lambda \in \mathbb{R_+}$; and finally, in the strict interior of the set of feasible distortions, we have $\lambda = 0$. While these conditions nicely characterize optimality, we need a way to iterate on $\lambda$ towards the solution in a smooth and robust manner irrespective of whether we are locally exploring a feasible or infeasible distortion. 
 
-At iteration $k$ we thus smoothly approximate the multiplier's behavior by adding a simple quadratic regularizer to the Lagrangian. This keeps the updated multiplier \emph{proximal} to the previous iterate's estimate via Powell's extension\ \cite{}~\danny{Add citation: M.J.D. Powell, On Search Directions for Minimization Algorithms, Mathematical Programming, 4 1973.} of the Augmented Lagrangian to the inequality constrained setting,
+At iteration $k$ we thus smoothly approximate the multiplier's behavior by adding a simple quadratic regularizer to the Lagrangian. This keeps the updated multiplier \emph{proximal} to the previous iterate's estimate via Powell's extension\ \cite{Powell73} of the Augmented Lagrangian to the inequality constrained setting,
 %\begin{align}
 %	\min_{T,V} \max_{\lambda \geq 0} E_{s}(T^{k-1}) + \lambda \big( E_{d}(T^{k-1}, U^{k-1}) - b_d\big) - \frac{1}{2\kappa} (\lambda- \lambda^{k-1})^2. 
 %\end{align} 

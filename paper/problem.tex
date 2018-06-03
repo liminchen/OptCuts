@@ -4,7 +4,7 @@
 %\minchen{As Vova suggested, describe Self-Weighting as our main formulation before Joint Discrete-Continuous Search, so does Abstract, Introduction, and Section 4 and 5.}
 % \danny{Also took a pretty heavy pass at re-organizing this section and the next.}
 
-Given an input triangle mesh $M=(V,F)$ of a three-dimensional surface we seek a UV map with a new topology $T^*=(V_{T^*}, F_{T^*})$ (where $V_{T^*}$ is a superset of $V$ with potential duplicate vertices, and $F_{T^*}$ are faces indexed into the new set of vertices), the new vertices also have 2D embedding coordinates $U^* \in \mathbb{R}^{2 |V_{T^*}|}$ that locally minimize the constrained parametrization problem
+Given an input triangle mesh $M=(V,F)$ of a three-dimensional surface with vertices $V$, and faces $F$, we seek a UV map with topology $T^*=(V_{T^*}, F_{T^*})$ and a corresponding two-dimensional embedding of vertex coordinates, $U^* \in \mathbb{R}^{2 |V_{T^*}|}$, that locally minimize the constrained parametrization problem
 %
 \begin{align}
 	\min_{T,U} E_s(T) \quad s.t. \quad E_d(T,U) \leq b_d\ \ \text{and}\ \ (T, U) \in \mathcal{I}.
@@ -14,7 +14,7 @@ Given an input triangle mesh $M=(V,F)$ of a three-dimensional surface we seek a 
 %\vova{Binary value over edges requires additional post-process to identify which of two vertices are duplicated and which triangles they should be assigned to. 
 %Why not just define a new mesh $(V_T, F_T)$ and a bijective map $f_T: F \rightarrow F_T$?}\danny{My suggestion is that we stick as closely as possible to the rep used in Minchen's code - I've asked him what he uses - we can monge that into text once he replies.} \minchen{Similar to Vova said, I simply use the vertex indices of each face to represent topology as what .obj file does. Should we mention it here or in the implementation section?}
 %
-Here we use $\mathcal{I}$ to define the set of \emph{either} locally injective \emph{or} globally bijective UV maps; in the following we will first initially focus on the locally injective set and then later cover our extension to bijectivity. Energies $E_s$ and $E_d$ respectively measure seam quality and map distortion while $b_d$ is a user-specified \emph{upper bound} on the acceptable distortion of the generated map. This optimization is always feasible as in the limit more cuts will always satisfy any distortion bound. %\danny{If we truly want to make bijectivity a first-class component of our method (I'd suggest we do then we should add the bijectivity constraint to the optimization problem statement above and also the derivation that follows - happy to do this once we decide.}
+Here $V_{T^*}$ forms a superset of $V$ with possibly duplicated vertices, and $F_{T^*}$ is the set of faces indexed into this new set of vertices. We use $\mathcal{I}$ to define the set of \emph{either} locally injective \emph{or} globally bijective UV maps; in the following we will first initially focus on the locally injective set and then later cover our extension to bijectivity. Energies $E_s$ and $E_d$ respectively measure seam quality and map distortion while $b_d$ is a user-specified \emph{upper bound} on the acceptable distortion of the generated map. This optimization is always feasible as in the limit more cuts will always satisfy any distortion bound. %\danny{If we truly want to make bijectivity a first-class component of our method (I'd suggest we do then we should add the bijectivity constraint to the optimization problem statement above and also the derivation that follows - happy to do this once we decide.}
 
 In general, distortion measures are smooth albeit \emph{nonconvex}, while seam measures are \emph{nonsmooth} as they take a discrete jump when mesh edges are cut or merged. Hence, we must address both challenges to design a suitable optimization method. 
 
@@ -32,7 +32,7 @@ We construct the Lagrangian for (\ref{eq:p1})  % no need to cite the definition 
 	\label{eq:L}
 \end{align}
 %
-to form the saddle-point problem defined over primal variables $T,U$ and dual variable $\lambda$:
+to form the equivalent saddle-point problem~\cite{Bertsekas:2016:NOP} defined over primal variables $T,U$ and dual variable $\lambda$:
 %
 \begin{align}
 	\min_{T,U} \max_{\lambda\geq0} L(T,U,\lambda).
