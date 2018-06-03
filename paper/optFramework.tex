@@ -1,6 +1,6 @@
 % !TeX root = OptCuts.tex
 
-\section{Optimization Framework}
+\section{Optimization Framework for OptCuts}
 
 To solve our constrained optimization (\ref{eq:p1}) we focus on resolving the saddle-point problem (\ref{eq:p2}). 
 We start from an initial, valid UV map $(T^0, U^0)$ and bootstrap our dual variable with $\lambda^0 = 0$. OptCuts then iteratively alternates between primal solves to improve geometry, $(T, U)$, and dual solves to update our multiplier, $\lambda$, to encode the new balancing term between distortion and seam quality for the next primal solve we take. See Algorithm~\ref{alg:selfWeight}.
