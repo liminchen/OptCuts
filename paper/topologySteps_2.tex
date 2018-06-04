@@ -77,10 +77,10 @@ Merging the end vertices generates a single new vertex forming the stencil to co
 
 \subsection{Topology Search Candidates}
 \label{sec:descent_op}
-In analogy to a continuous search direction, at the start of each new primal solve we search for a candidate mesh operation to propagate descent. 
+In analogy to computing a continuous search direction, at the start of each new primal solve we search for a candidate mesh operation to propagate descent. 
 %
 We first consider boundary vertex split originated at one of $m$ boundary vertices in the current topology $T^k$. 
-To reduce unnecessary computational overhead we select a subset of $m_\text{test}=m^{0.8}$ boundary vertices that might have the largest impact on the energy. In particular, we compute the standard deviation over all the distortion energy gradients acting on the boundary vertex contributed from incident elements and pick boundary vertices with largest deviation. We use the selected vertices to initiate boundary vertex splits, and consider all available seam tails for a corner merge, building a set of $O^k$ topological operations.
+To reduce unnecessary computational overhead we select a subset of $m_\text{test}=m^{0.8}$ boundary vertices that might have the largest effect on the energy. In particular, we compute the standard deviation over all the distortion energy gradients acting on the boundary vertex contributed from incident elements and pick boundary vertices with largest deviation. We use the selected vertices to initiate boundary vertex splits, and consider all available seam tails for a corner merge, building a set of $O^k$ topological operations.
 %
 %We use the selected vertices to build a set of candidate mesh operations $O^k$ formed by boundary vertex splits and all valid corner merges on those vertices. 
 \minchen{The filtering is only applied on split operations, not on corner merge. We simply query all corners, there's not many of them, and the filtering criteria for splits is not appropriate for merge.} 
@@ -92,7 +92,7 @@ o^{i,j} = \argmin_{o \in O^k} d(o).
 \end{align}
 With local support, all queried $d$ in this minimization can be evaluated in parallel. 
 
-If the minimizing operation promises descent, i.e., $d(o^{i,j}) < 0$, we set our candidate mesh operation for our descent process, $s^k$, with this operation, $s^k \leftarrow o^{i,j}$. Otherwise, we go on to find the $(n-m)^{0.8}$ interior vertices with largest deviation and rebuild $O^k$ as the set of all interior vertex splits on those vertices. A $d$ minimizing interior split operation $o^{i,j} \in O^k$, again using (\ref{eq:minO}), is then set as the set $s^k \leftarrow o^{i,j}$ for our descent process.
+If the minimizing operation promises descent, i.e., $d(o^{i,j}) < 0$, we set our candidate mesh operation for our descent process, $s^k$, with this operation, $s^k \leftarrow o^{i,j}$. Otherwise, we go on to find the $(n-m)^{0.8}$ interior vertices with largest deviation and rebuild $O^k$ as the set of all interior vertex splits on those vertices. A $d$-minimizing interior split operation $o^{i,j} \in O^k$, again using (\ref{eq:minO}), is then set as the set $s^k \leftarrow o^{i,j}$ for our descent process.
 
 \subsection{Iterated Search, Propagation and Descent}
 \label{sec:topology_search}
