@@ -385,6 +385,89 @@ namespace FracCuts{
                         break;
                     }
                         
+                    case 6: {
+                        // output ExpInfo into js variables for local web visualization
+                        const std::string resultsFolderPath(argv[3]);
+                        FILE *dirList = fopen((resultsFolderPath + "/folderList.txt").c_str(), "r");
+                        assert(dirList);
+                        
+                        FILE *outFile = fopen((resultsFolderPath + "/data_ExpInfo.js").c_str(), "w");
+                        assert(outFile);
+                        
+                        std::string resultsFolderName;
+                        int endI_substr = resultsFolderPath.find_last_of('/');
+                        if(endI_substr == std::string::npos) {
+                            resultsFolderName = resultsFolderPath;
+                        }
+                        else {
+                            if(endI_substr == resultsFolderPath.length() - 1) {
+                                endI_substr = resultsFolderPath.find_last_of('/', endI_substr - 1);
+                                resultsFolderName = resultsFolderPath.substr(endI_substr + 1,
+                                                                             resultsFolderPath.length() - endI_substr - 2);
+                            }
+                            else {
+                                resultsFolderName = resultsFolderPath.substr(endI_substr + 1,
+                                                                             resultsFolderPath.length() - endI_substr - 1);
+                            }
+                        }
+                        
+                        fprintf(outFile, "var %s = [\n", resultsFolderName.c_str());
+                        
+                        char buf[BUFSIZ];
+                        while((!feof(dirList)) && fscanf(dirList, "%s", buf)) {
+                            std::string resultName(buf);
+                            std::string infoFilePath(resultsFolderPath + '/' + resultName + "/info.txt");
+                            std::ifstream infoFile(infoFilePath);
+                            if(infoFile.is_open()) {
+                                fprintf(outFile, "\tnew ExpInfo(");
+                                
+                                std::string bypass;
+                                int vertAmt, faceAmt;
+                                infoFile >> vertAmt >> faceAmt;
+                                fprintf(outFile, "%d, %d, ", vertAmt, faceAmt);
+                                
+                                int innerIterNum, outerIterNum;
+                                double lambda_init, lambda_end;
+                                infoFile >> innerIterNum >> outerIterNum >>
+                                    bypass >> bypass >>
+                                    lambda_init >> lambda_end;
+                                fprintf(outFile, "%d, %d, 0, 0, %lf, %lf, ",
+                                        innerIterNum, outerIterNum, lambda_init, lambda_end);
+                                
+                                double time, duration;
+                                infoFile >> bypass >> bypass >> time >> duration;
+                                for(int wordI = 0; wordI < 13; wordI++) {
+                                    infoFile >> bypass;
+                                }
+                                fprintf(outFile, "0.0, 0.0, %lf, [], [], ", time);
+                                
+                                double E_d, E_s;
+                                infoFile >> E_d >> E_s;
+                                fprintf(outFile, "%lf, %lf, ", E_d, E_s);
+                                
+                                double l2Stretch, lInfStretch, l2Shear, lInfCompress;
+                                infoFile >> l2Stretch >> lInfStretch >> l2Shear >> lInfCompress;
+                                fprintf(outFile, "%lf, %lf, %lf, ", l2Stretch, lInfStretch, l2Shear);
+                                
+                                fprintf(outFile, "\"%s\"", buf);
+                                
+                                fprintf(outFile, "),\n");
+                                
+                                infoFile.close();
+                            }
+                            else {
+                                std::cout << "can't open " << infoFilePath << std::endl;
+                            }
+                        }
+                        fprintf(outFile, "];\n");
+                        
+                        fclose(dirList);
+                        fclose(outFile);
+                        std::cout << "output finished" << std::endl;
+                        
+                        break;
+                    }
+                        
                     default:
                         std::cout << "No diagMode " << diagMode << std::endl;
                         break;

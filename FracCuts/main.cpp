@@ -37,8 +37,8 @@ FracCuts::TriangleSoup triSoup_backup;
 FracCuts::Optimizer* optimizer;
 std::vector<FracCuts::Energy*> energyTerms;
 std::vector<double> energyParams;
-bool bijectiveParam = false;
-//bool bijectiveParam = true; //TODO: set as arguments!
+//bool bijectiveParam = false;
+bool bijectiveParam = true; //TODO: set as arguments!
 bool rand1PInitCut = false;
 //bool rand1PInitCut = true; //!!! for fast prototyping
 double lambda_init;
@@ -53,7 +53,7 @@ double fracThres = 0.0;
 bool altBase = false;
 bool outerLoopFinished = false;
 const int boundMeasureType = 0; // 0: E_SD, 1: L2 Stretch
-double upperBound = 4.0445;
+double upperBound = 4.2;
 const double convTol_upperBound = 1.0e-3; //TODO!!! related to avg edge len or upperBound?
 std::vector<std::pair<double, double>> energyChanges_bSplit, energyChanges_iSplit, energyChanges_merge;
 std::vector<std::vector<int>> paths_bSplit, paths_iSplit, paths_merge;
@@ -870,7 +870,14 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
                 eDec_b << ", " << eDec_i << "; id: " << id_pickingBSplit << ", " << id_pickingISplit << std::endl;
         }
         else {
-            if(energyChanges_merge.empty()) {
+            bool noOp = true;
+            for(const auto ecI : energyChanges_merge) {
+                if(ecI.first != __DBL_MAX__) {
+                    noOp = false;
+                    break;
+                }
+            }
+            if(noOp) {
                 logFile << "No merge operation available, end process!" << std::endl;
                 energyParams[0] = 1.0 - eps_lambda;
                 optimizer->updateEnergyData(true, false, false);
@@ -1374,6 +1381,19 @@ int main(int argc, char *argv[])
         outputFolderPath += meshName + "_input_" + FracCuts::IglUtils::rtos(lambda) + "_" +
             FracCuts::IglUtils::rtos(delta) + "_" +startDS + folderTail;
         
+//        //TEST: for commercial software output
+//        double area = 0;
+//        for(int triI = 0; triI < temp->F.rows(); triI++) {
+//            const Eigen::RowVector3i& triVInd = temp->F.row(triI);
+//            const Eigen::RowVector2d& uv01 = temp->V.row(triVInd[1]) - temp->V.row(triVInd[0]);
+//            const Eigen::RowVector2d& uv02 = temp->V.row(triVInd[2]) - temp->V.row(triVInd[0]);
+//            area += 0.5 * std::abs(uv01[0] * uv02[1] - uv01[1] * uv02[0]);
+//        }
+//        double mult = std::sqrt(temp->surfaceArea / area);
+//        for(int vI = 0; vI < temp->V.rows(); vI++) {
+//            temp->V.row(vI) *=  mult;
+//        }
+        
         std::vector<std::vector<int>> bnd_all;
         igl::boundary_loop(temp->F, bnd_all);
         int UVGridDim = std::ceil(std::sqrt(bnd_all.size()));
@@ -1381,7 +1401,7 @@ int main(int argc, char *argv[])
             std::cout << "local injectivity violated in given input UV map, " <<
                 "or multi-chart bijective UV map needs to be ensured, " <<
                 "obtaining new initial UV map by applying Tutte's embedding..." << std::endl;
-            
+
             Eigen::VectorXi bnd_stacked;
             Eigen::MatrixXd bnd_uv_stacked;
             int curBndVAmt = 0;
@@ -1410,7 +1430,7 @@ int main(int argc, char *argv[])
             Eigen::SparseMatrix<double> A, M;
             FracCuts::IglUtils::computeUniformLaplacian(temp->F, A);
             igl::harmonic(A, M, bnd_stacked, bnd_uv_stacked, 1, temp->V);
-            
+
             if(!temp->checkInversion()) {
                 std::cout << "local injectivity still violated in the computed initial UV map, " <<
                     "please carefully check UV topology for e.g. non-manifold vertices. " <<
