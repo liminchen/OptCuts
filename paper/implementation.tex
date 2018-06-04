@@ -97,14 +97,16 @@ Importantly, we note that our OptCuts algorithm and our implementation thereof d
 
 First note that while we converge with respect to the mesh operations we make available, we of course do not currently cover all possible topological operations on a mesh. Our choice of propagated cutting and merging operations were selected to cover the basic topology changes that we find suitably expressive for our parameterization task. However, we expect many others to be useful; indeed, below in Section~\ref{sec:var} we also consider and compare with another interesting mesh operation subset and note that there is interesting future work to find improved mesh operation subsets for OptCuts. In the meantime, for \emph{any} discrete subset of topological operations that do not fully cover all possible mesh changes, there can and occasionally will be, a number of neighboring topologies connected by valid mesh operations that are all numerically close to stationarity. In such cases, without additional handling and preparation for cycling behavior OptCuts would oscillate without stopping between a number of equally excellent, close-to-optimal solutions. To handle this rare but important case, we employ a simple cycle detection strategy, where we save hashes of the last $T$ solution triplets. When we detect that a duplicate solution is being revisited we terminate.
 % with the best visited solution. 
-Of the $N$ examples computed with OptCuts in Section~\ref{sec:results} this cycling behavior appear in $M\%$.\danny{Minchen: add missing data for the above and confirm correctness.} 
+Of the $N$ examples computed with OptCuts in Section~\ref{sec:results} this cycling behavior appears in $M\%$.\danny{Minchen: add missing data for the above and confirm correctness.} 
 
 \subsection{Initialization}
 %\minchen{to $E_d$ stationary point}% huh?
-To initialize our UV map, $T^0,U^0)$, for an input surface, we map its initial seam to a circle preserving edge lengths and parameterize the remaining vertices with Tutte's embedding~\shortcite{tutte1963draw} using uniform weights to ensure bijectivity.
-
-We compute initial seams for surfaces according to topology and geometry. For disk-topology surfaces, we simply pick the longest boundary as an initial seam. For genus-0 closed surfaces, we randomly pick two connected edges as an initial seam. For higher-genus surfaces, we follow Crane et al.~\shortcite{Crane:2013:DGP} to detect homology generators, and connect all of them as an initial seam.
-%
+To initialize our UV map, $(T^0,U^0)$, for an input surface, we map its initial seam to a circle preserving edge lengths and parameterize the remaining vertices with Tutte's embedding~\shortcite{tutte1963draw} using uniform weights to ensure bijectivity.
+% Danny: we don't currently do higher genus yet - nothing stopping us but unless we get it in, in time the following needs to go and move to the future work section.
+%We compute initial seams for surfaces according to topology and geometry. 
+For disk-topology surfaces, we simply pick the longest boundary as an initial seam while for genus-0 closed surfaces, we randomly pick two connected edges as an initial seam. 
+%For higher-genus surfaces, we follow Crane et al.~\shortcite{Crane:2013:DGP} to detect homology generators, and connect all of them as an initial seam.
+%%
 Recall that we then start OptCuts by initializing $\lambda^0 = 0$. This sets the first iteration to initially ignore distortion and to begin by exploring a shortening of seam-lengths first.
 %From the initial UV map, we simply start the optimization by ignoring the distortion constraints with $\lambda$ set to $0$ and let our dual update to modify $\lambda$ according to the distortion of intermediate results.
 
