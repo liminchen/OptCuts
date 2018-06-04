@@ -3,7 +3,7 @@
 \section{Evaluation}
 \label{sec:results}
 
-We tested our approach on a benchmark containing a diverse set of 70 surfaces commonly used in geometry processing research.  The meshes from this benchmark  are organic shapes with intricate geometric details composed of XXX to YYY \vova{add numbers} vertices, and are topological disks or spheres \vova{add higher genus if we have it}. In addition, we stress-test the scalability of various methods on a Lucy model that has 48k vertices at the highest resolution. 
+We tested our approach on a benchmark containing a diverse set of 71 surfaces commonly used in geometry processing research.  The meshes from this benchmark  are organic shapes with intricate geometric details composed of 81 to 10068 vertices, and are topological disks or spheres \vova{add higher genus if we have it}. In addition, we stress-test the scalability of various methods on a Lucy model that has 48k vertices at the highest resolution.
 
 Our method always achieves the desired symmetric Dirichlet energy distortion bound $b_d$, so we use our normalized seam length $E_{s}$ as an evaluation metric (where the goal is to achieve the desired distortion with minimal seams). Since $E_{s}$ is normalized by square root of mesh area it provides a comparable measure across all examples and methods. 
 
@@ -80,7 +80,7 @@ We used the publicly-available implementation of AutoCuts with guidance from the
 %AutoCuts obtains high quality UV maps by involving users into the optimization loop. However, when aiming for convenient, fully-automatic methods, the non-smoothness of their Separation energy not only makes it challenging for global parameter settings, but also often end up the optimization with suboptimal results. To show that we automatically generate high quality UV maps without suffering from these issues, we compare our method with a fully automatic version of AutoCuts obtained under the guidance of AutoCuts authors by constructing appropriate homotopy paths with a uniform set of mesh-adaptive parameters. 
 %Specifically, we used $\lambda = 0.4$ and started with $\delta=100\overline{|e|}^2$ and half it in the beginning of each homotopy iteration until it reaches $10^{-4}\overline{|e|}^2$. Inside each homotopy iteration, we detect convergence by setting a tolerance $\sqrt{3n_t}\times10^{-3}\overline{|e|}$ on the $L^2$ norm of UV coordinate changes. Here $\overline{|e|}$ is the average edge length, $n_t$ is the number of triangles.
 
-AutoCuts enables the user to control distortion indirectly by adjusting $\lambda$ parameter, but does not guarantee reaching a particular bound. Thus, to make our comparisons fully automatic we first run AutoCuts on an input surface, and then set the distortion measure for the AutoCuts output as the target bound $b_d$ for our method. Since automatic version of AutoCuts does not naturally support global bijectivity the most direct comparison is to the non-bijective version of our method, but we compare to both variants for completeness.  As demonstrated in Table~\ref{tb:comp_AutoCuts}, both versions of our method require less time to generate UV maps with significantly shorter seams while reaching the same level of distortion. Figure~\ref{fig:ESLBar_compAutoCuts} provides a more detailed comparison for every model in the benchmark:  The bar charts are sorted by total seam length, where methods with longer bars tend to yield higher \justin{longer?} seams.
+AutoCuts enables the user to control distortion indirectly by adjusting $\lambda$ parameter, but does not guarantee reaching a particular bound. Thus, to make our comparisons fully automatic we first run AutoCuts on an input surface, and then set the distortion measure for the AutoCuts output as the target bound $b_d$ for our method. Since automatic version of AutoCuts does not naturally support global bijectivity the most direct comparison is to the non-bijective version of our method, but we compare to both variants for completeness.  As demonstrated in Table~\ref{tb:comp_AutoCuts}, both versions of our method require less time to generate UV maps with significantly shorter seams while reaching the same level of distortion. Figure~\ref{fig:ESLBar_compAutoCuts} provides a more detailed comparison for every model in the benchmark:  The bar charts are sorted by total seam length, where methods with longer bars tend to yield longer seams.
 \vova{Minchen, would be good to say a few words about 2 shapes where our method produces slightly longer seams.} 
 \minchen{It's the kingkong (10002 vertices) and cathead (131 vertices). For kingkong we only need 393.6s and 850.7s without/with bijectivity, but AutoCuts needs 1858s.}\justin{maybe show these in a figure?}
 %
@@ -146,7 +146,7 @@ to substantial speedup (since only the vertices along the seam need to be duplic
 \end{figure}
 
 \paragraph{Global Bijectivity}
-\minchen{In AutoCuts paper, they mentioned in their Figure 11 that they experimented with a greedy procedure based on Sorkine et al.\ \shortcite{Sorkine2002Bounded} (Figure\ \ref{fig:comp_AutoCuts_Olga}a) to automatically handle bijectivity in AutoCuts (Figure\ \ref{fig:comp_AutoCuts_Olga}b). However, their result with user assisted patch manipulation still ends up with shorter seams (Figure\ \ref{fig:comp_AutoCuts_Olga}c). We execute OptCuts with bijectivity constraints on this example, setting the distortion of their user assisted output as $b_d$. We find that OptCuts achieves shorter seams with bijectivity automatically handled without the need of any user assistance (Figure\ \ref{fig:comp_AutoCuts_Olga}d).}
+\minchen{In AutoCuts paper, they mentioned in their Figure 11 that they experimented with a greedy procedure based on Sorkine et al.\ \shortcite{BoundedDistortParam:2002} (Figure\ \ref{fig:comp_AutoCuts_Olga}a) to automatically handle bijectivity in AutoCuts (Figure\ \ref{fig:comp_AutoCuts_Olga}b). However, their result with user assisted patch manipulation still ends up with shorter seams (Figure\ \ref{fig:comp_AutoCuts_Olga}c). We execute OptCuts with bijectivity constraints on this example, setting the distortion of their user assisted output as $b_d$. We find that OptCuts achieves shorter seams with bijectivity automatically handled without the need of any user assistance (Figure\ \ref{fig:comp_AutoCuts_Olga}d).}
 
 \begin{figure}[t]
 \centering
@@ -158,27 +158,29 @@ to substantial speedup (since only the vertices along the seam need to be duplic
 
 \subsection{Comparison to Commercial Software}
 
-% \begin{table}[t]
-% \centering
-% \caption{.}
-% \label{tb:comp_commercial}
-% \begin{tabular}{|c|cc|cc|cc|cc|cc|cc|}
-% \hline
-% \multirow{2}{*}{model} & \multicolumn{2}{c|}{Maya} & \multicolumn{2}{c|}{Unwrella \- Hard Surface} & \multicolumn{2}{c|}{Unwrella \- Organic} & \multicolumn{2}{c|}{OptCuts v.s. Unwrella \- Organic} & \multicolumn{2}{c|}{ZBrush} & \multicolumn{2}{c|}{OptCuts v.s. ZBrush} \\ \cline{2-13} 
-%                        & $E_{d}$     & $E_{s}$     & $E_{d}$               & $E_{s}$              & $E_{d}$            & $E_{s}$            & $E_{d}$                   & $E_{s}$                  & $E_{d}$      & $E_{s}$      & $E_{d}$             & $E_{s}$            \\ \hline
-% lucy                   &             &             & 4.002                 & 115.381              & 4.096              & 19.713             & 4.095                     & 10.644                   & 4.258        & 6.635        & 4.257               & 6.520              \\
-% octopus                & 4.003       & 72.304      & 4.002                 & 81.328               & 4.071              & 21.723             & 4.069                     & 15.725                   & 4.221        & 14.054       & 4.211               & 14.394             \\
-% rgb\_dragon            & 4.005       & 96.370      & 4.002                 & 113.736              & 4.224              & 33.465             & 4.224                     & 16.129                   & 4.743        & 9.249        & 4.743               & 8.633              \\
-% statue\_5              & 4.002       & 48.733      & 4.001                 & 53.633               & 4.076              & 14.298             & 4.075                     & 5.092                    & 4.148        & 4.047        & 4.147               & 2.950              \\
-% three\_man\_statue     & 4.003       & 44.239      & 4.002                 & 46.156               & 4.033              & 19.242             & 4.033                     & 13.457                   & 4.146        & 9.001        & 4.146               & 9.316              \\ \hline
-% \end{tabular}
-% \end{table}
+\minchen{We picked 5 complicated models and asked 2 artists to obtain the UV maps using fully automatic mode of commercial software (Maya\footnote{https://www.autodesk.com/products/maya/overview}, Unwrella\footnote{https://www.unwrella.com/}, and ZBrush\footnote{http://pixologic.com/}) with default parameter setting. Unlike ZBrush that generates a single chart UV map but with relatively higher distortion, Maya and Unwrella cuts the surface into multiple charts to achieve low distortion and efficient packing. However, unless specified organic mode in Unwrella, the hard surface mode of Unwrella together with Maya cut the surface into many small pieces with very long seams. We thus compare our method with ZBrush and Unwrella in organic mode only, first obtaining the distortion bound by using their seams to minimize $E_d$. Under the same level of distortion, we achieve shorter seams in 8 out of the 10 comparisons (Table\ \ref{}). Figure\ \ref{fig:comp_commercial} shows the comparisons on the statue\_5 and rgb\_dragon model.}
+
+\begin{table*}[t]
+\centering
+\caption{\minchen{Performance of commercial software on 5 input surfaces and OptCuts comparison. Note that for Maya and Unwrella in hard surface mode, the output UV map contains local inversions and non-manifold vertices, thus their $E_d$ showing below are just computed with their output UV map instead of being minimized as for Unwrella in organic mode and ZBrush that we compared with.}}
+\label{tb:comp_commercial}
+\begin{tabular}{|c|cc|cc|cc|cc|cc|cc|}
+\hline
+\multirow{2}{*}{model} & \multicolumn{2}{c|}{Maya} & \multicolumn{2}{c|}{Unwrella HardSurface} & \multicolumn{2}{c|}{Unwrella Organic} & \multicolumn{2}{c|}{OptCuts} & \multicolumn{2}{c|}{ZBrush} & \multicolumn{2}{c|}{OptCuts} \\ \cline{2-13} 
+                       & $E_{d}$     & $E_{s}$     & $E_{d}$               & $E_{s}$              & $E_{d}$            & $E_{s}$            & $E_{d}$                   & $E_{s}$                  & $E_{d}$      & $E_{s}$      & $E_{d}$             & $E_{s}$            \\ \hline
+lucy                   & 4.268            & 100.209            & 4.136                 & 115.381              & 4.096              & 19.713             & 4.095                     & 10.644                   & 4.258        & 6.635        & 4.257               & 6.520              \\
+octopus                & 4.281       & 72.304      & 4.139                 & 81.328               & 4.071              & 21.723             & 4.069                     & 15.725                   & 4.221        & 14.054       & 4.211               & 14.394             \\
+rgb\_dragon            & 4.269       & 96.370      & 4.140                 & 113.736              & 4.224              & 33.465             & 4.224                     & 16.129                   & 4.743        & 9.249        & 4.743               & 8.633              \\
+statue\_5              & 4.152       & 48.733      & 4.073                 & 53.633               & 4.076              & 14.298             & 4.075                     & 5.092                    & 4.148        & 4.047        & 4.147               & 2.950              \\
+three\_man     & 4.254       & 44.239      & 4.114                 & 46.156               & 4.033              & 19.242             & 4.033                     & 13.457                   & 4.146        & 9.001        & 4.146               & 9.316              \\ \hline
+\end{tabular}
+\end{table*} 
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{fig/comp_commercial.png}
-\caption{\minchen{Comparison between commercial software (left, ZBrush at top, Unwrella organic mode at bottom) and OptCuts with bijectivity (right) on the statue\_5 (left) and rgb\_dragon (right) model. In this experiment the commercial software are all executed in automatic mode with default parameter setting. The distortion bound was set to the same value as the output by the commercial software, and
-our method achieved the bound with shorter seams.}}
+\caption{\minchen{Comparison between commercial software (left, ZBrush at top, Unwrella organic mode at bottom) and OptCuts with bijectivity (right) on the statue\_5 (left) and rgb\_dragon (right) model.
+In this experiment the commercial software are all executed in automatic mode with default parameter setting. Given the seams by ZBrush and Unwrella, we first minimize Symmetric Dirichlet energy and then set the output distortion as $b_d$ in our method. Our method achieved the bound with shorter seams.}}
 \label{fig:comp_commercial}
 \end{figure}
 
