@@ -186,7 +186,7 @@ In this experiment the commercial software are all executed in automatic mode wi
 
 
 \subsection{Variations}
-
+\label{sec:var}
 \paragraph{Regional Seam Placement}
 Discontinuities produced by seams make texture assignment more challenging and might lead to unpleasant rendering artifacts. Thus, UV artists often place seams away from the salient surface regions (e.g., human face). Our framework naturally enables the user to prevent placing cuts in some regions by painting over the surface.  We simply update the seam cost by assigning infinite weight in user-prescribed regions:
 \[ \hat{E}_{s} = \sum_{i\in\mathcal{S}} w_{s,i} E_{s,i} \quad w_{s,i} \in [1.0, +\infty] \]

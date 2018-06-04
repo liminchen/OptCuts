@@ -1,6 +1,7 @@
 % !TeX root = OptCuts.tex
 
-\section{Implementation Details}
+\section{The OptCuts Algorithm}%: Convergence and Implementation Details}
+%\section{Implementation Details}
 \label{sec:imp}
 
 \begin{algorithm}[h!]
@@ -83,25 +84,39 @@ $k \leftarrow 1$ \\
 
 \end{algorithm}
 
+With the key components now in place, Algorithm 1 summarizes our full OptCuts algorithm in pseudocode, including details on convergence detection and termination. 
+Here, in this section, we next discuss details of OptCuts convergence at termination, and 
+then follow with technical details of our implementation of OptCuts. 
+%First, we describe our choices for obtaining the initial embeddings. Second, we provide details on continuous search that we use during our smooth descent step. Finally, we provide some details on enforcing and maintaining bijectivity. 
 
-In this section we provide remaining technical details of our framework. First, we describe our choices for obtaining the initial embeddings. Second, we provide details on continuous search that we use during our smooth descent step. Finally, we provide some details on enforcing and maintaining bijectivity. 
+\subsection{Termination and Convergence}
+
+Our primal solution is \emph{converged} whenever it is stationary with respect to variations in both topology \emph{and} vertex position for a fixed $\lambda^k$ multiplier value. Numerically, primal convergence is declared for any $(T^i,U^i)$ pair when 1.) the topology descent is stationary---meaning there are no further available mesh operations at the current multiplier $\lambda^k$ value that will give decrease to the Lagrangian below $L(T^i,U^i,\lambda^k)$ at all; and 2.) the smooth distortion energy at topology $T^i$ is sufficiently locally minimized so that $\| \nabla_{\small{U}} E_{d}(T^i,U^i)\| \leq 10^{-6}$. When both our primal solve is converged \emph{and} our dual variable is likewise close to stationary so that $| \lambda^k -  \lambda^{k-1}| < 10^{-3}$, OptCuts terminates with a solution that is numerically \emph{converged} to a local minimizer of (\ref{eq:p1}) with respect to all available variations in topology provided by our merge and cut operations. 
+
+Importantly, we note that our OptCuts algorithm and our implementation thereof do not apply a maximum iteration cap anywhere in any of our iteration loops. All presented results and corresponding timings are from solutions that have converged as defined above and in the pseudocode in Algorithm 1. There is, however, one additional, but subtle detail for a robust implementation that warrants further discussion in text rather than in pseudocode---we cover this immediately below.
+
+First note that while we converge with respect to the mesh operations we make available, we of course do not currently cover all possible topological operations on a mesh. Our choice of propagated cutting and merging operations were selected to cover the basic topology changes that we find suitably expressive for our parameterization task. However, we expect many others to be useful; indeed, below in Section~\ref{sec:var} we also consider and compare with another interesting mesh operation subset and note that there is interesting future work to find improved mesh operation subsets for OptCuts. In the meantime, for \emph{any} discrete subset of topological operations that do not fully cover all possible mesh changes, there can and occasionally will be, a number of neighboring topologies connected by valid mesh operations that are all numerically close to stationarity. In such cases, without additional handling and preparation for cycling behavior OptCuts would oscillate without stopping between a number of equally excellent, close-to-optimal solutions. To handle this rare but important case, we employ a simple cycle detection strategy, where we save hashes of the last $T$ solution triplets. When we detect that a duplicate solution is being revisited we terminate.
+% with the best visited solution. 
+Of the $N$ examples computed with OptCuts in Section~\ref{sec:results} this cycling behavior appear in $M\%$.\danny{Minchen: add missing data for the above and confirm correctness.} 
 
 \subsection{Initialization}
 %\minchen{to $E_d$ stationary point}% huh?
-To obtain an initial UV map for an input surface, we map its initial seam to a circle preserving while edge lengths and parameterize the rest of the vertices through Tutte's embedding~\shortcite{tutte1963draw} with uniform weights to ensure bijectivity.
+To initialize our UV map, $T^0,U^0)$, for an input surface, we map its initial seam to a circle preserving edge lengths and parameterize the remaining vertices with Tutte's embedding~\shortcite{tutte1963draw} using uniform weights to ensure bijectivity.
 
-We compute initial seams for different surfaces according to their topology and geometry. For disk-topology surfaces, we simply pick their longest boundary as the initial seam. For genus-0 closed surfaces, we randomly pick 2 connected edges as the initial seam. For high-genus surfaces, we follow Crane et al.~\shortcite{Crane:2013:DGP} to detect homology generators and connect all of them as the initial seam.
+We compute initial seams for surfaces according to topology and geometry. For disk-topology surfaces, we simply pick the longest boundary as an initial seam. For genus-0 closed surfaces, we randomly pick two connected edges as an initial seam. For higher-genus surfaces, we follow Crane et al.~\shortcite{Crane:2013:DGP} to detect homology generators, and connect all of them as an initial seam.
+%
+Recall that we then start OptCuts by initializing $\lambda^0 = 0$. This sets the first iteration to initially ignore distortion and to begin by exploring a shortening of seam-lengths first.
+%From the initial UV map, we simply start the optimization by ignoring the distortion constraints with $\lambda$ set to $0$ and let our dual update to modify $\lambda$ according to the distortion of intermediate results.
 
-From the initial UV map, we simply start the optimization by ignoring the distortion constraints with $\lambda$ set to $0$ and let our dual update to modify $\lambda$ according to the distortion of intermediate results.
+%\danny{Minchen: are we likely to do this next experiment in time? I think it's low priority -- we may just want to get rid of this next section?}
+%For closed surfaces, the initial seam choice is one of many possibilities. To demonstrate insensitivity of our final embedding to this choice, %show that we can always find a local optimum with respect to both the UV topology and coordinates regardless of initial embedding, 
+%we run our method on a closed input surface with several randomly picked initial seams, as well as a heuristic initial seam that splits the shortest path between two farthest points on the surface. As demonstrated in \minchen{Figure~\ref{fig:any_init_ends_well}}, we produce high quality UV maps under the given distortion bound for all initializations.
 
-For closed surfaces, the initial seam choice is one of many possibilities. To demonstrate insensitivity of our final embedding to this choice, %show that we can always find a local optimum with respect to both the UV topology and coordinates regardless of initial embedding, 
-we run our method on a closed input surface with several randomly picked initial seams, as well as a heuristic initial seam that splits the shortest path between two farthest points on the surface. As demonstrated in \minchen{Figure~\ref{fig:any_init_ends_well}}, we produce high quality UV maps under the given distortion bound for all initializations.
-
-\subsection{Continuous Search}
+\subsection{Minimizing Distortion}
 \label{sec:descentStep}
 
-Our smooth descent steps take in the locally-altered UV map by the current topology descent step and conduct one Newton-type iteration reducing $E_d$ over $U$ with $T$ fixed (Algorithm~\ref{alg:descentStep}).
-
+Each smooth descent step takes as input a possibly updated UV map from the previous topology descent step and applies a single Newton-type iteration to reduce $E_d$ over changes in vertex positions $U$ while holding topology, $T$.
+%
 %\begin{algorithm}[h]
 %\SetAlgoLined
 %\KwData{$M$, $T^{k,i}$, $U_a^{k,i-1}$}
@@ -122,19 +137,33 @@ Our smooth descent steps take in the locally-altered UV map by the current topol
 %\caption{Smooth Descent Step $(k+1,i)$}
 %\label{alg:descentStep}
 %\end{algorithm}
-Since $E_{d}$ is not convex, we apply the projected Newton method\ \cite{Teran2005Robust} to project the Hessian of each energy element to its closest symmetric positive definite (SPD) matrix in parallel with Intel TBB~\cite{Reinders2007Intel} and assemble the local Hessians to form an SPD Hessian proxy $P$ for the full mesh. We use the PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver to solve the linear system $P p = -g$ for search direction $p$. \minchen{[TODO] change to use SPD solver by fixing a direction to ensure definiteness} As $E_{d}$ is also a barrier-type energy, it is essential to ensure that the configuration always stays inside the feasible region. Thus, we follow Smith and Schaefer~\shortcite{Smith2015Bijective} to compute an initial step size $\alpha_0$ that avoids element inversion and then conduct back-tracking line search with Armijo rule~\cite{Armijo1966Minimization} to ensure sufficient energy decrease.
+As our distortion energies $E_{d}$ are generally nonconvex, we apply Teran et al.'s\ \shortcite{Teran2005Robust} projected-Newton (PN) method to gain a modified Hessian proxy that is guaranteed PSD. We parallelized PN's per-element Hessian construction,   projection and assembly into the PN Hessian proxy, $H$, with Intel TBB~\cite{Reinders2007Intel}.  We the apply PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} to solve the resulting linear system for the next descent direction. For line search we first use Smith and Schaefer's~\shortcite{Smith2015Bijective} line-search filter to avoid element inversion followed by standard line search with Armijo~\cite{Armijo1966Minimization} to ensure sufficient energy decrease. Finally, we employ one additional optimization that is specific to OptCuts: on smooth steps where we are \emph{not} yet stationary with respect topology operations, there is no need to expend extra iterations to gain tight convergence on distortion. In these cases we terminate iterations when we simply have the more relaxed condition of small change in energy. On the other hand, when stationary of topology is reached, we then always require and apply full convergence to small gradient norm of $E_d$; see Algorithm 1.
+%$ H p = - \nabla E_d(U)$ to gain descent direction $p$.
 
-Besides a relatively small tolerance on $g$ for convergence detection, we apply another relative energy decrease criteria to appropriately stop the process while necessary.
-This can stop our continuous search at the true local optimum infinitesimal better than setting a larger gradient tolerance since our energy is highly nonlinear. \justin{I didn't follow this paragraph.}
+%to project the Hessian of each energy element to its closest symmetric positive definite (SPD) matrix in parallel with Intel TBB~\cite{Reinders2007Intel} and assemble the local Hessians to form an SPD Hessian proxy $P$ for the full mesh. We use the PARDISO~\cite{pardiso-6.0a, pardiso-6.0b} symmetric indefinite solver to solve the linear system $P p = -g$ for search direction $p$. \minchen{[TODO] change to use SPD solver by fixing a direction to ensure definiteness} As $E_{d}$ is also a barrier-type energy, it is essential to ensure that the configuration always stays inside the feasible region. Thus, we follow Smith and Schaefer~\shortcite{Smith2015Bijective} to compute an initial step size $\alpha_0$ that avoids element inversion and then conduct back-tracking line search with Armijo rule~\cite{Armijo1966Minimization} to ensure sufficient energy decrease.
+%
+%Besides a relatively small tolerance on $g$ for convergence detection, we apply another relative energy decrease criteria to appropriately stop the process while necessary.
+%This can stop our continuous search at the true local optimum infinitesimal better than setting a larger gradient tolerance since our energy is highly nonlinear. \justin{I didn't follow this paragraph.}
 
 \subsection{Global Bijectivity}
 \label{sec:bijectivity}
-Following Jiang et al.\ \shortcite{Jiang2017Simplicial}, we realize the global bijectivity constraint on our mapping by first triangulating the void regions of each iterations updated UV map using Triangle library~\cite{shewchuk1996triangle}. The void regions consist of all holes and the surrounding space of the UV map, bounded by the parameterization's boundaries and a loose bounding box.
-We augment our distortion energy $E_d$ with an additional term \emph{not included in the distortion bound constraint} to form a collapse-preventing energy for the added negative-space triangles during each optimization iteration.
 
-With this augmentation, our continuous search stays the same, while for our topology search, we need to also ensure that the negative-space triangles are added correctly when we query for our local topological operations.
+Following Jiang et al.\ \shortcite{Jiang2017Simplicial}, we apply global bijectivity constraints to our mapping by (re-)triangulating void regions each time we update our UV map. We use Triangle library~\cite{shewchuk1996triangle}. Void regions consist of all holes as well as a loose bounding box enclosing the UV map.
+We then add to our distortion energy $E_d$ an additional term \emph{not included in the distortion bound constraint} to form a collapse-preventing energy for the added negative-space triangles during each primal optimization iteration.
+
+Our continuous descent steps on vertices then remains otherwise unchanged.
+However, for each topology step, we need to ensure that negative-space triangles are inserted correctly for each query of a candidate local topological operation.
+
+\danny{Minchen: ping me to discuss these next 2 paragraphs - not sure it's consistent with what I thought you were doing.}
 Instead of reusing a loose bounding box, we take the current negative-space triangles into consideration when building up the local stencil near the edited seam. Since the boundary of the local stencils are all fixed during the query, this naturally prevents potential global overlaps with geodesically faraway UV elements. Similarly, the collapse preventing energy on the negative-space triangles is not involved in the computation of first-order reduction.
+
 In splitting operations only, we also need to carefully push the split vertices in the opposite direction of their curvature normals before the querying optimization. This ensures that the initial local stencil has a collapse-free void region so that it could be triangulated correctly.
+%Following Jiang et al.\ \shortcite{Jiang2017Simplicial}, we realize the global bijectivity constraint on our mapping by first triangulating the void regions of each iterations updated UV map using Triangle library~\cite{shewchuk1996triangle}. The void regions consist of all holes and the surrounding space of the UV map, bounded by the parameterization's boundaries and a loose bounding box.
+%We augment our distortion energy $E_d$ with an additional term \emph{not included in the distortion bound constraint} to form a collapse-preventing energy for the added negative-space triangles during each optimization iteration.
+%
+%With this augmentation, our continuous search stays the same, while for our topology search, we need to also ensure that the negative-space triangles are added correctly when we query for our local topological operations.
+%Instead of reusing a loose bounding box, we take the current negative-space triangles into consideration when building up the local stencil near the edited seam. Since the boundary of the local stencils are all fixed during the query, this naturally prevents potential global overlaps with geodesically faraway UV elements. Similarly, the collapse preventing energy on the negative-space triangles is not involved in the computation of first-order reduction.
+%In splitting operations only, we also need to carefully push the split vertices in the opposite direction of their curvature normals before the querying optimization. This ensures that the initial local stencil has a collapse-free void region so that it could be triangulated correctly.
 
 %\paragraph{Potential Accelerations for Practical Use}
 %Since our topological operations only change the mesh locally both on connectivity and coordinates, we could also update the Hessian or the decomposition locally to save time. Besides, it is also interesting to try other Hessian approximation methods like L-BFGS~\cite{Liu1989Limited} or composite majorization~\cite{Shtengel2017Geometric} to explore further acceleration by finding a balance between per-iteration computational cost and convergence rate.
