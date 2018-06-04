@@ -1,54 +1,43 @@
 % !TeX root = OptCuts.tex
 
-%\begin{algorithm}[h]
-%\SetAlgoLined
-%\KwData{$M$, $T^{k,i-1}$, $U^{k,i-1}$, $\delta^{k,i-1}$, $\lambda^{k+1}$}
-%\KwResult{$T^{k,i}$, $U_a^{k,i-1}$}
-%$\hat{\mathcal{E}}^{k,i-1}_T \leftarrow$ operationFiltering($M$, $T^{k,i-1}$, $U^{k,i-1}$); // Section~\ref{sec:operationFiltering}\\
-%\For{each $e^{(k,i-1),j}_{T}$ in $\hat{\mathcal{E}}^{k,i-1}_T$}{
-%  $\hat{f}_e(e^{(k,i-1),j}_{T}) \leftarrow \Big(E^j_s + \lambda^{k+1} \min_{U^{(k,i-1),j}} E_d(T^j,U)\Big) - L(T^{k,i-1},U^{k,i-1},\lambda^{k+1})$\;
-%}
-%$U_a^{k,i-1} \leftarrow U^{k,i-1}$\;
-%\If{$\min_{e^{(k,i-1),j}_{T} \in \hat{\mathcal{E}}^{k,i-1}_T} \hat{f}_e(e^{(k,i-1),j}_{T}) \leq \delta^{k,i-1}$}
-%{
-%  $T^{k,i} \leftarrow T^j$, $U_a^{(k,i-1),j} \leftarrow \argmin_{U^{(k,i-1),j}} E_d(T^j,U)$\;
-%}
-%\caption{Topology Descent Step $(k+1,i)$}
-%\label{alg:topologyStep}
-%\end{algorithm}
-
 \section{Coupled Discrete-Continuous Descent}
-%\section{Coupled Topology and Distortion Descent}
 \label{sec:topologySearch}
-\danny{Did a pretty much full reworking of this section and the last two sections as well, if we're happy with this then we can clean up the pseudo code to make it consistent. Haven't touched the pseudocode yet.}
-To perform our primal update, we seek to minimize the Lagrangian
-%, composed of the weighted sum of seam-length, $E_s$ and distortion, $E_d$ jointly 
-over both continuous changes in vertex position \emph{and} discrete changes in topology. 
+To perform our primal update, we seek to minimize the Lagrangian over both continuous changes in vertex position \emph{and} discrete changes in topology. 
 %
-To optimize over topology we could potentially perform exhaustive search over the graph of all possible mesh changes. This approach, however, clearly becomes intractable for any practical mesh size. 
-Instead, we begin by recalling the standard process of optimizing a smooth energy solely over vertex DoFs. In such cases, each iterate generally forms a localized approximation of the minimized energy \justin{didn't understand previous phrase} and then uses it to propose a candidate direction for decrease. Then, since finding such a direction is expensive, we search along the proposed direction to ensure a significant decrease in energy (and not increase). 
+To optimize over topology we could potentially perform exhaustive search over the graph of all possible mesh changes. This approach, however, is intractable for any practical mesh size. 
+%
+Instead, we devise a local search algorithm for topological updates inspired by the standard process of optimizing a smooth energy over vertex positions. The standard process is to formulate a local approximation to the energy function, use it to estimate the direction for the gradient descent step, and then search along the proposed direction to find the step magnitude that ensures significant decrease in energy. 
+%
+%Instead, we begin by recalling the standard process of optimizing a smooth energy solely over vertex DoFs. In such cases, each iterate generally forms a localized approximation of the minimized energy \justin{didn't understand previous phrase} and then uses it to propose a candidate direction for decrease. Then, since finding such a direction is expensive, we search along the proposed direction to ensure a significant decrease in energy (and not increase). 
 
-Here, we extend this process to include explorations of discrete variations in topology. In analogy to seeking a continuous search direction, at the start of each new primal solve we will build many localized energy models to search in parallel for a likely candidate mesh operation to repeatedly propagate topology change, i.e., cutting or merging, over our UV mesh. Each inner iterate of the primal solve will successively apply this operation in combination with standard smooth descent to explore discrete-continuous descent until no further progress is made.% and so a primal update is found.    %<-- doesn't seem needed
+We extend this process to include search over discrete variations in topology. In analogy to seeking a continuous search direction, at the start of each new primal solve we will build many localized energy approximations to search for a likely candidate mesh operation to repeatedly propagate topology change, i.e., cutting or merging, over our UV mesh. Each inner iterate of the primal solve will successively apply this operation in combination with standard smooth descent to explore discrete-continuous descent until no further progress is made.% and so a primal update is found.    %<-- doesn't seem needed
+
+In the remainder of this section we formulate the energy model that is used to evaluate the candidate topology operations (Section ~\ref{sec:topology_energy}), 
+enumerate the topology operations used in our algorithm (Section~\ref{sec:topology_ops}), explain how we find the search direction (Section~\ref{sec:descent_op}), and iteratively explore the search direction (Section~\ref{sec:topology_search}).
 
 \subsection{Energy Model}
-
+\label{sec:topology_energy}
+We devise an approximate energy model to to efficiently estimate the effect of a potential topological change. 
 At each outer iterate $k$, the Lagrangian for any proposed topology $T^i$ is  
 \begin{align}
 \ell(T^i) = \min_{U} L(T^i, U) = E_s(T^i) + \lambda^k \min_{U} E_d(T^i, U).
 \end{align}
 Then, for any valid topology changing operation, $o^{i,j}:T^i \rightarrow T^j$, the resultant change in energy is $\Delta \ell(o^{i,j}) = \ell(T^j) - \ell(T^i)$.
 
-Starting from a known $(T^i, U^i)$, we approximate change in the Lagrangian by restricting the distortion update to the locally changed vertex stencil $U^{i,j}$ of the applied topological operation $o^{i,j}$ (see below for the stencils). 
-We do this by holding all other remaining vertices $U_s$, shared in common with $T^i$, fixed in the mesh
-to the same positions previously held in $U^i$, so that we have $U^j = (U^{i,j}, U_s)$.  Our approximate change in energy model is then 
+Since minimizing over $U$ for every potential topology change is intractable for large meshes, we start from a known $(T^i, U^i)$, and approximate the change in the Lagrangian by restricting the distortion update to the locally changed vertex stencil $U^{i,j}$ of the applied topological operation $o^{i,j}$. We choose the stencil to include only the vertices affected by the topological operation and their immediate neighbors.
+We hold all other vertices $U_s$, shared in common with $T^i$, fixed in the mesh
+to the same positions previously held in $U^i$, so that vertex positions after the update are $U^j = (U^{i,j}, U_s)$.  Our approximate change in energy model is then 
 %\danny{TODO: Still need some syntatic sugar to make this decomposition of fixed and free new vertices clean.}
 \begin{align} 
 d(o^{i,j}) = E_s(T^i) + \lambda^k \min_{U^{i,j}} E_d \big( T^i, (U^{i,j}, U_s) \big) - L(T^i,U^i,\lambda^k).
 \end{align}
 
-\subsection{Local Topological Operations}
+Note that evaluating $d$ requires solving continuous distortion optimization with respect to stencil vertices $U^{i,j}$, and we use the Newton-type smooth descent routine (see Section~\ref{sec:descentStep} for details).
 
-We consider descent with topology changes propagated by three mesh operations.
+\subsection{Local Topological Operations}
+\label{sec:topology_ops}
+
+We consider descent with topology changes induced by three mesh operations.
 
 \paragraph{Boundary Vertex Split}
 Boundary vertices can be split along any interior incident edges. 
@@ -83,22 +72,30 @@ Corners are formed by three UV vertices corresponding to the tail edge of a cut 
   \vspace{-4mm}
   \end{center}
 \end{wrapfigure}
-Merging the end vertices generates a single new vertex forming the stencil to compute $d$. Merging requires extra care here. Unlike vertex splitting, an initial location for the newly merged vertex must be selected. Na\"ive merging can violate local injectivity and so prevent progress if we are working with barrier-type energies like symmetric Dirichlet. We initialize a merged vertex to the average of its parent vertices. If inversion is detected, we then apply Agmon's relaxation~\shortcite{Agmon1954Relaxation} to iteratively project to an inversion-free position. On rare occasions this will not suffice and so we remove the proposed operation from our queue; see below.
+Merging the end vertices generates a single new vertex forming the stencil to compute $d$. Merging requires extra care here. Unlike vertex splitting, an initial location for the newly merged vertex must be selected. Na\"ive merging can violate local injectivity and so prevent progress if we are working with barrier-type energies like symmetric Dirichlet. We initialize a merged vertex to the average of its parent vertices. If inversion is detected, we then apply Agmon's relaxation~\shortcite{Agmon1954Relaxation} to iteratively project to an inversion-free position. On rare occasions this will not suffice and so we remove the proposed operation from our queue.
 %However, cases are still there when only moving the merged vertex is not enough to obtain an inversion free initial local stencil. In these situations, we will just abandon the candidate. This rarely happens in practice and does not affect our result.\justin{didn't follow the last two sentences, maybe needs a small figure}
 
 \subsection{Topology Search Candidates}
 \label{sec:descent_op}
 In analogy to a continuous search direction, at the start of each new primal solve we search for a candidate mesh operation to propagate descent. 
 %
-To select the candidate mesh operation we first consider all $m$ boundary vertices in the current topology $T^k$. \danny{Minchen: confirm this detail:} For each such vertex we compute the standard deviation over all the distortion energy gradients acting on the vertex contributed from incident elements. From the set of $m^{0.8}$ boundary vertices with largest deviation we then build a set of candidate mesh operations $O^k$ formed by boundary vertex splits and corner merges (when valid) on those vertices. \minchen{The filtering is only applied on split operations, not on corner merge. We simply query all corners, there's not many of them, and the filtering criteria for splits is not appropriate for merge.} We then find a minimizer
+We first consider boundary vertex split originated at one of $m$ boundary vertices in the current topology $T^k$. 
+To reduce unnecessary computational overhead we select a subset of $m_\text{test}=m^{0.8}$ boundary vertices that might have the largest impact on the energy. In particular, we compute the standard deviation over all the distortion energy gradients acting on the boundary vertex contributed from incident elements and pick boundary vertices with largest deviation. We use the selected vertices to initiate boundary vertex splits, and consider all available seam tails for a corner merge, building a set of $O^k$ topological operations.
+%
+%We use the selected vertices to build a set of candidate mesh operations $O^k$ formed by boundary vertex splits and all valid corner merges on those vertices. 
+\minchen{The filtering is only applied on split operations, not on corner merge. We simply query all corners, there's not many of them, and the filtering criteria for splits is not appropriate for merge.} 
+\vova{how do we know if something is a corner?}
+We then find a minimizer
 \begin{align}
 \label{eq:minO}
 o^{i,j} = \argmin_{o \in O^k} d(o).
 \end{align}
-With local support, all queried $d$ in this minimization can be evaluated in parallel. If the minimizing operation promises descent, i.e., $d(o^{i,j}) < 0$, we set our candidate mesh operation for our descent process, $s^k$, with this operation, $s^k \leftarrow o^{i,j}$. Otherwise, we go on to find the $(n-m)^{0.8}$ interior vertices with largest deviation and rebuild $O^k$ as the set of all interior vertex splits on those vertices. A $d$ minimizing interior split operation $o^{i,j} \in O^k$, again using (\ref{eq:minO}), is then set as the set $s^k \leftarrow o^{i,j}$ for our descent process.
+With local support, all queried $d$ in this minimization can be evaluated in parallel. 
+
+If the minimizing operation promises descent, i.e., $d(o^{i,j}) < 0$, we set our candidate mesh operation for our descent process, $s^k$, with this operation, $s^k \leftarrow o^{i,j}$. Otherwise, we go on to find the $(n-m)^{0.8}$ interior vertices with largest deviation and rebuild $O^k$ as the set of all interior vertex splits on those vertices. A $d$ minimizing interior split operation $o^{i,j} \in O^k$, again using (\ref{eq:minO}), is then set as the set $s^k \leftarrow o^{i,j}$ for our descent process.
 
 \subsection{Iterated Search, Propagation and Descent}
-
+\label{sec:topology_search}
 Once we have computed our candidate search operation $s^k$, we begin an inner loop iteration, indexed by superscript $i$ (recalling outer iterates are indexed by $k$), to solve the primal variable update. At the start of this process we initialize our desired upper bound on estimated decrease to $\delta^0 = 0$; this will be updated at each successive iterate. Then, each inner iteration $i$ proceeds by first propagating topology change followed by smooth coordinate update. 
 
 Each topology propagation step first generates a set of all possible mesh operations $\mathcal{E}(s^k, T^{i-1})$ that could continue to propagate the seed operation $s^k$ on topology $T^{i-1}$, e.g. all edges that could continue to propagate a boundary splitting cut from the current tail. See Figure\ \ref{fig:propagation} for illustrations on how we propagate each operation.
@@ -112,7 +109,8 @@ If this minimizer provides sufficient estimated decrease, so that $d(o^{i,j}) < 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.8\linewidth]{fig/propagation.png}
-\caption{Propagation of boundary split (orange), corner merge (green), and interior split (blue). When propagating boundary split, all edges that could continue to propagate a boundary splitting cut from the current tail would be considered (a); for corner merge we just query the new corner at the current tail (b); for interior split, once an incident edge of either the two tail is splitted as propagation, in the following iterations it would be the same as propagating boundary split (c).}
+\caption{Propagation of boundary split (orange), corner merge (green), and interior split (blue). When propagating boundary split, all edges that could continue to propagate a boundary splitting cut from the current tail would be considered (a); for corner merge we just query the new corner at the current tail (b); for interior split, once an incident edge of either the two tail is splitted as propagation, in the following iterations it would be the same as propagating boundary split (c).
+\vova{the rightmost (2nd split result for (c) is confusing. I suggest we remove it} }
 \label{fig:propagation}
 \end{figure}
 
