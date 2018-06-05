@@ -146,8 +146,8 @@
 \begin{teaserfigure}
 \centering
   \includegraphics[width=\linewidth]{fig/teaser/teaser.pdf}
-  \caption{Starting with an initial embedding (left), our OptCuts optimization algorithm iteratively updates UV mesh topology and vertex positions, while introducing minimal-length seams to achieve any user-provided 
-  distortion bound, here set to $b_d=4.1$, measured using symmetric Dirichlet energy~\cite{Smith2015Bijective}. We jointly optimize for continuous changes in the embedding and discrete topological changes by propagating simple and local topology splitting and merging operations. Here we report total inner iterations at each rendered frame. }
+  \caption{Starting from an initial embedding (left), we show the iteration process of our OptCuts algorithm jointly optimizing surface cuts and mapping distortion while enforcing global bijectivity. OptCuts iteratively updates
+  continuous changes in the embedding vertices, as well as discrete topological changes in the UV mesh by propagating simple and local topology splitting and merging operations. In this example the bound is set to $4.1$, measured using the symmetric Dirichlet distortion energy~\cite{Smith2015Bijective}, with total inner iterations reported at each rendered frame. }
   \label{fig:teaser}
 \end{teaserfigure}
 
