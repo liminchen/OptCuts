@@ -89,6 +89,7 @@ With the key components now in place, Algorithm 1 summarizes our full OptCuts al
 %First, we describe our choices for obtaining the initial embeddings. Second, we provide details on continuous search that we use during our smooth descent step. Finally, we provide some details on enforcing and maintaining bijectivity. 
 
 \subsection{Termination and Convergence}
+\label{sec:term}
 
 Our primal solution is \emph{converged} whenever it is stationary with respect to variations in both topology \emph{and} vertex position for a fixed $\lambda^k$ multiplier value. Numerically, primal convergence is declared for any $(T^i,U^i)$ pair when 1.) the topology descent is stationary---meaning there are no further available mesh operations at the current multiplier $\lambda^k$ value that will give decrease to the Lagrangian below $L(T^i,U^i,\lambda^k)$;
 %at all; 
