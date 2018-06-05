@@ -21,7 +21,7 @@ On the other hand, users typically have a clear sense of the amount of distortio
 
 Prior methods coupling distortion reduction and cutting have generally required hand-tuning a number of user-exposed parameters and, as in the recently proposed AutoCuts~\cite{Poranne2017Autocuts}, even advocate manual intervention by interactively adjusting these parameters during the optimization process.
 
-In contrast, OptCuts is a fully automatic optimization method: users provide their desired distortion bound and OptCuts then directly computes a parametrization satisfying this bound while minimizing seam lengths. Maps provided are always locally injective and, as we will show, can additionally be constrained to be bijective and even support additional, user-provided seam placement constraints and biases when desired. 
+In contrast, OptCuts is a fully automatic optimization method: users provide their desired distortion bound and OptCuts then directly computes a parametrization satisfying this bound while minimizing seam lengths. Maps provided are always locally injective and, as we will show, can additionally be constrained to be bijective and support additional, user-provided seam placement constraints and biases when desired. 
 %Likewise, as 
 As demonstrated by our comparisons in Section~\ref{sec:results},
 %, e.g.\ Figure~\ref{fig:autocut} 
@@ -40,7 +40,8 @@ OptCuts can take an arbitrary UV map as input and improve either seam length whi
   
 %% contribution
 % contribution
-\subsection{Contributions.}
+%\subsection{Contributions}
+\paragraph{Contributions}
 
 %In summary we propose OptCuts, t%<---- of course it's a summary
 To our knowledge, OptCuts is the first fully automated global parameterization algorithm that obtains bijective maps satisfying prescribed distortion bounds while minimizing seam length. To do so we first formulate a new, simple-to-state, constrained seam-length minimization model problem. We then solve our problem by our proposed discrete-continuous algorithm for the saddle-point problem using a combined discrete search over propagated mesh operations and smooth descent over vertex positions. We evaluate OptCuts to show efficient performance and scaling. Across a wide range of automated methods it improves over the state of the art, while automatically obtaining comparable quality results to hand-tuned parameterization methods. 
