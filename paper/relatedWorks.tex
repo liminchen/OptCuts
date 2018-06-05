@@ -2,67 +2,77 @@
 
 \section{Related Work}
 \label{sec:related}
-Surface parameterization is a fundamental geometry processing problem which had been extensively researched~\cite{Sheffer07_ParameterizationSurvey,Hormann2008}.
-Much of the literature treats  surface cutting and distortion minimizing parameterization as two separate sequential tasks, with only a handful of methods, discussed below, jointly addressing these two goals.
+Surface parameterization is a fundamental geometry processing problem that has been extensively researched~\cite{Sheffer07_ParameterizationSurvey,Hormann2008}.
+Much of the literature treats surface cutting and distortion minimizing parameterization as two separate, \emph{sequential} tasks, with only a handful of methods, discussed below, jointly addressing these two goals.
 
 \paragraph{Parameterization with fixed connectivity.}
-A significant body of work takes 3D surfaces with fixed connectivity and disk topology and embeds them in the plane.  The main differences between these methods are in the choice of distortion metrics they seek to minimize.  While multiple methods focus on minimizing angular distortion~\cite{Floater2003,Sheffer2005ABFPP,Levy2002,Aigerman2015,Sawhney:2017}. 
-others seek to produce more isometric parameterizations that account for triangle stretch~\cite{Sander2001Texture,Hormann2000MIPS,Rabinovich2017,Zhu2017BCQN,Shtengel:GOvCM:2017,claici2017isometry}. Many of these methods produce parameterizations that are not necessarily globally bijective, but recent methods achieve global bijectivity by starting with a bijective map and avoiding fold-overs and global overlaps during iterative optimization~\cite{Smith2015Bijective,Jiang2017Simplicial}.
-Our framework uses the energy formulation of Smith et al.~\shortcite{Smith2015Bijective} which allows for efficient computation of globally bijective parameterizations to simultaneously compute both the mapping and the seams necessary to bring the mapping distortion below a user-desired bound.   
+A significant body of work takes three-dimensional surfaces with fixed connectivity and disk topology and embeds them in the plane. A primary distinction between these methods is often in the choice of distortion metrics they seek to minimize.  While multiple methods focus on minimizing angular distortion~\cite{Floater2003,Sheffer2005ABFPP,Levy2002,Aigerman2015,Sawhney:2017}, others seek to produce more isometric parameterizations that account for triangle stretch~\cite{Sander2001Texture,Hormann2000MIPS,Rabinovich2017,Zhu2017BCQN,Shtengel:GOvCM:2017,claici2017isometry}. 
+
+Many of these methods then produce parameterizations that are not necessarily globally bijective. However, recent methods obtain global bijectivity by initializing with a bijective map and then iteratively avoiding fold-overs and global overlaps during optimization steps~\cite{Smith2015Bijective,Jiang2017Simplicial}.
+%
+OptCuts extends the scaffolding method of Jiang et al.\ \shortcite{Smith2015Bijective} to enforce global bijectivity with rapid meshing updates and additional distortion energies distributed on so-called air-meshes in void regions between UV-mesh boundaries. In concert with these scaffolds we optimize both mesh vertex positions and topology to jointly improve mapping distortion and seam quality.
+% Danny: we do not use Smith2015 for bijectivity - only for local injectivty/distortion measure.
+%uses the energy formulation of Smith et al.~\shortcite{Smith2015Bijective} which allows for efficient computation of globally bijective parameterizations to simultaneously compute both the mapping and the seams necessary to bring the mapping distortion below a user-desired bound.   
 %In Section~\ref{sec:results} we show examples of using our method in conjunction with the distortion energies proposed by \alla{ADD List}.
 %
 %\vova{we should cite more in this paragraph above (e.g., missing hughes hoppe papers} \alla{Added Sanders, ARAP would be good too}
 
-Starting with the work of Kharevych et al.~\shortcite{Kharevych} a number of seamless or globally continuous parameterization approaches had been proposed,e.g.~\cite{Ray,Myles,Aigerman}. These methods can use as a starting point either closed meshes or meshes with relatively short boundaries; they reduce the mapping distortion by using either pre-computed or algorithmically introduced cone singularities, i.e.\ discrete points on the surface where the mapping is discontinuous. These singularities are then connected to existing boundaries via cuts across which the UV mapping is continuous up to a rigid transformation.  While these methods have proven useful for applications such as quad meshing, the 2D embedding, or atlases, they generate tend to be less suited for signal storage,as the boundaries they produce still result in visible aliasing artifacts. Thus, most signals defined over 3D assets in digital media settings (movies, games, etc.) are typically stored as traditional atlases with discontinuous seams.  
+Starting with the work of Kharevych et al.~\shortcite{Kharevych} a number of seamless or globally continuous parameterization approaches have been proposed, e.g.\ \cite{Ray,Myles,Aigerman}. These methods can use as a starting point either closed meshes or meshes with relatively short boundaries; they reduce the mapping distortion by using either pre-computed or algorithmically introduced cone singularities, i.e.\ discrete points on the surface where the mapping is discontinuous. These singularities are then connected to existing boundaries via cuts across which the UV mapping is continuous up to a rigid transformation.  While these methods have proven useful for applications such as quad meshing, the 2D embedding, or atlases, they generate tend to be less suited for signal storage, as the boundaries they produce still result in visible aliasing artifacts. Thus, most signals defined over 3D assets in digital media settings (movies, games, etc.) are typically stored as traditional atlases with discontinuous seams.  
 
 \paragraph{Separate Cut Computation.}
-Multiple frameworks exist that cut or segments meshes prior to parametererization~\cite{Sheffer2002Seamster,Julius2005D,Snyder2003Multi,Levy2002}.
-Since the cutting is done before the parameterization, they rely on proxy metrics as a predictor of anticipated mapping distortion. Consequently, achieving a desired distortion bound using these tools requires trial and error, as users need to provide the right proxy parameter thresholds that result in the amount of distortion they ultimately want to achieve. By combing the two tasks, we allow users to directly control the tradeoff between mapping distortion and seam length. 
+On the other hand, multiple methods exist that cut or segments meshes prior to parameterization~\cite{Sheffer2002Seamster,Julius2005D,Snyder2003Multi,Levy2002}.
+Since the cutting is done \emph{prior} to the parameterization, they rely on proxy metrics as a predictor of anticipated mapping distortion. Consequently, achieving a desired distortion bound using these tools requires trial and error and hand-tuning as users need to provide the right proxy parameter thresholds that will eventually result in the amount of distortion they ultimately wish to achieve. OptCuts combines the two tasks of cutting and parameterization, enabling users to directly control the resulting tradeoff between mapping distortion and seam length. 
 
 \paragraph{Simultaneous Cutting and Parameterization.}
-A handful of methods directly consider mapping distortion when making cutting choices. 
-Sorkine et al.~\shortcite{BoundedDistortParam:2002} parameterize the surface triangle-by-triangle, introducing cuts when distortion exceeds user-prescribed bound. Due to the method's locality it tends to introduce longer than necessary seams to achieve a given bound~\cite{Hormann2008,Poranne2017Autocuts}. 
-Gu et al.~\shortcite{Gu2002Geometry} use an incremental approach, where starting with a given parameterization they  repeatedly introduce cuts connecting the current boundary with distortion maxima in the current parameterization.  This approach works well in the presence of a few distortion extrema, but becomes less effective when the distortion is more evenly distributed (Figure~\ref{fig:comp_GI},left). Our framework performs equally well in both scenarios (Figure~\ref{fig:comp_GI},right).  
+Motivated by the need for joint reasoning over distortion and seams, a handful of methods directly consider mapping distortion while making cutting choices. 
+Sorkine et al.~\shortcite{BoundedDistortParam:2002} parameterize a surface triangle-by-triangle, introducing cuts when distortion exceeds user-prescribed bounds. Due to this locality, outputs generally introduce longer than necessary seams to achieve a given bound~\cite{Hormann2008,Poranne2017Autocuts}. 
+Gu et al.~\shortcite{Gu2002Geometry} apply an incremental approach. Starting with an input parameterization they repeatedly introduce cuts connecting the current boundary with distortion maxima in the current parameterization. This aggressive approach works well in the presence of a few distortion extrema, but becomes less effective as the distortion becomes more evenly distributed (Figure~\ref{fig:comp_GI}, left). OptCuts performs equally well in both scenarios (Figure~\ref{fig:comp_GI}, right).  
 
-%\vova{do multi-chart geometry images~\cite{Snyder2003Multi} and geometry images use the same strategy? } 
-% \alla{no}
-%%
-%These heuristics do not perform well if no such obvious points exist, e.g.\ once distortion is distributed near-evenly across many surface points. Our framework in contrast searches for minimal cut elongation or shrinking steps that reduce a joint objective, and thus we expect it to be more efficient in such settings (Figure~\ref{cases where there are not many obvious extremal points}).
-%%
-%One can also parameterize the surface triangle-after-triangle introducing cuts when distortion exceeds user-prescribed bound~\cite{BoundedDistortParam:2002}. 
-%%
-%All of these seam cutting strategies, however, follow greedy heuristics and do not provide a well-defined global objective that balances between the introduced cuts and overall distortion. 
+Most recently Poranne et al.\ \shortcite{Poranne2017Autocuts} propose AutoCuts---a method that optimizes the weighted sum of a seam-penalty energy and the symmetric-Dirichlet distortion energy~\cite{Smith2015Bijective} for parameterization. AutoCuts effectively treats the UV-mesh as a fixed topology triangle soup and uses its seam-penalty energy to pull triangles together. AutoCuts exposes two modes: the first is interactively driven by direct user guidance throughout the optimization iteration process; and the second is fully automated. However, AutoCuts is primarily targeted toward the user-assisted parameterization mode and provides multiple ways for users to interact with the system. OptCuts complements AutoCuts in that OptCuts focuses on efficiently serving settings where users want to obtain parameterizations automatically. In this automatic setting, OptCuts consistently outperforms AutoCuts in terms of distortion to seam-length trade-off as well as in timing and scalability; see Section~\ref{sec:autocmpr} and Table~\ref{tb:comp_AutoCuts}. 
 
-%related methods:\\
-%AutoCuts~\cite{Poranne2017Autocuts}\\
-%%SeamCut~\cite{Lucquin:2017}\\ % interactive
+In both automated and user-guided modes AutoCuts requires users to pre-select a balancing factor between the seam penalty and distortion terms in its multiobjective. Unfortunately, there is no intuitive, nor direct mapping between this balancing factor and the resulting distortion obtained per example. Similarly, although in the limit of stiffness the seam-penalty term would remove all cuts, there is no direct mapping between this penalty term and a meaningful measure of seam length. Consequently, AutoCuts requires trial and error, achieved via user interaction, to achieve the distortion versus seam-length tradeoffs users generally envision. 
 %
-%%Seams, due to its discontinuous property, is not intuitive to be considered in traditional distortion minimization frameworks.
-%Due to discontinuities that occur when seams are introduced or removed, it is not intuitive to consider optimization of seam topology in the context of traditional frameworks for minimizing distortion during mesh parameterization.
+Addressing these needs, OptCuts optimizes directly on the two quantities users typically want to control in parameterization---seam length and mapping distortion. OptCuts allows users to provide a hard bound on distortion and then automatically finds a mapping that satisfies this bound while keeping seam length small. This enables users to more easily communicate their intent and to generate the UV-maps they seek.
+
+%%\vova{do multi-chart geometry images~\cite{Snyder2003Multi} and geometry images use the same strategy? } 
+%% \alla{no}
+%%%
+%%These heuristics do not perform well if no such obvious points exist, e.g.\ once distortion is distributed near-evenly across many surface points. Our framework in contrast searches for minimal cut elongation or shrinking steps that reduce a joint objective, and thus we expect it to be more efficient in such settings (Figure~\ref{cases where there are not many obvious extremal points}).
+%%%
+%%One can also parameterize the surface triangle-after-triangle introducing cuts when distortion exceeds user-prescribed bound~\cite{BoundedDistortParam:2002}. 
+%%%
+%%All of these seam cutting strategies, however, follow greedy heuristics and do not provide a well-defined global objective that balances between the introduced cuts and overall distortion. 
+%
+%%related methods:\\
+%%AutoCuts~\cite{Poranne2017Autocuts}\\
+%%%SeamCut~\cite{Lucquin:2017}\\ % interactive
 %%
-%\justin{couldn't follow this sentence (what does ``efficient'' or ``sparse'' mean in this context and what does it have to do with L2?):}
-%Moreover, for seams to be efficient, it needs to be sparse, which is another challenge for optimizing it with L2-type distortion energies.
-%\minchen{RE:Justin: what about changing the sentence to:}Distortions are usually measured with smooth L2-type energy, where at local minimum the residual distortions are distributed evenly over the trangles. This is essentially different from the behavior of seams, which is either glued together or separated. Hence, approximating seam topology using UV coordinates would require nonsmooth energy to enforce sparsity structure, which makes the problem ill-conditioned.
-
-AutoCuts~\cite{Poranne2017Autocuts} optimizes an energy function defined as a weighted average of a seam energy and a mapping distortion metric. 
-%The AutoCuts optimization procedure progressively builds up a parameterization starting from triangle soup, jointly improving connectivity and distortion via homotopy optimization. \vova{need to be a bit careful about initialization, because they show two in their paper}
-%\alla{agree - someone needs to read carefully and update}
-The method is targeted toward user-assisted parameterization framework and provides multiple ways for users to interact with the system. Our framework complements AutoCuts in its focus on settings where users want to obtain parameterizations automatically. In this automatic setting,
-our outputs consistently outperform those of AutoCuts in terms of distortion to seam-length trade-off (Section~\ref{sec:results}, Table~\ref{tb:comp_AutoCuts}). Furthermore, the use of a formulation that weighs two very different quantities  in an automatic setting is challenging as users have little intuition as to which balance will achieve the parameterization they envision. Additionally the seam energy formulation used by AutoCuts does not directly translate into seam length terms, preventing direct manipulation. Consequently the method requires trial and error to achieve the distortion versus cut length tradeoff users envision.  
-Our formulation directly operates on the two quantities users typically want to control and our approach of allowing users to provide a hard bound on distortion enables them to more easily communicate their intent. 
-%Figure~\ref{fig:xx} shows some comparisons of the two methods. In all cases our framework achieves lower seam length for comparable distortion. \alla{should we say why? bla bla}
-%It also allows a few mechanisms of user control discussed in Section~\ref{sec:results}. 
-
+%%%Seams, due to its discontinuous property, is not intuitive to be considered in traditional distortion minimization frameworks.
+%%Due to discontinuities that occur when seams are introduced or removed, it is not intuitive to consider optimization of seam topology in the context of traditional frameworks for minimizing distortion during mesh parameterization.
+%%%
+%%\justin{couldn't follow this sentence (what does ``efficient'' or ``sparse'' mean in this context and what does it have to do with L2?):}
+%%Moreover, for seams to be efficient, it needs to be sparse, which is another challenge for optimizing it with L2-type distortion energies.
+%%\minchen{RE:Justin: what about changing the sentence to:}Distortions are usually measured with smooth L2-type energy, where at local minimum the residual distortions are distributed evenly over the trangles. This is essentially different from the behavior of seams, which is either glued together or separated. Hence, approximating seam topology using UV coordinates would require nonsmooth energy to enforce sparsity structure, which makes the problem ill-conditioned.
 %
-%We observed that i
-%\alla{delted all claims below unless we can demonstrate them}
-%While their method is among the first to optimize parameterization topology and geometry simultaneously, 
-%initially placing seams on all the edges introduces unneeded degrees of freedom and unnecessary computational expense:  Most of the triangles remain attached to their neighbors after their optimization procedure converges. Also, since their seam placement highly depends on the homotopy path, AutoCuts relies on user guidance to obtain good results, e.g.\ for parameter tuning, cut suggestion, and patch movement. 
-%\danny{Here or elsewhere we should also add the observation that a full triangle soup initializer requires an awful lot of extra (and generally unnecessary) work to glue everything back together...}%\justin{how's the above?}
-
-%Our framework is different from well-known seam cutting algorithms like Geometry Images~\cite{Gu2002Geometry} and Seamster~\cite{Sheffer2002Seamster}, in which the core idea is to locate points of maximal currently predicted distortion and to add cut paths toward them. These heuristics do not perform well if no such obvious points exist, e.g.\ once distortion is distributed near-evenly across many surface points. Our framework in contrast searches for minimal cut elongation or shrinking steps that reduce a joint objective, and thus we expect it to be more efficient in such settings (Figure~\ref{cases where there are not many obvious extremal points}).
-
-%\vova{not sure if we need the paragraph below.}
+%Most recently AutoCuts~\cite{Poranne2017Autocuts} optimizes an energy function defined as a weighted average of a seam-penalty energy and a mapping distortion metric. 
+%%The AutoCuts optimization procedure progressively builds up a parameterization starting from triangle soup, jointly improving connectivity and distortion via homotopy optimization. \vova{need to be a bit careful about initialization, because they show two in their paper}
+%%\alla{agree - someone needs to read carefully and update}
+%The method is targeted toward user-assisted parameterization framework and provides multiple ways for users to interact with the system. Our framework complements AutoCuts in its focus on settings where users want to obtain parameterizations automatically. In this automatic setting,
+%our outputs consistently outperform those of AutoCuts in terms of distortion to seam-length trade-off (Section~\ref{sec:results}, Table~\ref{tb:comp_AutoCuts}). Furthermore, the use of a formulation that weighs two very different quantities  in an automatic setting is challenging as users have little intuition as to which balance will achieve the parameterization they envision. Additionally the seam energy formulation used by AutoCuts does not directly translate into seam length terms, preventing direct manipulation. Consequently the method requires trial and error to achieve the distortion versus cut length tradeoff users envision.  
+%Our formulation directly operates on the two quantities users typically want to control and our approach of allowing users to provide a hard bound on distortion enables them to more easily communicate their intent. 
+%%Figure~\ref{fig:xx} shows some comparisons of the two methods. In all cases our framework achieves lower seam length for comparable distortion. \alla{should we say why? bla bla}
+%%It also allows a few mechanisms of user control discussed in Section~\ref{sec:results}. 
 %
-%Although OptCuts does not require user assistance, it still allows users to communicate preferences on regional seam placement through edge weight painting (Figure~\ref{fig:edge_weight_painting}), which is more in-line with common practices used by UV artists.  In addition, it can work with ``bespoke'' distortion energies when necessary. For example, it creates different set of seams that benefit conformality if the objective function penalizes conformal distortion (Figure~\ref{results of our method with conformal distortion energy}).
+%%
+%%We observed that i
+%%\alla{delted all claims below unless we can demonstrate them}
+%%While their method is among the first to optimize parameterization topology and geometry simultaneously, 
+%%initially placing seams on all the edges introduces unneeded degrees of freedom and unnecessary computational expense:  Most of the triangles remain attached to their neighbors after their optimization procedure converges. Also, since their seam placement highly depends on the homotopy path, AutoCuts relies on user guidance to obtain good results, e.g.\ for parameter tuning, cut suggestion, and patch movement. 
+%%\danny{Here or elsewhere we should also add the observation that a full triangle soup initializer requires an awful lot of extra (and generally unnecessary) work to glue everything back together...}%\justin{how's the above?}
+%
+%%Our framework is different from well-known seam cutting algorithms like Geometry Images~\cite{Gu2002Geometry} and Seamster~\cite{Sheffer2002Seamster}, in which the core idea is to locate points of maximal currently predicted distortion and to add cut paths toward them. These heuristics do not perform well if no such obvious points exist, e.g.\ once distortion is distributed near-evenly across many surface points. Our framework in contrast searches for minimal cut elongation or shrinking steps that reduce a joint objective, and thus we expect it to be more efficient in such settings (Figure~\ref{cases where there are not many obvious extremal points}).
+%
+%%\vova{not sure if we need the paragraph below.}
+%%
+%%Although OptCuts does not require user assistance, it still allows users to communicate preferences on regional seam placement through edge weight painting (Figure~\ref{fig:edge_weight_painting}), which is more in-line with common practices used by UV artists.  In addition, it can work with ``bespoke'' distortion energies when necessary. For example, it creates different set of seams that benefit conformality if the objective function penalizes conformal distortion (Figure~\ref{results of our method with conformal distortion energy}).
 

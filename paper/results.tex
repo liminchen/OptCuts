@@ -73,7 +73,7 @@ We first execute OptCuts on our full set of benchmark examples over a range of d
 
 
 \subsection{Comparisons to AutoCuts}
-
+\label{sec:autocmpr}
 As discussed in Section~\ref{sec:related}, AutoCuts~\cite{Poranne2017Autocuts} couples the optimization of a weighted sum of a seam-penalty term that tries to pull triangles together, scaled by a scalar $\lambda$, and the symmetric-Dirichlet distortion energy for parameterization. AutoCuts runs in two modes: one interactively driven by direct user guidance throughout, and the second is fully automated. To recreate the automated-mode version of AutoCuts we began with the official AutoCuts implementation and, with guidance from the authors of AutoCuts, set the parameters for recreating their fully automated method to those that performed best across the full set of benchmark examples. 
 
 Recall that in the AutoCuts model the topology of the UV mesh does not change: it remains a triangle soup. Instead, the seam-penalty energy that pulls triangles together is parameterized by a $\delta$ parameter which indicates how far vertices must be from one another to be considered truly disconnected by a seam. Finding a single weighting $\lambda$ that works well for all geometries poses a challenge and likewise $\delta$ requires adjustment over iterations depending on the current stage of the optimization. Thus AutoCuts is generally most effective in interactive mode with a user in-the-loop. For instance, starting from a disconnected triangle soup, a user will gradually decrease $\delta$ defining a {\em homotopy path} over the course of optimization to arrive at a final set of seams. The user also needs to move parameterized components to guide the UV layout towards a globally bijective solution. 
