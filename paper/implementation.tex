@@ -10,7 +10,7 @@
 
 \textbf{Given:} $M$, $T^0$, $U^0$, $b_d$ 
 
-\textbf{Initialize:} $\lambda^0 \leftarrow 0$, \texttt{converged} $\leftarrow$ \textbf{false}, $k \leftarrow 1$\\
+\textbf{Initialize:} $\lambda^0 \leftarrow 0$,  \hspace{2pt} \texttt{converged} $\leftarrow$ \textbf{false},  \hspace{2pt} $k \leftarrow 1$\\
 
 \textbf{while} \hspace{2pt} \textbf{!}  \texttt{converged} \hspace{2pt} \textbf{do} \\
 
@@ -21,7 +21,7 @@
 
 %%%----%%%
 \hspace{10pt} // Primal update (\S\ref{sec:primalUpdate}, details in \S\ref{sec:topologySearch}): \\
-\hspace{10pt} $i \leftarrow 0$, $(T^{i},U^{i}) \leftarrow (T^{k},U^{k})$, \hspace{2pt} $\delta^{i} \leftarrow 0$ \\
+\hspace{10pt} $i \leftarrow 0$, \hspace{2pt} $(T^{i},U^{i}) \leftarrow (T^{k},U^{k})$, \hspace{2pt} $\delta^{i} \leftarrow 0$ \\
 \hspace{10pt} \texttt{v\_converged} $\leftarrow$ \textbf{false}, \texttt{t\_stationary} $\leftarrow$ \textbf{false}, \texttt{t\_stopped} $\leftarrow$ \textbf{false} \\
 \hspace{10pt} $o^{0,1} \leftarrow \argmin_{o \in \mathcal{O}^k} d(o)$ \hspace{10pt}//  Get seed topological operation (\S\ref{sec:descent_op})\\
 
@@ -40,7 +40,7 @@
 \hspace{40pt} $U^{i+1}_\text{init} \leftarrow (U^{i,i+1}, U_s) $ \hspace{10pt} // Initialize new geometry (\S\ref{sec:topology_search}) \\
 \hspace{40pt} \texttt{t\_stopped} $\leftarrow$ \textbf{false} \\
 \hspace{30pt} \textbf{else} \\
-\hspace{40pt} $T^{i+1} \leftarrow T^i$, \hspace{10pt} $U^{i+1}_\text{init} \leftarrow U^i $ \\
+\hspace{40pt} $T^{i+1} \leftarrow T^i$, \hspace{1pt} $U^{i+1}_\text{init} \leftarrow U^i $ \\
 \hspace{30pt} \textbf{end if} \\
 \hspace{20pt} \textbf{end if} \\
 %%%----\hspace{20pt} // Vertex descent step: \\
@@ -82,7 +82,7 @@
 
 \end{algorithm}
 
-With the key components now in place, Algorithm~\ref{alg:OptCuts} summarizes our full OptCuts algorithm in pseudocode, including details on convergence detection and termination. Here, in this section, we next discuss key details including termination/convergence criteria, initialization, preconditioning, and inclusion of global bijectivity constraints.
+With the key components now in place, Algorithm 1 summarizes our full OptCuts algorithm in pseudocode, including details on convergence detection and termination. Here, in this section, we next discuss key details including termination/convergence criteria, initialization, preconditioning, and inclusion of global bijectivity constraints.
 
 %details of OptCuts convergence at termination, and 
 %then follow with technical details of our implementation of OptCuts. 
@@ -90,11 +90,16 @@ With the key components now in place, Algorithm~\ref{alg:OptCuts} summarizes our
 
 \subsection{Termination and Convergence}
 
-Our primal solution is \emph{converged} whenever it is stationary with respect to variations in both topology \emph{and} vertex position for a fixed $\lambda^k$ multiplier value. Numerically, primal convergence is declared for any $(T^i,U^i)$ pair when 1.) the topology descent is stationary---meaning there are no further available mesh operations at the current multiplier $\lambda^k$ value that will give decrease to the Lagrangian below $L(T^i,U^i,\lambda^k)$ at all; and 2.) the smooth distortion energy at topology $T^i$ is sufficiently locally minimized so that $\| \nabla_{\small{U}} E_{d}(T^i,U^i)\| \leq 10^{-6}$. When both our primal solve is converged \emph{and} our dual variable is likewise close to stationary so that $| \lambda^k -  \lambda^{k-1}| < 10^{-3}$, OptCuts terminates with a solution that is numerically \emph{converged} to a local minimizer of (\ref{eq:p1}) with respect to all available variations in topology provided by our merge and cut operations. 
+Our primal solution is \emph{converged} whenever it is stationary with respect to variations in both topology \emph{and} vertex position for a fixed $\lambda^k$ multiplier value. Numerically, primal convergence is declared for any $(T^i,U^i)$ pair when 1.) the topology descent is stationary---meaning there are no further available mesh operations at the current multiplier $\lambda^k$ value that will give decrease to the Lagrangian below $L(T^i,U^i,\lambda^k)$;
+%at all; 
+and 2.) the smooth distortion energy at topology $T^i$ is sufficiently locally minimized so that $\| \nabla_{\small{U}} E_{d}(T^i,U^i)\| \leq 10^{-6}$. When both our primal solve is converged \emph{and} our dual variable is likewise close to stationary so that $| \lambda^k -  \lambda^{k-1}| < 10^{-3}$, OptCuts terminates with a solution that is numerically \emph{converged} to a local minimizer of (\ref{eq:p1}) with respect to all available variations in topology provided by our merge and cut operations. 
 
-Importantly, our OptCuts algorithm and its implementation \emph{do not} apply a maximum iteration cap anywhere in any of our iteration loops. All presented results and corresponding timings are from solutions that have converged as defined above and in the pseudocode in Algorithm 1. There is, however, one additional, but subtle detail for a robust implementation that warrants further discussion in text rather than in pseudocode---we cover this immediately below.
+%Importantly, our OptCuts algorithm and its implementation \emph{do not} apply a maximum iteration cap anywhere in any of our iteration loops. All presented results and corresponding timings are from solutions that have converged as defined above and in the pseudocode in Algorithm 1. There is, however, one additional, but subtle detail for a robust implementation that warrants further discussion in text rather than in pseudocode---we cover this immediately below.
 
-First, while we converge with respect to the mesh operations we make available, we of course do not cover all possible topological operations on a mesh. Our choice of propagated cutting and merging operations was selected to cover the basic topology changes that we find suitably expressive for our parameterization task. However, we expect many others to be useful; indeed, below in Section~\ref{sec:var} we also consider and compare with another interesting mesh operation subset and remark that there is interesting future work to find improved mesh operation subsets for OptCuts. In the meantime, for \emph{any} discrete subset of topological operations that does not fully cover all possible mesh changes, there can and occasionally will be, a number of neighboring topologies connected by valid mesh operations that are all numerically close to stationarity. In such cases, without additional handling and preparation for cycling behavior, OptCuts would oscillate without stopping between a number of high-quality, close-to-optimal solutions. To handle this condition, we employ a simple cycle detection strategy, where we save hashes of previous-iteration solution triplets and the best visited solution from the previous iteration. When we detect that a duplicate solution is being revisited we terminate with the best visited solution from the last iteration. Of the 254 examples computed with OptCuts in Section~\ref{sec:results} this cycling behavior appears in 171 cases. As we tighten the distortion bound, cycling behavior decreases as stationary points become denser near isometric maps.
+Importantly, our OptCuts algorithm and its implementation \emph{do not} apply a maximum iteration cap anywhere in any of our iteration loops. All presented results and corresponding timings are from solutions that have converged either as defined above \emph{or} by a cyclic stationarity condition required for a robust implementation that warrants further discussion in text rather than in pseudocode---we cover this immediately below.
+
+First, while we converge with respect to the mesh operations we make available, we of course do not cover all possible topological operations on a mesh. Our choice of propagated cutting and merging operations was selected to cover the basic topology changes that we find suitably expressive for our parameterization task. However, we expect many others to be useful; indeed, below in Section~\ref{sec:var} we also consider and compare with another interesting mesh operation subset and remark that there is interesting future work to find improved mesh operation subsets for OptCuts. In the meantime, for \emph{any} discrete subset of topological operations that does not fully cover all possible mesh changes, there can and will be, a number of neighboring topologies connected by valid mesh operations that are all numerically close to stationarity. In such cases, without additional handling and preparation for cycling behavior, OptCuts would oscillate without stopping between a number of high-quality, close-to-optimal solutions. To handle this condition, we employ a simple cycle detection strategy, where we save hashes of previous-iteration solution triplets, and the best visited solution from the previous iteration. When we detect that a duplicate solution is being revisited, we terminate with the best visited solution from the last iteration. Of the 254 examples computed with OptCuts in Section~\ref{sec:results}, 171 terminate with cycling about stationarity, while the remainder converge to a stationary point. 
+%in 171 and converge to  . As we tighten the distortion bound, cycling behavior decreases as stationary points become denser near isometric maps.
 
 \subsection{Initialization}
 %\minchen{to $E_d$ stationary point}% huh?
