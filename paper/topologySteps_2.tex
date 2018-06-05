@@ -124,9 +124,8 @@ Since each change in topology alternates with smooth coordinate descent and we w
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.8\linewidth]{fig/propagation.png}
-\caption{Propagation of boundary split (orange), corner merge (green), and interior split (blue). When a propagating boundary split, all edges that could continue to propagate a boundary splitting cut from the current tail would be considered (a); for corner merge we just query the new corner at the current tail (b); for an interior split, once an incident edge of either the two tail is split as propagation, in the following iterations it would be the same as propagating boundary split (c).
-\vova{the rightmost (2nd split result for (c) is confusing. I suggest we remove it} }
+\includegraphics[width=0.65\linewidth]{fig/propagation.pdf}
+\caption{Propagation of boundary split (orange), corner merge (green), and interior split (blue). When a propagating boundary split, all edges that could continue to propagate a boundary splitting cut from the current tail would be considered (a); for corner merge we just query the new corner at the current tail (b); for an interior split, once an incident edge of either the two tail is split as propagation, in the following iterations it would be the same as propagating boundary split (c).}
 \label{fig:propagation}
 \end{figure}
 
