@@ -245,21 +245,38 @@ We picked five complex models from our dataset: Lucy, octopus, rgb$\_$dragon, st
 %\end{tabular}
 %\end{table*} 
 
-\begin{table*}[t]
+%\begin{table}[t]
+%\centering
+%\caption{Summary of distortion and seam-length measures for comparison between five UV-maps created by artists with two commercial tools, Unwrella (organic mode) and ZBrush, and the corresponding results obtained by OptCuts (with bijectvity) when its distortion bound is set to the commercial results' map distortion.}
+%\label{tb:comp_commercial}
+%\begin{tabular}{|c|cc|cc|cc|cc|}
+%\hline
+%\multirow{2}{*}{model} & \multicolumn{2}{c|}{\makecell{Unwrella \\ Organic}} & \multicolumn{2}{c|}{\makecell{OptCuts \\(Unwrella $b_d$)}} & \multicolumn{2}{c|}{ZBrush} & \multicolumn{2}{c|}{\makecell{OptCuts \\ (ZBrush $b_d$)}} \\ \cline{2-9} 
+%                                     & $E_{d}$            & $E_{s}$            & $E_{d}$                   & $E_{s}$                  & $E_{d}$      & $E_{s}$      & $E_{d}$             & $E_{s}$            \\ \hline
+%Lucy                                 & 4.096              & 19.713             & 4.095                     & 10.644                   & 4.258        & 6.635        & 4.257               & 6.520              \\
+%octopus                               & 4.071              & 21.723             & 4.069                     & 15.725                   & 4.221        & 14.054       & 4.211               & 14.394             \\
+%rgb\_dragon                          & 4.224              & 33.465             & 4.224                     & 16.129                   & 4.743        & 9.249        & 4.743               & 8.633              \\
+%statue\_5                             & 4.076              & 14.298             & 4.075                     & 5.092                    & 4.148        & 4.047        & 4.147               & 2.950              \\
+%three\_man                            & 4.033              & 19.242             & 4.033                     & 13.457                   & 4.146        & 9.001        & 4.146               & 9.316              \\ \hline
+%\end{tabular}
+%\end{table} 
+
+\begin{table}[t]
+\small
 \centering
 \caption{Summary of distortion and seam-length measures for comparison between five UV-maps created by artists with two commercial tools, Unwrella (organic mode) and ZBrush, and the corresponding results obtained by OptCuts (with bijectvity) when its distortion bound is set to the commercial results' map distortion.}
 \label{tb:comp_commercial}
 \begin{tabular}{|c|cc|cc|cc|cc|}
 \hline
-\multirow{2}{*}{model} & \multicolumn{2}{c|}{Unwrella Organic} & \multicolumn{2}{c|}{OptCuts (Unwrella $b_d$)} & \multicolumn{2}{c|}{ZBrush } & \multicolumn{2}{c|}{OptCuts (ZBrush $b_d$)} \\ \cline{2-9} 
+\multirow{2}{*}{{\small Model}} & \multicolumn{2}{c|}{\makecell{{\small Unwrella} \\ {\small Organic}}} & \multicolumn{2}{c|}{\makecell{{\small OptCuts} \\{\small (Unwrella $b_d$)}}} & \multicolumn{2}{c|}{{\small ZBrush}} & \multicolumn{2}{c|}{\makecell{{\small OptCuts} \\ {\small (ZBrush $b_d$)}}} \\ \cline{2-9} 
                                      & $E_{d}$            & $E_{s}$            & $E_{d}$                   & $E_{s}$                  & $E_{d}$      & $E_{s}$      & $E_{d}$             & $E_{s}$            \\ \hline
-Lucy                                 & 4.096              & 19.713             & 4.095                     & 10.644                   & 4.258        & 6.635        & 4.257               & 6.520              \\
-octopus                               & 4.071              & 21.723             & 4.069                     & 15.725                   & 4.221        & 14.054       & 4.211               & 14.394             \\
-rgb\_dragon                          & 4.224              & 33.465             & 4.224                     & 16.129                   & 4.743        & 9.249        & 4.743               & 8.633              \\
-statue\_5                             & 4.076              & 14.298             & 4.075                     & 5.092                    & 4.148        & 4.047        & 4.147               & 2.950              \\
-three\_man                            & 4.033              & 19.242             & 4.033                     & 13.457                   & 4.146        & 9.001        & 4.146               & 9.316              \\ \hline
+{\small Lucy}                                 & 4.10              & 19.7             & 4.10                     & 10.6                   & 4.26        & 6.6        & 4.26               & 6.5              \\
+{\small octopus}                               & 4.07              & 21.7             & 4.07                     & 15.7                   & 4.22        & 14.1       & 4.21               & 14.4             \\
+{\small rgb\_dragon}                          & 4.22              & 33.5             & 4.22                     & 16.1                   & 4.74        & 9.2        & 4.74               & 8.6              \\
+{\small statue\_5}                             & 4.08              & 14.3             & 4.08                     & 5.1                    & 4.16        & 4.0        & 4.15               & 3.0              \\
+{\small three\_man}                            & 4.03              & 19.2             & 4.03                     & 13.5                   & 4.15        & 9.0        & 4.15               & 9.3              \\ \hline
 \end{tabular}
-\end{table*} 
+\end{table} 
 
 \begin{figure}[t]
 \centering
@@ -351,8 +368,11 @@ In many cases artists and users may have pre-existing UV-mappings, methods and/o
 %\end{figure}
 % also could be bimba, bunny
 
-Here as an example, we explore taking UV-mappings that are quickly generated by   Seamster~\cite{Sheffer2002Seamster} as input. Seamster is a highly efficient seam cutting strategy that detects local curvature extrema and connects them with a minimal spanning tree. This approach can be sensitive to the user-set parameters such as size of surface regions for computing local extrema, which is a shape-dependent parameter that can require parameter tuning. In this experiment, we pick two models, cow and a triceratops, that have been successfully cut by hand-tuning Seamster\ \cite{Sheffer2002Seamster}. We then apply OptCuts to these two Seamster-generated maps, setting the OptCuts distortion bound to the original distortion of the Seamster-generated maps. In Figure~\ref{fig:comp_Seamster} we compare the original hand-tuned Seamster output in (a), with the resulting OptCuts-polished results in (b), and finally with the direct results of optimizing OptCuts from scratch~\footnote{I.e., directly starting from the Tutte embedding of each mesh.} on these examples while satisfying the same distortion bound in (c). Here the OptCuts-polished examples achieves the shortest seam length while maintaining both the distortion bound and bijectivity---highlighting both the utility of polishing and the value of exploiting warm-starts with OptCuts.
+Here as an example, we explore taking UV-mappings that are quickly generated by   Seamster~\cite{Sheffer2002Seamster} as input. Seamster is a highly efficient seam cutting strategy that detects local curvature extrema and connects them with a minimal spanning tree. This approach can be sensitive to the user-set parameters such as size of surface regions for computing local extrema, which is a shape-dependent parameter that can require parameter tuning. In this experiment, we pick two models, cow and a triceratops, that have been successfully cut by hand-tuning Seamster\ \cite{Sheffer2002Seamster}. We then apply OptCuts to these two Seamster-generated maps, setting the OptCuts distortion bound to the original distortion of the Seamster-generated maps. In Figure~\ref{fig:comp_Seamster} we compare the original hand-tuned Seamster output in (a), with the resulting OptCuts-polished results in (b), and finally with the direct results of optimizing OptCuts from scratch~\footnote{I.e., directly starting from the Tutte embedding of each mesh.} on these examples while satisfying the same distortion bound in (c). 
 
+As our second example, we pick the output of the best-performing commercial tool, ZBrush, for two models where OptCuts generated slightly longer seams when starting from Tutte's embedding (see three man and octopus in Table~\ref{tb:comp_commercial}). We now use ZBrush output as initial embedding for OptCuts and run our pipeline to produce polished result. In both cases, OptCuts was able to further shorten the seams (see Figure~\ref{fig:polish_zbrush}).
+
+In all cases OptCuts-polished examples achieve the shortest seam length while maintaining both the distortion bound and bijectivity---highlighting both the utility of polishing and the value of exploiting warm-starts with OptCuts.
 
 %Since our framework only provides local optima for a highly non-convex problem, initial conditions are relevant for the final result and computational cost. Several powerful topological heuristics have been used to provide a disk topology after cutting. %for the geometry optimization algorithm. 
 %We can consider any of these methods as a way to define an initialization for our approach. 
@@ -372,8 +392,15 @@ Here as an example, we explore taking UV-mappings that are quickly generated by 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{fig/comp_Seamster.png}
-\caption{UV-map Polishing with OptCuts. OptCuts can take \emph{any} valid embedding as a starting point to improve seam length and/or distortion. Here we improve seam length starting from an input map obtained from Seamster\ \cite{Sheffer2002Seamster} (a). We preserve distortion quality while improving seam length by taking the initial map's distortion as an input bound for OptCuts. Then we optimize the input map improving seam length while preserving distortion (b). As constrained distortion optimization is highly nonconvex, with many local minima, polishing warm-started solutions like these can be an effective way to use OptCuts to explore many interesting locally optimal embeddings aside from the default one we gain from initializing with a Tutte embedding (c).}
+\caption{UV-map Polishing with OptCuts starting with Seamster~\cite{Sheffer2002Seamster}. OptCuts can take \emph{any} valid embedding as a starting point to improve seam length and/or distortion. Here we improve seam length starting from an input map obtained from Seamster (a). We preserve distortion quality while improving seam length by taking the initial map's distortion as an input bound for OptCuts. Then we optimize the input map improving seam length while preserving distortion (b). As constrained distortion optimization is highly nonconvex, with many local minima, polishing warm-started solutions like these can be an effective way to use OptCuts to explore many interesting locally optimal embeddings aside from the default one we gain from initializing with a Tutte embedding (c).}
 \label{fig:comp_Seamster}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig/polish_ZB.png}
+\caption{UV-map Polishing with OptCuts starting with ZBrush. To demonstrate the value of polishing existing embeddings with OptCuts, we initialize our method with UV map produced by ZBrush. Note that OptCuts shortened seams for both models, while respecting the distortion bound and bijectivity constraints.}
+\label{fig:polish_zbrush}
 \end{figure}
 
 %For Seamster, user need to set the size of local regions for measuring extremity, which is a mesh and shape dependent parameter that requires fine tuning. Even OptCuts with standard initialization achieves similar seam length without any user assistance.
