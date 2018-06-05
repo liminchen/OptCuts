@@ -118,7 +118,7 @@ As before, we pick $d$-minimizing operation from this small set of candidate ope
 o^{i,i+1} = \argmin_{o \in \mathcal{E}(o^{i-1, i}, T^i)} d(o).
 \end{align}
 
-Since the change in topology alternates with smooth coordinate update, we want to avoid introducing too many topological changes as long as coordinate update provides significant energy improvements. We denote the threshold for desired estimated decrease by $\delta^{i}$. It is set to $\delta^0=0$ in the first iteration, and then set according to the energy improvement during coordinate update. At any iteration, if $d(o^{i,i+1}) < \delta^{i}$ we update the topology based on the best operation $T^{i+1} \leftarrow o^{i, i+1}(T^{i})$, and keep it unchanged otherwise, $T^{i+1} \leftarrow T^i.$.
+Since the change in topology alternates with smooth coordinate update, we want to avoid introducing too many topological changes as long as coordinate update provides significant energy improvements. We denote the threshold for desired estimated decrease by $\delta^{i}$. It is set to $\delta^0=0$ in the first iteration, and then set according to the energy improvement during coordinate update. At any iteration, if $d(o^{i,i+1}) < \delta^{i}$ we update the topology based on the best operation $T^{i+1} \leftarrow o^{i, i+1}(T^{i})$, and keep it unchanged otherwise, $T^{i+1} \leftarrow T^i$.
 
 %If this minimizer provides sufficient estimated decrease, so that $d(o^{i,i+1}) < \delta^{i}$, we accept the topology update setting $T^{i+1} \leftarrow o^{i, i+1}(T^{i})$; otherwise, we keep topology unchanged with $T^{i+1} \leftarrow T^i.$
 

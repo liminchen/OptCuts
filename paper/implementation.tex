@@ -37,9 +37,9 @@ $k \leftarrow 1$ \\
 %%%----\hspace{20pt} // Topology descent step: \\
 \hspace{20pt} \texttt{t\_stopped} $\leftarrow$ \textbf{true} \\
 \hspace{20pt} \textbf{if}  \textbf{!} \texttt{t\_stationary} \\
-\hspace{30pt} $o^{i,j} \leftarrow \argmin_{o \in \mathcal{E}(s^k, T^{i-1})} d(o)$ \hspace{3pt}// Get candidate op (\S\ref{sec:descent_op})  \\
+\hspace{30pt} $o^{i,i+1} \leftarrow \argmin_{o \in \mathcal{E}(o^{i-1, i}, T^i)} d(o)$ \hspace{3pt}// Get candidate op (\S\ref{sec:descent_op})  \\
 \hspace{30pt} \textbf{if} $d(o^{i,j}) < \delta^{i-1}$ \\
-\hspace{40pt} $T^i \leftarrow T^j$ \hspace{10pt} // Sufficient decrease, update topology (\S\ref{sec:descent_op}) \\
+\hspace{40pt} $T^i \leftarrow o^{i, i+1}(T^i)$ \hspace{10pt} \hspace{-.4cm} // Sufficient decrease, update topology (\S\ref{sec:descent_op}) \\
 \hspace{40pt} $U^{i-1} \leftarrow (U^{i,j}, U_s) $ \hspace{10pt} // Initialize new geometry (\S\ref{sec:descent_op}) \\
 \hspace{40pt} \texttt{t\_stopped} $\leftarrow$ \textbf{false} \\
 \hspace{30pt} \textbf{end if} \\
