@@ -46,13 +46,17 @@ We consider descent with topology changes induced by three mesh operations.
 \paragraph{Boundary Vertex Split}
 Boundary vertices can be split along any interior incident edges. 
 Each such candidate split generates two duplicate vertices forming the stencil to compute $d$.
+%
+When splitting
+%
 \begin{wrapfigure}[5]{r}{0.4\linewidth}
   \begin{center}
   \vspace{-4mm}
     \includegraphics[width=1\linewidth]{fig/bSplit}
   \end{center}
 \end{wrapfigure}
-When splitting a boundary vertex along an edge connecting to another boundary vertex, we either remove a hole or else produce a new chart in our UV map. For the latter case, we generate four duplicate vertices forming the stencil to compute $d$.
+%
+a boundary vertex along an edge connecting to another boundary vertex, we either remove a hole or else produce a new chart in our UV map. For the latter case, we generate four duplicate vertices forming the stencil to compute $d$.
 %\minchen{[TODO] 4-vertex merge to support joining two charts together, triangle moving operations?}
 
 \paragraph{Interior Vertex Split}
@@ -69,6 +73,9 @@ any pair of incident edges. Each such candidate split generates two duplicate ve
 
 \paragraph{Corner Merge}
 Corners are formed by three UV vertices corresponding to the tail edge of a cut seam on the input surface. 
+%
+Merging the end vertices generates a single new vertex forming the stencil to compute $d$. Merging requires extra care here. Unlike vertex 
+%
 \begin{wrapfigure}[5]{r}{0.4\linewidth}
   \begin{center}
   \vspace{-5mm}
@@ -76,7 +83,8 @@ Corners are formed by three UV vertices corresponding to the tail edge of a cut 
   \vspace{-4mm}
   \end{center}
 \end{wrapfigure}
-Merging the end vertices generates a single new vertex forming the stencil to compute $d$. Merging requires extra care here. Unlike vertex splitting, an initial location for the newly merged vertex must be selected. Na\"ive merging can violate local injectivity and so prevent progress if we are working with barrier-type energies like symmetric Dirichlet. We initialize a merged vertex to the average of its parent vertices. If inversion is detected, we then apply Agmon's relaxation~\shortcite{Agmon1954Relaxation} to project to an inversion-free position iteratively. On rare occasions this will not suffice and so we remove the proposed operation from our queue.
+%
+splitting, an initial location for the newly merged vertex must be selected. Na\"ive merging can violate local injectivity and so prevent progress if we are working with barrier-type energies like symmetric Dirichlet. We initialize a merged vertex to the average of its parent vertices. If inversion is detected, we then apply Agmon's relaxation~\shortcite{Agmon1954Relaxation} to project to an inversion-free position iteratively. On rare occasions this will not suffice and so we remove the proposed operation from our queue.
 %However, cases are still there when only moving the merged vertex is not enough to obtain an inversion free initial local stencil. In these situations, we will just abandon the candidate. This rarely happens in practice and does not affect our result.\justin{didn't follow the last two sentences, maybe needs a small figure}
 
 \subsection{Topology Search Candidates}
@@ -125,7 +133,9 @@ Since each change in topology alternates with smooth coordinate descent and we w
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.65\linewidth]{fig/propagation.pdf}
+\vspace{-0.3cm}
 \caption{Propagation of the boundary split (orange), corner merge (green), and interior split (blue) topology operations. When propagating a boundary split all edges that can continue the boundary splitting cut from the current cut's tail are set as propagation candidates (a). At corner merges we we have a single candidate to query---the new corner at the current tail (b). Finally, for propagating an interior split, first we choose an incident edge from either of the two possible seam tails; once split, propagation then follows in the same fashion as the boundary split for following propagation steps (c).}
+\vspace{-0.3cm}
 \label{fig:propagation}
 \end{figure}
 
