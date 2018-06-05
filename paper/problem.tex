@@ -4,7 +4,7 @@
 %\minchen{As Vova suggested, describe Self-Weighting as our main formulation before Joint Discrete-Continuous Search, so does Abstract, Introduction, and Section 4 and 5.}
 % \danny{Also took a pretty heavy pass at re-organizing this section and the next.}
 
-Given an input triangle mesh $M=(V,F)$ of a three-dimensional surface with vertices $V$, and faces $F$, we seek a UV map with topology $T^*=(V_{T^*}, F_{T^*})$ and a corresponding two-dimensional embedding of vertex coordinates, $U^* \in \mathbb{R}^{2 |V_{T^*}|}$, that locally minimize the constrained parametrization problem
+Given an input triangle mesh $M=(V,F)$ of a three-dimensional surface with vertices $V$, and faces $F$, we seek its UV embedding with connectivity $T^*=(V_{T^*}, F_{T^*})$ and a corresponding two-dimensional embedding of vertex coordinates, $U^* \in \mathbb{R}^{2 |V_{T^*}|}$, that locally optimizes the constrained parametrization problem
 %
 \begin{align}
 	\min_{T,U} E_s(T) \quad s.t. \quad E_d(T,U) \leq b_d\ \ \text{and}\ \ (T, U) \in \mathcal{I}.
@@ -14,9 +14,9 @@ Given an input triangle mesh $M=(V,F)$ of a three-dimensional surface with verti
 %\vova{Binary value over edges requires additional post-process to identify which of two vertices are duplicated and which triangles they should be assigned to. 
 %Why not just define a new mesh $(V_T, F_T)$ and a bijective map $f_T: F \rightarrow F_T$?}\danny{My suggestion is that we stick as closely as possible to the rep used in Minchen's code - I've asked him what he uses - we can monge that into text once he replies.} \minchen{Similar to Vova said, I simply use the vertex indices of each face to represent topology as what .obj file does. Should we mention it here or in the implementation section?}
 %
-Here $V_{T^*}$ forms a superset of $V$ with possibly duplicated vertices, and $F_{T^*}$ is the set of faces indexed into this new set of vertices. We use $\mathcal{I}$ to define the set of \emph{either} locally injective \emph{or} globally bijective UV maps; in the following we will first initially focus on the locally injective set and then later cover our extension to bijectivity. Energies $E_s$ and $E_d$ respectively measure seam quality and map distortion while $b_d$ is a user-specified \emph{upper bound} on the acceptable distortion of the generated map. This optimization is always feasible as in the limit more cuts will always satisfy any distortion bound. %\danny{If we truly want to make bijectivity a first-class component of our method (I'd suggest we do then we should add the bijectivity constraint to the optimization problem statement above and also the derivation that follows - happy to do this once we decide.}
+Here $V_{T^*}$ is a superset of $V$ with possibly duplicated vertices, and $F_{T^*}$ is the set of original faces indexed into this new set of vertices. We use $\mathcal{I}$ to define the set of \emph{either} locally injective \emph{or} globally bijective UV maps; in the following we will first initially focus on the locally injective set and then discuss the extension to globally bijective maps (Section~\ref{sec:bijectivity}). Energies $E_s$ and $E_d$ respectively measure seam quality (length) and map distortion while $b_d$ is a user-specified \emph{upper bound} on the acceptable distortion of the generated map. This optimization is always feasible as in the limit having all triangles separated would allow for zero distortion. %\danny{If we truly want to make bijectivity a first-class component of our method (I'd suggest we do then we should add the bijectivity constraint to the optimization problem statement above and also the derivation that follows - happy to do this once we decide.}
 
-In general, distortion measures are smooth albeit \emph{nonconvex}, while seam measures are \emph{nonsmooth} as they take a discrete jump when mesh edges are cut or merged. Hence, we must address both challenges to design a suitable optimization method. 
+In general, distortion measures are smooth albeit \emph{nonconvex}, while seam length measures are \emph{nonsmooth} as they increase by discrete amounts when interior mesh edges are cut along or seam edges are merged. Hence, generic optimization techniques cannot be easily applied to our setting; instead we need to design a tailored optimization method that addresses both challenges.
 
 %
 % e.g. symmetric Dirichlet, MIPS, etc, to measure distortion over the mapped domain. In what follows, for simplicity we largely focus on the symmetric Dirichlet energy and defer examples with other distortion measures for our results to Section\ \ref{}.
@@ -26,7 +26,7 @@ In general, distortion measures are smooth albeit \emph{nonconvex}, while seam m
 %where $L(T,U) = E_s(T) + \lambda E_d(T,U)$ is the total energy combining both seam energy $E_s$ and distortion energy $E_d$ with a balancing factor $\lambda \in \mathbb{R^+}$. Notice that usually $E_d$ is smooth, while $E_s$ is defined to be non-differentiable, which gives us a discrete-continuous problem.
 
 \subsection{Dual Objective}
-We construct the Lagrangian for (\ref{eq:p1})  % no need to cite the definition of a Lagrangian
+As a first step toward solving the problem at hand, we construct the Lagrangian for (\ref{eq:p1})  % no need to cite the definition of a Lagrangian
 \begin{align}
 	L(T,U,\lambda) = E_s(T) + \lambda(E_d(T,U) - b_d),
 	\label{eq:L}
@@ -40,18 +40,18 @@ to form the equivalent saddle-point problem~\cite{Bertsekas:2016:NOP} defined ov
 \end{align}
 %
 Here $\lambda \in \mathbb{R_+}$ is the Lagrange multiplier for our distortion bound. On examination the Lagrangian $L$ can be seen as a multi-objective balancing between distortion and seam quality as dictated by $\lambda$. Here, however, $\lambda$ effectively applies a local scaling between the seam and distortion terms that is implied %directly and automatically given 
-by the user-specified distortion bound. Within iterations of OptCuts, our algorithm to solve \eqref{eq:p1}, $\lambda$ will thus grow as we threaten to violate our distortion bound and so prioritize distortion minimization; similarly, $\lambda$ will decrease toward $0$ as our bound is strictly satisfied to prioritize seam quality.
+by the user-specified distortion bound. As we iterate to solve  \eqref{eq:p1}, $\lambda$ will grow when we threaten to violate our distortion bound  prioritizing distortion minimization; similarly, $\lambda$ will decrease toward $0$ when our bound is strictly satisfied to prioritize seam quality.
 
 
-\subsection{Mapping Quality Measures}
-Concretely we formulate our seam-quality measure as the normalized total seam length
+\subsection{Embedding Energy}
+Concretely we formulate our seam-quality energy as the normalized total seam length
 \begin{align}
 E_s 
 %= E_{SL} 
 = \frac{1}{\sqrt{(\sum_{t\in\mathcal{F}} |A_t|)/\pi}} \sum_{i \in \mathcal{S}} |e_i|
 \end{align}
 where $\mathcal{S}$ is the set of all seam edges on the input surface and $|e_i|$ is the length of edge $i$ in the input mesh.
-To measure distortion over the mapped domain we apply the symmetric Dirichlet energy~\cite{Smith2015Bijective} normalized by surface area~\footnote{For simplicity we focus on symmetric Dirichlet here; alternate distortion energies follow similarly.}, 
+We measure distortion over the mapped domain using the symmetric Dirichlet energy~\cite{Smith2015Bijective} normalized by surface area~\footnote{For simplicity we focus on symmetric Dirichlet here; alternate distortion energies follow similarly.}, 
 \begin{align} 
 E_d 
 %= E_{SD} 
@@ -66,7 +66,7 @@ where $\mathcal{F}$ is the set of all triangles, $|A_t|$ is the area of triangle
 
 
 \subsection{Adding Global Bijectivity}
-Most texture applications additionally require a guarantee of global bijectivity. Following Jiang et al.'s\ \shortcite{Jiang2017Simplicial} observation we realize this additional constraint on our mapping by triangulating the void regions of each iterations updated UV map and then augmenting our distortion energy $E_d$ with an additional term, \emph{not included in the distortion bound constraint}, to form a collapse preventing energy for the added negative-space triangles during each optimization iteration. For details see Section\ \ref{sec:bijectivity}. 
+Most applications or UV embeddings  require global bijectivity. Following the observations of Jiang et al.'s\ \shortcite{Jiang2017Simplicial} we realize this additional constraint on our mapping by first triangulating the outer, void, regions of each iteration's updated UV map and then augmenting our distortion energy $E_d$ with an additional term, \emph{not included in the distortion bound constraint}, that prevents the added void-space triangles from collapsing during each optimization iteration. For details see Section\ \ref{sec:bijectivity}. 
 %As these constraints are implicitly encoded in our constraint. The additional objective terms are not added as a term to the distortion bound. Moreover, our framework stays the same when solving this extended problem.
 
 % \danny{Moved and reorganized a good portion of what was here to the next section.}

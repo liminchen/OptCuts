@@ -6,23 +6,27 @@ To perform our primal update, we seek to minimize the Lagrangian over both conti
 %
 To optimize over topology we could potentially perform exhaustive search over the graph of all possible mesh changes. This approach, however, is intractable for any practical mesh size. 
 %
-Instead, we devise a local search algorithm for topological updates inspired by the standard process of optimizing a smooth energy over vertex positions. The standard process is to formulate a local approximation to the energy function, use it to estimate the direction for the gradient descent step, and then search along the proposed direction to find the step magnitude that ensures significant decrease in energy. 
+Instead, we devise a local search algorithm for topological updates inspired by the standard process of optimizing a smooth energy over vertex positions. 
+
 %
 %Instead, we begin by recalling the standard process of optimizing a smooth energy solely over vertex DoFs. In such cases, each iterate generally forms a localized approximation of the minimized energy \justin{didn't understand previous phrase} and then uses it to propose a candidate direction for decrease. Then, since finding such a direction is expensive, we search along the proposed direction to ensure a significant decrease in energy (and not increase). 
-
+The standard process is to formulate a local approximation to the energy function, use it to estimate the direction for the gradient descent step, and then search along the proposed direction to find the step magnitude that ensures significant decrease in energy. 
+%
 We extend this process to include search over discrete variations in topology. In analogy to seeking a continuous search direction, at the start of each new primal solve we will build many localized energy approximations to search for a likely candidate mesh operation to repeatedly propagate topology change, i.e., cutting or merging, over our UV mesh. Each inner iterate of the primal solve will successively apply this operation in combination with standard smooth descent to explore discrete-continuous descent until no further progress is made.% and so a primal update is found.    %<-- doesn't seem needed
 
 In the remainder of this section we formulate the energy model that is used to evaluate the candidate topology operations (Section ~\ref{sec:topology_energy}), 
-enumerate the topology operations used in our algorithm (Section~\ref{sec:topology_ops}), explain how we find the search direction (Section~\ref{sec:descent_op}), and iteratively explore the search direction (Section~\ref{sec:topology_search}).
+enumerate the topology operations used in our algorithm (Section~\ref{sec:topology_ops}), explain how we find the search direction (Section~\ref{sec:descent_op}), and iteratively explore the identified direction (Section~\ref{sec:topology_search}).
 
-\subsection{Energy Model}
+\subsection{Energy Model for Topology Updates}
 \label{sec:topology_energy}
-We devise an approximate energy model to to efficiently estimate the effect of a potential topological change. 
+We next devise an approximate energy model to efficiently estimate the effect of a potential topological change. 
+To keep our notation simple for the rest of this section we use $i$ or $j$ to index inner loop of the primal update, and $k$ for the outer loop.
 At each outer iterate $k$, the Lagrangian for any proposed topology $T^i$ is  
 \begin{align}
 \ell(T^i) = \min_{U} L(T^i, U) = E_s(T^i) + \lambda^k \min_{U} E_d(T^i, U).
 \end{align}
-Then, for any valid topology changing operation, $o^{i,j}:T^i \rightarrow T^j$, the resultant change in energy is $\Delta \ell(o^{i,j}) = \ell(T^j) - \ell(T^i)$.
+Then, for any valid topology-changing operation, $o^{i,j}:T^i \rightarrow T^j$, the resultant change in energy is $\Delta \ell(o^{i,j}) = \ell(T^j) - \ell(T^i)$.
+
 
 Since minimizing over $U$ for every potential topology change is intractable for large meshes, we start from a known $(T^i, U^i)$, and approximate the change in the Lagrangian by restricting the distortion update to the locally changed vertex stencil $U^{i,j}$ of the applied topological operation $o^{i,j}$. We choose the stencil to include only the vertices affected by the topological operation and their immediate neighbors.
 We hold all other vertices $U_s$, shared in common with $T^i$, fixed in the mesh
@@ -80,31 +84,43 @@ Merging the end vertices generates a single new vertex forming the stencil to co
 In analogy to computing a continuous search direction, at the start of each new primal solve we search for a candidate mesh operation to propagate descent. 
 %
 We first consider boundary vertex split originated at one of $m$ boundary vertices in the current topology $T^k$. 
-To reduce unnecessary computational overhead we select a subset of $m_\text{test}=m^{0.8}$ boundary vertices that might have the largest effect on the energy. In particular, we compute the standard deviation over all the distortion energy gradients acting on the boundary vertex contributed from incident elements and pick boundary vertices with largest deviation. We use the selected vertices to initiate boundary vertex splits, and consider all available seam tails for a corner merge, building a set of $O^k$ topological operations.
+To reduce unnecessary computational overhead we select a subset of $m_\text{boundary}=m^{0.8}$ boundary vertices that might have the largest effect on the energy. To estimate the priority, we compute the standard deviation over all the distortion energy gradients acting on the boundary vertex contributed from incident elements, and pick boundary vertices with largest deviation. We use the selected vertices to initiate boundary vertex splits, and consider all current seams for a corner merge, building a set of $O^k$ topological operations.
 %
 %We use the selected vertices to build a set of candidate mesh operations $O^k$ formed by boundary vertex splits and all valid corner merges on those vertices. 
-\minchen{The filtering is only applied on split operations, not on corner merge. We simply query all corners, there's not many of them, and the filtering criteria for splits is not appropriate for merge.} 
-\vova{how do we know if something is a corner?}
-We then find a minimizer
+We then find a minimizer for the first topological change:
 \begin{align}
 \label{eq:minO}
-o^{i,j} = \argmin_{o \in O^k} d(o).
+o^{0,1} = \argmin_{o \in O^k} d(o).
 \end{align}
-With local support, all queried $d$ in this minimization can be evaluated in parallel. 
+Since we use local support for vertex stencils, all queried $d$ in this minimization can be evaluated in parallel. 
 
-If the minimizing operation promises descent, i.e., $d(o^{i,j}) < 0$, we set our candidate mesh operation for our descent process, $s^k$, with this operation, $s^k \leftarrow o^{i,j}$. Otherwise, we go on to find the $(n-m)^{0.8}$ interior vertices with largest deviation and rebuild $O^k$ as the set of all interior vertex splits on those vertices. A $d$-minimizing interior split operation $o^{i,j} \in O^k$, again using (\ref{eq:minO}), is then set as the set $s^k \leftarrow o^{i,j}$ for our descent process.
+It is possible for none of the boundary cuts to promise decrease in energy (i.e., $d(o^{0,1}) \geq 0$), in that case we initiate a new seam via interior vertex split. Similarly to before, we pick $m_\text{interior}=(n-m)^{0.8}$ interior vertices with the largest deviation, and build  $O^k$ as the set of all interior vertex splits on those vertices. We select the $d$-minimizing interior split operation $o^{0,1} \in O^k$ using (\ref{eq:minO}). Once we identify the best topological change $o^{0,1}$ (i.e., the search direction) we next expand it via iterative propagation. 
+
+%After estimating the minm $o^{i,j}$
+%
+%we set our candidate mesh operation for our descent process, $s^k$, with this operation, $s^k \leftarrow o^{i,j}$. Otherwise, we initiate new seams via interior vertex splits. Similarly to before, we pick $m_\text{int}=(n-m)^{0.8}$ interior vertices with the largest deviation, and build  $O^k$ as the set of all interior vertex splits on those vertices. We select the $d$-minimizing interior split operation $o^{i,j} \in O^k$, again using (\ref{eq:minO}), is then set as the set $s^k \leftarrow o^{i,j}$ for our descent process.
 
 \subsection{Iterated Search, Propagation and Descent}
 \label{sec:topology_search}
-Once we have computed our candidate search operation $s^k$, we begin an inner loop iteration, indexed by superscript $i$ (recalling outer iterates are indexed by $k$), to solve the primal variable update. At the start of this process we initialize our desired upper bound on estimated decrease to $\delta^0 = 0$; this will be updated at each successive iterate. Then, each inner iteration $i$ proceeds by first propagating topology change followed by smooth coordinate update. 
 
-Each topology propagation step first generates a set of all possible mesh operations $\mathcal{E}(s^k, T^{i-1})$ that could continue to propagate the seed operation $s^k$ on topology $T^{i-1}$, e.g. all edges that could continue to propagate a boundary splitting cut from the current tail. See Figure\ \ref{fig:propagation} for illustrations on how we propagate each operation.
-As in seeking our seed operation we once again find the $d$-minimizing operation from this small set of candidate operations
+We propagate the best seed topological operation $o^{0,1}$ by iteratively applying operations of the same type (a boundary or interior split, or a merge). During primal update we alternate between propagating topological change (updating $T^i$) and a smooth coordinate update over $U^i$.
+
+%Once we have computed our candidate search operation $s^k$, we begin an inner loop iteration, indexed by superscript $i$ (recalling outer iterates are indexed by $k$), to solve the primal variable update. 
+
+%At the start of this process we initialize our desired upper bound on estimated decrease to $\delta^0 = 0$; this will be updated at each successive iterate. 
+%Then, each inner iteration $i$ proceeds by first propagating topology change followed by smooth coordinate update. 
+
+Each topology propagation step first generates a set of all possible mesh operations $\mathcal{E}(o^{i-1, i}, T^{i})$ that could continue to propagate the previous operation $o^{i-1, i}$ on the current topology $T^{i}$ (e.g., all valid edges to extend an existing seam at its tail). Figure~\ref{fig:propagation} illustrates how we propagate each type of topological operation.
+%
+As before, we pick $d$-minimizing operation from this small set of candidate operations:
 \begin{align}
 \label{eq:minE}
-o^{i,j} = \argmin_{o \in \mathcal{E}(s^k)} d(o).
+o^{i,i+1} = \argmin_{o \in \mathcal{E}(o^{i-1, i}, T^i)} d(o).
 \end{align}
-If this minimizer provides sufficient estimated decrease, so that $d(o^{i,j}) < \delta^{i-1}$, we accept the topology update setting $T^i \leftarrow T^j$; otherwise, we keep topology unchanged with $T^i \leftarrow T^{i-1}.$
+
+Since the change in topology alternates with smooth coordinate update, we want to avoid introducing too many topological changes as long as coordinate update provides significant energy improvements. We denote the threshold for desired estimated decrease by $\delta^{i}$. It is set to $\delta^0=0$ in the first iteration, and then set according to the energy improvement during coordinate update. At any iteration, if $d(o^{i,i+1}) < \delta^{i}$ we update the topology based on the best operation $T^{i+1} \leftarrow o^{i, i+1}(T^{i})$, and keep it unchanged otherwise, $T^{i+1} \leftarrow T^i$.
+
+%If this minimizer provides sufficient estimated decrease, so that $d(o^{i,i+1}) < \delta^{i}$, we accept the topology update setting $T^{i+1} \leftarrow o^{i, i+1}(T^{i})$; otherwise, we keep topology unchanged with $T^{i+1} \leftarrow T^i.$
 
 \begin{figure}[t]
 \centering
@@ -114,7 +130,7 @@ If this minimizer provides sufficient estimated decrease, so that $d(o^{i,j}) < 
 \label{fig:propagation}
 \end{figure}
 
-The subsequent coordinate update then simply applies a single step of projected Newton descent with line search to update the vertex coordinates $U^i$; see Section~\ref{sec:descentStep} for details. We then ask for the next topology update to gain similar or greater magnitude decrease by setting $\delta^i = E_d(U^i) - E_d(U^{i-1})$.
+The subsequent coordinate update then simply applies a single step of projected Newton descent with line search to update the vertex coordinates $U^i$ (see Section~\ref{sec:descentStep} for details). We then ask for the next topology update to gain similar or greater magnitude decrease by setting $\delta^i = E_d(U^i) - E_d(U^{i-1})$.
 
 This process terminates at iteration $i+1$ when smooth iterations have converged (either by gradient or relative error norm) \emph{and} the propagation of the seed mesh operation produces no further descent. We then set $(T^k,U^k) \leftarrow (T^{i+1},U^{i+1})$ and begin the next outer iterate $k+1$ with the dual variable update. 
 

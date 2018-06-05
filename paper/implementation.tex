@@ -10,36 +10,34 @@
 
 \textbf{Given:} $M$, $T^0$, $U^0$, $b_d$ 
 
-\textbf{Initialize:} $k \leftarrow 0,$ \hspace{2pt} $\lambda^k \leftarrow 0$, \texttt{converged} $\leftarrow$ \textbf{false}, \\
-
-$k \leftarrow 1$ \\
+\textbf{Initialize:} $\lambda^0 \leftarrow 0$, \texttt{converged} $\leftarrow$ \textbf{false}, $k \leftarrow 1$\\
 
 \textbf{while} \hspace{2pt} \textbf{!}  \texttt{converged} \hspace{2pt} \textbf{do} \\
 
 %%%----%%%
 
-\hspace{10pt} $\lambda^{k} \leftarrow \max\big(0,\big( E_{d}(T^{k-1}, U^{k-1}) -b_d \big) + \lambda^{k-1}\big)$ \hspace{10pt} // Dual Update (\S\ref{sec:dualUpdate})\\
+\hspace{10pt} $\lambda^{k} \leftarrow \max\big(0,\big( E_{d}(T^{k-1}, U^{k-1}) -b_d \big) + \lambda^{k-1}\big)$ \hspace{7pt} // Dual Update (\S\ref{sec:dualUpdate})\\
 \hspace{10pt} \texttt{d\_stationary} $\leftarrow$ $| \lambda^{k} - \lambda^{k-1} | < 10^{-3}$ \\
 
 %%%----%%%
+\hspace{10pt} // Primal update (\S\ref{sec:primalUpdate}, details in \S\ref{sec:topologySearch}): \\
 \hspace{10pt} $i \leftarrow 0$, $(T^{i},U^{i}) \leftarrow (T^{k},U^{k})$, \hspace{2pt} $\delta^{i} \leftarrow 0$ \\
 \hspace{10pt} \texttt{v\_converged} $\leftarrow$ \textbf{false}, \texttt{t\_stationary} $\leftarrow$ \textbf{false}, \texttt{t\_stopped} $\leftarrow$ \textbf{false} \\
-\hspace{10pt} $s_k \leftarrow \argmin_{o \in \mathcal{O}^k} d(o)$ \hspace{10pt}//  Get best mesh operation for descent (\S\ref{sec:descent_op})\\
+\hspace{10pt} $o^{0,1} \leftarrow \argmin_{o \in \mathcal{O}^k} d(o)$ \hspace{10pt}//  Get seed topological operation (\S\ref{sec:descent_op})\\
 
-\hspace{10pt} \textbf{if} $d(s_k) \geq 0$ \\
+\hspace{10pt} \textbf{if} $d(o^{0,1}) \geq 0$ \\
 \hspace{20pt} \texttt{t\_stationary} $\leftarrow$ \textbf{true}\\
 \hspace{10pt} \textbf{end if} \\
 
-\hspace{10pt} // Primal update loop (\S\ref{sec:primalUpdate}): \\
 \hspace{10pt} $i \leftarrow 1$ \\
 \hspace{10pt} \textbf{while}  \textbf{!}  ( \texttt{v\_converged} \hspace{2pt} \textbf{and} \hspace{2pt}  \texttt{t\_stopped} ) \hspace{2pt}   \textbf{do} 
 
 %%%----\hspace{20pt} // Topology descent step: \\
 \hspace{20pt} \texttt{t\_stopped} $\leftarrow$ \textbf{true} \\
 \hspace{20pt} \textbf{if}  \textbf{!} \texttt{t\_stationary} \\
-\hspace{30pt} $o^{i,j} \leftarrow \argmin_{o \in \mathcal{E}(s^k, T^{i-1})} d(o)$ \hspace{3pt}// Get candidate op (\S\ref{sec:descent_op})  \\
+\hspace{30pt} $o^{i,i+1} \leftarrow \argmin_{o \in \mathcal{E}(o^{i-1, i}, T^i)} d(o)$ \hspace{3pt}// Get candidate op (\S\ref{sec:descent_op})  \\
 \hspace{30pt} \textbf{if} $d(o^{i,j}) < \delta^{i-1}$ \\
-\hspace{40pt} $T^i \leftarrow T^j$ \hspace{10pt} // Sufficient decrease, update topology (\S\ref{sec:descent_op}) \\
+\hspace{40pt} $T^i \leftarrow o^{i, i+1}(T^i)$ \hspace{0pt} // Sufficient decrease, update topology (\S\ref{sec:descent_op}) \\
 \hspace{40pt} $U^{i-1} \leftarrow (U^{i,j}, U_s) $ \hspace{10pt} // Initialize new geometry (\S\ref{sec:descent_op}) \\
 \hspace{40pt} \texttt{t\_stopped} $\leftarrow$ \textbf{false} \\
 \hspace{30pt} \textbf{end if} \\
