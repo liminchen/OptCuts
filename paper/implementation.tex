@@ -110,7 +110,9 @@ To initialize our UV map, $(T^0,U^0)$, for an input surface, we map its initial 
 For disk-topology surfaces, we simply pick the longest boundary as an initial seam while for genus-0 closed surfaces, we randomly pick two connected edges as an initial seam. 
 %For higher-genus surfaces, we follow Crane et al.~\shortcite{Crane:2013:DGP} to detect homology generators, and connect all of them as an initial seam.
 %%
-Recall that we then start OptCuts by initializing $\lambda^0 = 0$. This sets the first iteration to initially ignore distortion and to begin by exploring a shortening of seam lengths first.
+We then set $(T^0,U^0)$ to this initial topology with vertex positions minimizing distortion, $E_d$, on the initial embedding, and start OptCuts by initializing $\lambda^0 = 0$. This sets the first iteration to initially ignore distortion and to begin by exploring a shortening of seam lengths first.
+
+
 %From the initial UV map, we simply start the optimization by ignoring the distortion constraints with $\lambda$ set to $0$ and let our dual update to modify $\lambda$ according to the distortion of intermediate results.
 
 %\danny{Minchen: are we likely to do this next experiment in time? I think it's low priority -- we may just want to get rid of this next section?}
