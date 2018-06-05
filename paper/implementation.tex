@@ -29,36 +29,38 @@
 \hspace{20pt} \texttt{t\_stationary} $\leftarrow$ \textbf{true}\\
 \hspace{10pt} \textbf{end if} \\
 
-\hspace{10pt} $i \leftarrow 1$ \\
 \hspace{10pt} \textbf{while}  \textbf{!}  ( \texttt{v\_converged} \hspace{2pt} \textbf{and} \hspace{2pt}  \texttt{t\_stopped} ) \hspace{2pt}   \textbf{do} 
 
 %%%----\hspace{20pt} // Topology descent step: \\
 \hspace{20pt} \texttt{t\_stopped} $\leftarrow$ \textbf{true} \\
 \hspace{20pt} \textbf{if}  \textbf{!} \texttt{t\_stationary} \\
-\hspace{30pt} $o^{i,i+1} \leftarrow \argmin_{o \in \mathcal{E}(o^{i-1, i}, T^i)} d(o)$ \hspace{3pt}// Get candidate op (\S\ref{sec:descent_op})  \\
-\hspace{30pt} \textbf{if} $d(o^{i,j}) < \delta^{i-1}$ \\
-\hspace{40pt} $T^i \leftarrow o^{i, i+1}(T^i)$ \hspace{0pt} // Sufficient decrease, update topology (\S\ref{sec:descent_op}) \\
-\hspace{40pt} $U^{i-1} \leftarrow (U^{i,j}, U_s) $ \hspace{10pt} // Initialize new geometry (\S\ref{sec:descent_op}) \\
+\hspace{30pt} $o^{i,i+1} \leftarrow \argmin_{o \in \mathcal{E}(o^{i-1, i}, T^i)} d(o)$ \hspace{3pt}// Get candidate op (\S\ref{sec:topology_search})  \\
+\hspace{30pt} \textbf{if} $d(o^{i,i+1}) < \delta^{i}$ \hspace{10pt} // Sufficient decrease \\
+\hspace{40pt} $T^{i+1} \leftarrow o^{i, i+1}(T^i)$ \hspace{10pt} // Update topology (\S\ref{sec:topology_search}) \\
+\hspace{40pt} $U^{i+1}_\text{init} \leftarrow (U^{i,i+1}, U_s) $ \hspace{10pt} // Initialize new geometry (\S\ref{sec:topology_search}) \\
 \hspace{40pt} \texttt{t\_stopped} $\leftarrow$ \textbf{false} \\
+\hspace{30pt} \textbf{else} \\
+\hspace{40pt} $T^{i+1} \leftarrow T^i$, \hspace{10pt} $U^{i+1}_\text{init} \leftarrow U^i $ \\
 \hspace{30pt} \textbf{end if} \\
 \hspace{20pt} \textbf{end if} \\
 %%%----\hspace{20pt} // Vertex descent step: \\
 
-\hspace{20pt}  $g \leftarrow \nabla_{\small{U}} E_{d}(T^i,U^{i-1})$ \hspace{10pt}//  Distortion energy gradient 
+\hspace{20pt}  $i \leftarrow i+1$ \\
+\hspace{20pt}  $g \leftarrow \nabla_{\small{U}} E_{d}(T^i,U^i_\text{init})$ \hspace{10pt}//  Distortion energy gradient 
 
 \hspace{20pt}\textbf{if} $\|g\| > 10^{-6}$ \hspace{2pt} \\
 
-\hspace{30pt} $H \leftarrow \text{Project}(\nabla_{\small{U}}^2 E_d(T^i,U^{i-1}))$ \hspace{10pt}// Projected-Hessian (\S\ref{sec:descentStep}) \\
+\hspace{30pt} $H \leftarrow \text{Project}(\nabla_{\small{U}}^2 E_d(T^i,U^{i}_\text{init}))$ \hspace{10pt}// Projected-Hessian (\S\ref{sec:descentStep}) \\
 
 \hspace{30pt} Solve: $H p = -g$ \hspace{10pt} // Get smooth descent direction $p$ (\S\ref{sec:descentStep}) \\
 
-\hspace{30pt} $\alpha \leftarrow \text{LineSearch}(U^{i-1}, p, E_d)$ \hspace{10pt} // Line-search (\S\ref{sec:descentStep}) \\
+\hspace{30pt} $\alpha \leftarrow \text{LineSearch}(U^{i}_\text{init}, p, E_d)$ \hspace{10pt} // Line-search (\S\ref{sec:descentStep}) \\
 
-\hspace{30pt} $U^{i} \leftarrow U^{i-1} + \alpha p$  \\
+\hspace{30pt} $U^{i} \leftarrow U^i_\text{init} + \alpha p$  \\
 		
-\hspace{30pt} $\delta^{i} \leftarrow E_{d}(T^i,U^{i}) - E_{d}(T^i,U^{i-1})$  \\
+\hspace{30pt} $\delta^{i} \leftarrow E_{d}(T^i,U^{i}) - E_{d}(T^i,U^i_\text{init})$  \\
 
-\hspace{30pt}\textbf{if} $|\delta^{i}/E_{d}(T^i,U^{i-1})| < 10^{-6}\alpha$ \textbf{and} \textbf{!}  \texttt{t\_stationary} \\
+\hspace{30pt}\textbf{if} $|\delta^{i}/E_{d}(T^i,U^i_\text{init})| < 10^{-6}\alpha$ \textbf{and} \textbf{!}  \texttt{t\_stationary} \\
 \hspace{40pt} \textbf{break} \hspace{10pt} // Safe to early exit \\
 \hspace{30pt} \textbf{end if} \\
 
@@ -66,11 +68,9 @@
 \hspace{30pt} \texttt{v\_converged} $\leftarrow $ \textbf{true} \\
 \hspace{20pt} \textbf{end if} \\
 
-\hspace{20pt} $i \leftarrow i + 1$ \\
-
 \hspace{10pt} $\textbf{end while}$ \\
 
-\hspace{10pt}  $(T^{k},U^{k}) \leftarrow (T^{i-1},U^{i-1})$ \\
+\hspace{10pt}  $(T^{k},U^{k}) \leftarrow (T^{i},U^{i})$ \\
 
 \hspace{10pt} $k \leftarrow k + 1$ \\
 
