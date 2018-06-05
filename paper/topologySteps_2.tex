@@ -10,7 +10,7 @@ Instead, we devise a local search algorithm for topological updates inspired by 
 
 %
 %Instead, we begin by recalling the standard process of optimizing a smooth energy solely over vertex DoFs. In such cases, each iterate generally forms a localized approximation of the minimized energy \justin{didn't understand previous phrase} and then uses it to propose a candidate direction for decrease. Then, since finding such a direction is expensive, we search along the proposed direction to ensure a significant decrease in energy (and not increase). 
-The descent standard process is to formulate a local approximation to the energy function, use it to estimate the direction for the gradient descent step, and then search along the proposed direction to find the step magnitude that ensures significant decrease in energy. 
+For smooth descent methods it is standard to formulate a local approximation of the energy function, use it to estimate the direction for the gradient descent step, and then search along the proposed direction to find the step magnitude that ensures significant decrease in energy. 
 %
 We extend this process to include search over discrete variations in topology. In analogy to seeking a continuous search direction, at the start of each new primal solve we will build many localized energy approximations to search for a likely candidate mesh operation to repeatedly propagate topology change, i.e., cutting or merging, over our UV mesh. Each inner iterate of the primal solve will successively apply this operation in combination with standard smooth descent to explore discrete-continuous descent until no further progress is made.% and so a primal update is found.    %<-- doesn't seem needed
 
@@ -125,7 +125,7 @@ Since each change in topology alternates with smooth coordinate descent and we w
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.65\linewidth]{fig/propagation.pdf}
-\caption{Propagation of boundary split (orange), corner merge (green), and interior split (blue). When a propagating boundary split, all edges that could continue to propagate a boundary splitting cut from the current tail would be considered (a); for corner merge we just query the new corner at the current tail (b); for an interior split, once an incident edge of either the two tail is split as propagation, in the following iterations it would be the same as propagating boundary split (c).}
+\caption{Propagation of the boundary split (orange), corner merge (green), and interior split (blue) topology operations. When propagating a boundary split all edges that can continue the boundary splitting cut from the current cut's tail are set as propagation candidates (a). At corner merges we we have a single candidate to query---the new corner at the current tail (b). Finally, for propagating an interior split, first we choose an incident edge from either of the two possible seam tails; once split, propagation then follows in the same fashion as the boundary split for following propagation steps (c).}
 \label{fig:propagation}
 \end{figure}
 
