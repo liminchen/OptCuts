@@ -2063,10 +2063,11 @@ namespace FracCuts {
                     }
                     meshVGroup_3D[groupI2_3D].clear();
                 }
-                
-                if((V.row(cohE(cohI, 0 + pI)) - V.row(cohE(cohI, 2 + pI))).norm() / avgEdgeLen > thres) {
+           
+                // this is only for gluing the triangle soup
+//                if((V.row(cohE(cohI, 0 + pI)) - V.row(cohE(cohI, 2 + pI))).norm() / avgEdgeLen > thres) {
                     continue;
-                }
+//                }
                 
                 int groupI0 = dupVI2GroupI[cohE(cohI, 0 + pI)];
                 int groupI2 = dupVI2GroupI[cohE(cohI, 2 + pI)];

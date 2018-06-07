@@ -223,8 +223,12 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "1 6 /Users/mincli/Desktop/OptCuts_supplemental/OptCuts_evaluation/OptCuts_WB4p2"
+            argument = "1 6 /Users/mincli/Dropbox/data/OptCuts/Zhongshi/OptCutsWB4p1_regional_gt"
             isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "1 8 /Users/mincli/Downloads/untitled folder/OptCutsWB4p1_regional_pr/"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "2 /Users/mincli/Desktop/output_FracCuts/test.obj 2"

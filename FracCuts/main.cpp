@@ -53,7 +53,7 @@ double fracThres = 0.0;
 bool altBase = false;
 bool outerLoopFinished = false;
 const int boundMeasureType = 0; // 0: E_SD, 1: L2 Stretch
-double upperBound = 4.2;
+double upperBound = 4.1;
 const double convTol_upperBound = 1.0e-3; //TODO!!! related to avg edge len or upperBound?
 std::vector<std::pair<double, double>> energyChanges_bSplit, energyChanges_iSplit, energyChanges_merge;
 std::vector<std::vector<int>> paths_bSplit, paths_iSplit, paths_merge;
@@ -81,6 +81,7 @@ int showDistortion = 1; // 0: don't show; 1: SD energy value; 2: L2 stretch valu
 bool showTexture = true; // show checkerboard
 bool isLighting = false;
 bool showFracTail = true;
+float fracTailSize = 15.0f;
 double secPast = 0.0;
 time_t lastStart_world;
 Timer timer, timer_step;
@@ -91,12 +92,16 @@ bool isCapture3D = false;
 int capture3DI = 0;
 GifWriter GIFWriter;
 const uint32_t GIFDelay = 10; //*10ms
-double GIFScale = 0.5;
+double GIFScale = 0.25;
 
+
+void saveInfo(bool writePNG = true, bool writeGIF = true, bool writeMesh = true);
 
 void proceedOptimization(int proceedNum = 1)
 {
     for(int proceedI = 0; (proceedI < proceedNum) && (!converged); proceedI++) {
+//        infoName = std::to_string(iterNum);
+//        saveInfo(true, false, true); //!!! output mesh for making video, PNG output only works under online rendering mode
         std::cout << "Iteration" << iterNum << ":" << std::endl;
         converged = optimizer->solve(1);
         iterNum = optimizer->getIterNum();
@@ -133,10 +138,14 @@ void updateViewerData_seam(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::Matrix
         const Eigen::VectorXd cohIndices = Eigen::VectorXd::LinSpaced(triSoup[viewChannel]->cohE.rows(),
                                                                 0, triSoup[viewChannel]->cohE.rows() - 1);
         Eigen::MatrixXd color;
-        FracCuts::IglUtils::mapScalarToColor(cohIndices, color, 0, cohIndices.rows() - 1, 1);
+//        FracCuts::IglUtils::mapScalarToColor(cohIndices, color, 0, cohIndices.rows() - 1, 1);
+        color.resize(cohIndices.size(), 3);
+        color.rowwise() = Eigen::RowVector3d(1.0, 0.5, 0.0);
         
         //TODO: seamscore only for autocuts
         seamColor.resize(0, 3);
+        double seamThickness = (viewUV ? (triSoup[viewChannel]->virtualRadius * 0.0007 / viewer.core.model_zoom * texScale) :
+                                (triSoup[viewChannel]->virtualRadius * 0.006));
         for(int eI = 0; eI < triSoup[viewChannel]->cohE.rows(); eI++) {
             const Eigen::RowVector4i& cohE = triSoup[viewChannel]->cohE.row(eI);
             const auto finder = triSoup[viewChannel]->edge2Tri.find(std::pair<int, int>(cohE[0], cohE[1]));
@@ -144,21 +153,15 @@ void updateViewerData_seam(Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::Matrix
             const Eigen::RowVector3d& sn = triSoup[viewChannel]->triNormal.row(finder->second);
             if((seamScore[eI] > seamDistThres) || (methodType != FracCuts::MT_AUTOCUTS)) {
                 // seam edge
-                FracCuts::IglUtils::addThickEdge(V, F, UV, seamColor, color.row(eI), V.row(cohE[0]), V.row(cohE[1]),
-                                                 triSoup[viewChannel]->virtualRadius * 0.005 * (viewUV ? texScale : 1.0),
-                                                 texScale, !viewUV, sn);
+                FracCuts::IglUtils::addThickEdge(V, F, UV, seamColor, color.row(eI), V.row(cohE[0]), V.row(cohE[1]), seamThickness, texScale, !viewUV, sn);
                 if(viewUV) {
-                    FracCuts::IglUtils::addThickEdge(V, F, UV, seamColor, color.row(eI), V.row(cohE[2]), V.row(cohE[3]),
-                                                     triSoup[viewChannel]->virtualRadius * 0.005 * (viewUV ? texScale : 1.0),
-                                                     texScale, !viewUV, sn);
+                    FracCuts::IglUtils::addThickEdge(V, F, UV, seamColor, color.row(eI), V.row(cohE[2]), V.row(cohE[3]), seamThickness, texScale, !viewUV, sn);
                 }
             }
             else if((seamScore[eI] < 0.0) && showBoundary) {
                 // boundary edge
                 //TODO: debug!
-                FracCuts::IglUtils::addThickEdge(V, F, UV, seamColor, color.row(eI), V.row(cohE[0]), V.row(cohE[1]),
-                                                 triSoup[viewChannel]->virtualRadius * 0.005 * (viewUV ? texScale : 1.0),
-                                                 texScale, !viewUV, sn);
+                FracCuts::IglUtils::addThickEdge(V, F, UV, seamColor, color.row(eI), V.row(cohE[0]), V.row(cohE[1]), seamThickness, texScale, !viewUV, sn);
             }
         }
     }
@@ -176,7 +179,7 @@ void updateViewerData_distortion(void)
             break;
         }
             
-        case 2: { // show L2 stretch value
+        case 2: { // show other triangle-based scalar fields
             Eigen::VectorXd l2StretchPerElem;
 //            triSoup[viewChannel]->computeL2StretchPerElem(l2StretchPerElem);
 //            dynamic_cast<FracCuts::SymStretchEnergy*>(energyTerms[0])->getDivGradPerElem(*triSoup[viewChannel], l2StretchPerElem);
@@ -192,8 +195,9 @@ void updateViewerData_distortion(void)
                                   triSoup[viewChannel]->vertWeight[triVInd[1]] +
                                   triSoup[viewChannel]->vertWeight[triVInd[2]]) / 3.0;
             }
-            FracCuts::IglUtils::mapScalarToColor(faceWeight, color_distortionVis,
-                faceWeight.minCoeff(), faceWeight.maxCoeff());
+//            FracCuts::IglUtils::mapScalarToColor(faceWeight, color_distortionVis,
+//                faceWeight.minCoeff(), faceWeight.maxCoeff());
+            igl::colormap(igl::COLOR_MAP_TYPE_VIRIDIS, faceWeight, true, color_distortionVis);
             break;
         }
     
@@ -231,6 +235,7 @@ void updateViewerData(void)
         }
         UV_vis.conservativeResize(UV_vis.rows(), 3);
         UV_vis.rightCols(1) = Eigen::VectorXd::Zero(UV_vis.rows());
+        viewer.core.align_camera_center(UV_vis, F_vis);
         updateViewerData_seam(UV_vis, F_vis, UV_vis);
         
         if((UV_vis.rows() != viewer.data().V.rows()) ||
@@ -239,7 +244,6 @@ void updateViewerData(void)
             viewer.data().clear();
         }
         viewer.data().set_mesh(UV_vis, F_vis);
-        viewer.core.align_camera_center(UV_vis, F_vis);
         
         viewer.data().show_texture = false;
         viewer.core.lighting_factor = 0.0;
@@ -255,6 +259,7 @@ void updateViewerData(void)
     }
     else {
         Eigen::MatrixXd V_vis = triSoup[viewChannel]->V_rest;
+        viewer.core.align_camera_center(V_vis, F_vis);
         updateViewerData_seam(V_vis, F_vis, UV_vis);
         
         if((V_vis.rows() != viewer.data().V.rows()) ||
@@ -264,7 +269,6 @@ void updateViewerData(void)
             viewer.data().clear();
         }
         viewer.data().set_mesh(V_vis, F_vis);
-        viewer.core.align_camera_center(V_vis, F_vis);
         
         if(showTexture) {
             viewer.data().set_uv(UV_vis);
@@ -300,6 +304,7 @@ void saveScreenshot(const std::string& filePath, double scale = 1.0, bool writeG
     if(writeGIF) {
         scale = GIFScale;
     }
+    viewer.data().point_size = fracTailSize * scale;
     
     int width = static_cast<int>(scale * (viewer.core.viewport[2] - viewer.core.viewport[0]));
     int height = static_cast<int>(scale * (viewer.core.viewport[3] - viewer.core.viewport[1]));
@@ -331,11 +336,13 @@ void saveScreenshot(const std::string& filePath, double scale = 1.0, bool writeG
         }
         GifWriteFrame(&GIFWriter, img.data(), width, height, GIFDelay);
     }
+    
+    viewer.data().point_size = fracTailSize;
 }
 
-void saveInfo(bool writePNG = true, bool writeGIF = true, bool writeMesh = true)
+void saveInfo(bool writePNG, bool writeGIF, bool writeMesh)
 {
-    saveScreenshot(outputFolderPath + infoName + ".png", 1.0, writeGIF, writePNG);
+    saveScreenshot(outputFolderPath + infoName + ".png", 0.5, writeGIF, writePNG);
     if(writeMesh) {
 //        triSoup[channel_result]->save(outputFolderPath + infoName + "_triSoup.obj");
         triSoup[channel_result]->saveAsMesh(outputFolderPath + infoName + "_mesh.obj");
@@ -401,7 +408,7 @@ void toggleOptimization(void)
                 
                 homoTransFile.open(outputFolderPath + "homotopyTransition.txt");
                 assert(homoTransFile.is_open());
-                saveScreenshot(outputFolderPath + "0.png", 1.0, true);
+                saveScreenshot(outputFolderPath + "0.png", 0.5, true);
             }
             std::cout << "start/resume optimization, press again to pause." << std::endl;
             viewer.core.is_animating = true;
@@ -489,7 +496,7 @@ bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier
                 }
                 
                 if(sepE != NULL) {
-                    saveScreenshot(outputFolderPath + "homotopyFS_" + std::to_string(sepE->getSigmaParam()) + ".png", 1.0);
+                    saveScreenshot(outputFolderPath + "homotopyFS_" + std::to_string(sepE->getSigmaParam()) + ".png", 0.5);
                     triSoup[channel_result]->save(outputFolderPath + "homotopyFS_" + std::to_string(sepE->getSigmaParam()) + ".obj");
                     triSoup[channel_result]->saveAsMesh(outputFolderPath + "homotopyFS_" + std::to_string(sepE->getSigmaParam()) + "_mesh.obj");
                     
@@ -569,7 +576,7 @@ bool postDrawFunc(igl::opengl::glfw::Viewer& viewer)
                 std::cout << "Taking screenshot for 3D View " << capture3DI / 2 << std::endl;
                 std::string filePath = outputFolderPath + "3DView" + std::to_string(capture3DI / 2) +
                     ((capture3DI % 2 == 0) ? "_seam.png" : "_distortion.png");
-                saveScreenshot(filePath, 1.0);
+                saveScreenshot(filePath, 0.5);
                 capture3DI++;
             }
             else {
@@ -788,8 +795,8 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
             static bool saved = false;
             if(!saved) {
                 logFile << "saving firstFeasibleS..." << std::endl;
-                saveScreenshot(outputFolderPath + "firstFeasibleS.png", 0.5, false, true); //TODO: saved is before roll back...
-                triSoup[channel_result]->saveAsMesh(outputFolderPath + "firstFeasibleS_mesh.obj");
+//                saveScreenshot(outputFolderPath + "firstFeasibleS.png", 0.5, false, true); //TODO: saved is before roll back...
+//                triSoup[channel_result]->saveAsMesh(outputFolderPath + "firstFeasibleS_mesh.obj");
                 secPast += difftime(time(NULL), lastStart_world);
                 saveInfoForPresent("info_firstFeasibleS.txt");
                 time(&lastStart_world);
@@ -1091,9 +1098,9 @@ bool preDrawFunc(igl::opengl::glfw::Viewer& viewer)
                         // save info once bound is reached for comparison
                         static bool saved = false;
                         if(!saved) {
-                            saveScreenshot(outputFolderPath + "firstFeasible.png", 0.5, false, true);
+//                            saveScreenshot(outputFolderPath + "firstFeasible.png", 0.5, false, true);
                             //                            triSoup[channel_result]->save(outputFolderPath + infoName + "_triSoup.obj");
-                            triSoup[channel_result]->saveAsMesh(outputFolderPath + "firstFeasible_mesh.obj");
+//                            triSoup[channel_result]->saveAsMesh(outputFolderPath + "firstFeasible_mesh.obj");
                             secPast += difftime(time(NULL), lastStart_world);
                             saveInfoForPresent("info_firstFeasible.txt");
                             time(&lastStart_world);
@@ -1182,7 +1189,8 @@ bool preDrawFunc(igl::opengl::glfw::Viewer& viewer)
             showSeam = true;
             showBoundary = false;
             isLighting = false;
-            showTexture = showDistortion = (capture3DI % 2);
+            showTexture = capture3DI % 2;
+            showDistortion = 2 - capture3DI % 2;
             updateViewerData();
         }
     }
@@ -1274,7 +1282,7 @@ int main(int argc, char *argv[])
 //    bool distFound = false;
 //    while(!distFile.eof()) {
 //        distFile >> resultName >> resultDistortion;
-//        if(resultName.find(meshName + "_Tutte_") != std::string::npos) {
+//        if(resultName.find(meshName) != std::string::npos) {
 //            distFound = true;
 //            upperBound = resultDistortion;
 //            break;
@@ -1597,6 +1605,32 @@ int main(int argc, char *argv[])
 //        vWFile.close();
 //    }
 //    FracCuts::IglUtils::smoothVertField(optimizer->getResult(), optimizer->getResult().vertWeight);
+    //TEST: regional seam placement, Zhongshi
+    std::ifstream vWFile("/Users/mincli/Desktop/output_FracCuts/" + meshName + "_RSP.txt");
+    if(vWFile.is_open()) {
+        double revLikelihood;
+        for(int vI = 0; vI < optimizer->getResult().vertWeight.size(); vI++) {
+            if(vWFile.eof()) {
+                std::cout << "# of weights less than # of V for regional seam placement, " <<
+                    "reset vertWeight to all 1.0" << std::endl;
+                optimizer->getResult().vertWeight = Eigen::VectorXd::Ones(optimizer->getResult().V.rows());
+                vWFile.close();
+                break;
+            }
+            else {
+                vWFile >> revLikelihood;
+                if(revLikelihood < 0.0) {
+                    revLikelihood = 0.0;
+                }
+                else if(revLikelihood > 1.0) {
+                    revLikelihood = 1.0;
+                }
+                optimizer->getResult().vertWeight[vI] = 1.0 + 10.0 * revLikelihood;
+            }
+        }
+        vWFile.close();
+        std::cout << "regional seam placement weight loaded" << std::endl;
+    }
     
     // Setup viewer and launch
     viewer.core.background_color << 1.0f, 1.0f, 1.0f, 0.0f;
@@ -1607,7 +1641,7 @@ int main(int argc, char *argv[])
     viewer.core.orthographic = true;
     viewer.core.camera_zoom *= 1.9;
     viewer.core.animation_max_fps = 60.0;
-    viewer.data().point_size = 15.0f; //TODO: make it adaptive
+    viewer.data().point_size = fracTailSize;
     viewer.data().show_overlay = true;
     updateViewerData();
     viewer.launch();
