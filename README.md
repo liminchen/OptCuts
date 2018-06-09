@@ -5,12 +5,12 @@
 * batch.py: a python script to automatically run a batch of examples
 
 ## Compile
-IntelTBB, PARDISO, LibIGL, GLFW, Eigen are also needed.
+IntelTBB, PARDISO, LibIGL(with Eigen, triangle, glad, glfw, stb_image), GLFW, Eigen, and libgfortran are also needed.
 
 (Will make IntelTBB and PARDISO optional, and develop a no-visualization version.)
 
 ## Command Line Arguments
-Format: progName mode inputMeshPath lambda delta separateTris [anyStringYouLike]
+Format: progName mode inputMeshPath lambda delta methodType [anyStringYouLike]
 
 Example: FracCuts 0 /Users/mincli/Downloads/meshes/closed/bunny.obj 0.025 6 0 test
 * progName
@@ -24,16 +24,19 @@ Example: FracCuts 0 /Users/mincli/Downloads/meshes/closed/bunny.obj 0.025 6 0 te
   * can be either absolute path or relative path to global variable meshFolder in main.cpp
   * .obj and .off are supported
 * lambda (parameter of seam energy)
-  * 0: minimize Symmetric Dirishlet energy with initial cuts, separateTris must also be set to 0
-  * (0,1): joint optimization, 0.025 works generally well for our method on all inputs, which is also a good starting point for trying our AutoCuts implementation
+  * 0: minimize Symmetric Dirishlet energy with initial cuts, methodType must also be set to 4
+  * (0,1): joint optimization. OptCuts start with 0.999 and iteratively update it according to the distortions of intermediate UV maps; 0.025 works generally well for OptCuts with fixed lambda on all inputs, which is also a good starting point for trying our AutoCuts implementation
   * 1: not meaningful
 * delta (initial homotopy parameter)
   * [4,16]: recommanded initial homotopy parameter for AutoCuts
-  * For our method, 0 is without fracture propagation, >0 is with fracture propagation,
+  * For OptCuts, 0 is without fracture propagation, > 0 is with fracture propagation,
   and in our visualization webpage, it also serves as a classification ID
-* separateTris
-  * 0: start from full mesh (our method when lambda > 0)
-  * 1: start from triangle soup (AutoCuts), must also have lambda > 0
+* methodType
+  * 0: OptCuts, must also have lambda > 0 and lambda < 1
+  * 1: An AutoCuts implementation, must also have lambda > 0
+  * 2: EBCuts
+  * 3: OptCuts with fixed lambda, must also have lambda > 0 and lambda < 1
+  * 4: Ed minimization with the initial seams
 * anyStringYouLike
   * optional, the appended string to the name of a folder to be created for holding all output files
 
