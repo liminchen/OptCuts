@@ -5,7 +5,7 @@
 * batch.py: a python script to automatically run a batch of examples
 
 ## Compile
-IntelTBB, PARDISO, LibIGL(with Eigen, triangle, glad, glfw, stb_image), GLFW, Eigen, and libgfortran are also needed.
+IntelTBB, PARDISO, LibIGL(with Eigen, Triangle, GLAD, GLFW, stb_image), and libgfortran are also needed.
 
 (Will make IntelTBB and PARDISO optional, and develop a no-visualization version.)
 
@@ -29,12 +29,12 @@ Example: FracCuts 0 /Users/mincli/Downloads/meshes/closed/bunny.obj 0.025 6 0 te
   * 1: not meaningful
 * delta (initial homotopy parameter)
   * [4,16]: recommanded initial homotopy parameter for AutoCuts
-  * For OptCuts, 0 is without fracture propagation, > 0 is with fracture propagation,
+  * For OptCuts, 0 is without fracture propagation which is usually used for debugging, > 0 is with fracture propagation,
   and in our visualization webpage, it also serves as a classification ID
 * methodType
   * 0: OptCuts, must also have lambda > 0 and lambda < 1
   * 1: An AutoCuts implementation, must also have lambda > 0
-  * 2: EBCuts
+  * 2: EBCuts, using the extremity-boundary cutting strategy from Geometry Images within OptCuts framework
   * 3: OptCuts with fixed lambda, must also have lambda > 0 and lambda < 1
   * 4: Ed minimization with the initial seams
 * anyStringYouLike
