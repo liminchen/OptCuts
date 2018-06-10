@@ -5,7 +5,8 @@
 * batch.py: a python script to automatically run a batch of examples
 
 ## Compile
-IntelTBB, PARDISO, LibIGL(with Eigen, Triangle, GLAD, GLFW, stb_image), and libgfortran are also needed.
+IntelTBB, PARDISO, LibIGL(with Eigen(3.3+), Triangle, GLAD, GLFW, stb_image), and libgfortran are also needed.
+If you are using PARDISO6, you will also need an openMP compatible compiler.
 
 (Will make IntelTBB and PARDISO optional, and develop a no-visualization version.)
 
