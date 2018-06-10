@@ -362,11 +362,11 @@ namespace FracCuts{
                             FILE *out_UV = fopen((resultsFolderPath + '/' + resultName + "/output_01UV.sp").c_str(), "w");
                             assert(out_UV);
                             
-                            fprintf(out, "%u\n", bnd_all.size());
-                            fprintf(out_UV, "%u\n", bnd_all.size());
+                            fprintf(out, "%lu\n", bnd_all.size());
+                            fprintf(out_UV, "%lu\n", bnd_all.size());
                             for(const auto& bndI : bnd_all) {
-                                fprintf(out, "%u\n", bndI.size());
-                                fprintf(out_UV, "%u\n", bndI.size());
+                                fprintf(out, "%lu\n", bndI.size());
+                                fprintf(out_UV, "%lu\n", bndI.size());
                                 for(const auto& i : bndI) {
                                     const Eigen::RowVector3d& v = temp.V_rest.row(i);
                                     fprintf(out, "%le %le %le\n", v[0], v[1], v[2]);
@@ -613,11 +613,11 @@ namespace FracCuts{
                             FILE *out_UV = fopen((resultsFolderPath + '/' + std::to_string(frameI) + "_01UV.sp").c_str(), "w");
                             assert(out_UV);
                             
-                            fprintf(out, "%u\n", bnd_all.size());
-                            fprintf(out_UV, "%u\n", bnd_all.size());
+                            fprintf(out, "%lu\n", bnd_all.size());
+                            fprintf(out_UV, "%lu\n", bnd_all.size());
                             for(const auto& bndI : bnd_all) {
-                                fprintf(out, "%u\n", bndI.size());
-                                fprintf(out_UV, "%u\n", bndI.size());
+                                fprintf(out, "%lu\n", bndI.size());
+                                fprintf(out_UV, "%lu\n", bndI.size());
                                 for(const auto& i : bndI) {
                                     const Eigen::RowVector3d& v = temp.V_rest.row(i);
                                     fprintf(out, "%le %le %le\n", v[0], v[1], v[2]);
