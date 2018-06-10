@@ -392,7 +392,7 @@ namespace FracCuts {
         std::pair<int, int> boundaryEdge;
         for(int vI = 0; vI < 3; vI++) {
             std::vector<int> incTris_temp[2];
-            assert(airMesh.isBoundaryVert(corner[vI], *airMesh.vNeighbor[corner[vI]].begin(), incTris_temp[0], boundaryEdge, false));
+            airMesh.isBoundaryVert(corner[vI], *airMesh.vNeighbor[corner[vI]].begin(), incTris_temp[0], boundaryEdge, false);
             incTris.insert(incTris_temp[0].begin(), incTris_temp[0].end());
             
             airMesh.isBoundaryVert(corner[vI], *airMesh.vNeighbor[corner[vI]].begin(), incTris_temp[1], boundaryEdge, true);
