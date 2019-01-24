@@ -1,0 +1,5 @@
+build*/
+*.xc*
+*.DS_Store
+*.dylib
+*.vscode/

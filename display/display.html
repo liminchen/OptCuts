@@ -1,0 +1,39 @@
+<html>
+  <head>
+    <!-- definition of the data structure that contains information of each result -->
+    <script type="text/javascript"
+      src="ExpInfo.js">
+    </script>
+
+    <!-- js list of ExpInfo containing information of the results -->
+    <script type="text/javascript"
+      src="../output/data_ExpInfo.js">
+    </script>
+
+    <!-- function that takes in ExpInfo and display it in a table -->
+    <script type="text/javascript"
+      src="displayResults.js">
+    </script>
+
+    <script>
+      // list of results of each method 
+      var expInfoByMethod = [
+        output
+      ];
+      // path to find the result folder that contains images
+      var methodName = [
+        '../output'
+      ];
+      // the text to be displayed at 1st row of the table showing the name of the method
+      var methodTitle = [
+        'OptCuts'
+      ];
+    </script>
+  </head>
+
+  <body>
+    <script>
+      displayResults(expInfoByMethod, methodName, methodTitle, true);
+    </script>
+  </body>
+</html>

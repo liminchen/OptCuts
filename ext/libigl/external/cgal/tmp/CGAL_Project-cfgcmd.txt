@@ -1,0 +1,1 @@
+cmd='/Applications/CMake.app/Contents/bin/cmake;-DCMAKE_PREFIX_PATH=/Users/mincli/Documents/libigl/external/cgal/auxiliary/gmp;-DBOOST_ROOT=;-DBUILD_SHARED_LIBS=OFF;-DCMAKE_INSTALL_PREFIX=/Users/mincli/Documents/libigl/external/cgal/;-DCMAKE_INSTALL_LIBDIR=lib;-GXcode;<SOURCE_DIR><SOURCE_SUBDIR>'
