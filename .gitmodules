@@ -1,0 +1,3 @@
+[submodule "ext/tbb"]
+	path = ext/tbb
+	url = https://github.com/01org/tbb
