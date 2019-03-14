@@ -593,7 +593,10 @@ namespace OptCuts {
             }
             else
             {
-                assert(!sortedCandVerts_in.empty());
+                if(sortedCandVerts_in.empty()) {
+                    EwDec_max = 0.0;
+                    return;
+                }
                 int bestCandAmt_in = static_cast<int>(std::pow(sortedCandVerts_in.size(), filterExp_in));
                 if(bestCandAmt_in < 2) {
                     bestCandAmt_in = 2;
