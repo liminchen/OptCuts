@@ -566,7 +566,6 @@ int computeOptPicked(const std::vector<std::pair<double, double>>& energyChanges
 int computeBestCand(const std::vector<std::pair<double, double>>& energyChanges, double lambda,
                     double& bestEChange)
 {
-    assert(!energyChanges.empty());
     assert((lambda >= 0.0) && (lambda <= 1.0));
     
     bestEChange = __DBL_MAX__;
@@ -796,6 +795,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
             }
             else {
                 double eDec_b, eDec_i;
+                assert(!(energyChanges_bSplit.empty() && energyChanges_iSplit.empty()));
                 int id_pickingBSplit = computeBestCand(energyChanges_bSplit, 1.0 - energyParams[0], eDec_b);
                 int id_pickingISplit = computeBestCand(energyChanges_iSplit, 1.0 - energyParams[0], eDec_i);
                 while((eDec_b > 0.0) && (eDec_i > 0.0)) {
@@ -849,6 +849,7 @@ bool updateLambda_stationaryV(bool cancelMomentum = true, bool checkConvergence 
             }
             
             double eDec_m;
+            assert(!energyChanges_merge.empty());
             int id_pickingMerge = computeBestCand(energyChanges_merge, 1.0 - energyParams[0], eDec_m);
             while(eDec_m > 0.0) {
                 energyParams[0] = updateLambda(measure_bound);
