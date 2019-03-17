@@ -67,8 +67,8 @@ namespace OptCuts {
             double minY = mesh.V.col(1).minCoeff() - margin;
             double maxY = mesh.V.col(1).maxCoeff() + margin;
             // segment the bounding box:
-            int segAmtX = static_cast<int>((maxX - minX) / segLen);
-            int segAmtY = static_cast<int>((maxY - minY) / segLen);
+            int segAmtX = std::ceil((maxX - minX) / segLen);
+            int segAmtY = std::ceil((maxY - minY) / segLen);
             E.conservativeResize(E.rows() + (segAmtX + segAmtY) * 2, 2);
             for(int segI = bnd.size(); segI + 1 < E.rows(); segI++) {
                 E.row(segI) << segI, segI + 1;

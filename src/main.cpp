@@ -1362,11 +1362,19 @@ int main(int argc, char *argv[])
             Eigen::MatrixXd UV_Tutte;
             
             // Harmonic map with uniform weights
-            Eigen::SparseMatrix<double> A, M;
-            OptCuts::IglUtils::computeUniformLaplacian(F, A);
-            igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
+            if(bnd.size() == V.rows()) {
+                UV_Tutte.resize(V.rows(), 2);
+                for(int bndVI = 0; bndVI < bnd_uv.rows(); ++bndVI) {
+                    UV_Tutte.row(bnd[bndVI]) = bnd_uv.row(bndVI);
+                }
+            }
+            else {
+                Eigen::SparseMatrix<double> A, M;
+                OptCuts::IglUtils::computeUniformLaplacian(F, A);
+                igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
 //            OptCuts::IglUtils::computeMVCMtr(V, F, A);
 //            OptCuts::IglUtils::fixedBoundaryParam_MVC(A, bnd, bnd_uv, UV_Tutte);
+            }
             
             triSoup.emplace_back(new OptCuts::TriMesh(V, F, UV_Tutte, Eigen::MatrixXi(), false));
             outputFolderPath += meshName + "_Tutte_" + OptCuts::IglUtils::rtos(lambda_init) + "_" + OptCuts::IglUtils::rtos(testID) +
