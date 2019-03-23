@@ -124,7 +124,8 @@ namespace OptCuts{
         void saveAsMesh(const std::string& filePath, bool scaleUV = false) const;
         
         void saveAsMesh(const std::string& filePath,
-                        const Eigen::MatrixXi& F0) const;
+                        const Eigen::MatrixXi& F0,
+                        bool scaleUV = false) const;
         
     public: // helper function
         void computeLaplacianMtr(void);

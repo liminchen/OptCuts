@@ -58,7 +58,8 @@ For each input, OptCuts will create a folder under output/ to hold all the outpu
 * 0.png: initial UV map, colored by distortion (blue -> green: highly distorted -> isometric)
 * anim.gif: UV map changes during optimization process, colored by distortion
 * finalResult.png: output UV map, colored by distortion
-* finalResult_mesh.obj: input model with output UV
+* finalResult_mesh.obj: input model with output UV in the original scale
+* finalResult_mesh_normalizedUV.obj: input model with output UV scaled to [0, 1]^2
 * 3DView0_distortion.png: input model visualized with checkerboard texture and distortion color map
 * 3DView0_seam.png: input model visualized with seams and importance if regional seam placement is requested
 * energyValPerIter.txt: energy value of Ew, Ed, Es, and lambda of each inner iteration

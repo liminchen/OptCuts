@@ -1899,7 +1899,8 @@ namespace OptCuts {
     }
     
     void TriMesh::saveAsMesh(const std::string& filePath,
-                             const Eigen::MatrixXi& F0) const
+                             const Eigen::MatrixXi& F0,
+                             bool scaleUV) const
     {
         assert(F0.rows() == F.rows());
         assert(F0.cols() == 3);
@@ -1915,7 +1916,22 @@ namespace OptCuts {
             }
         }
         
-        save(filePath, V_mesh, F0, V, F);
+        Eigen::MatrixXd UV_mesh = V;
+        if(scaleUV) {
+            const Eigen::VectorXd& u = UV_mesh.col(0);
+            const Eigen::VectorXd& v = UV_mesh.col(1);
+            const double uMin = u.minCoeff();
+            const double vMin = v.minCoeff();
+            const double uScale = u.maxCoeff() - uMin;
+            const double vScale = v.maxCoeff() - vMin;
+            const double scale = std::max(uScale, vScale);
+            for(int uvI = 0; uvI < UV_mesh.rows(); uvI++) {
+                UV_mesh(uvI, 0) = (UV_mesh(uvI, 0) - uMin) / scale;
+                UV_mesh(uvI, 1) = (UV_mesh(uvI, 1) - vMin) / scale;
+            }
+        }
+        
+        save(filePath, V_mesh, F0, UV_mesh, F);
     }
     
     bool TriMesh::findBoundaryEdge(int vI, const std::pair<int, int>& startEdge,

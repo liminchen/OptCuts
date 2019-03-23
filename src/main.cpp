@@ -334,6 +334,7 @@ void saveInfo(bool writePNG, bool writeGIF, bool writeMesh)
     saveScreenshot(outputFolderPath + infoName + ".png", 0.5, writeGIF, writePNG);
     if(writeMesh) {
         triSoup[channel_result]->saveAsMesh(outputFolderPath + infoName + "_mesh.obj", F);
+        triSoup[channel_result]->saveAsMesh(outputFolderPath + infoName + "_mesh_normalizedUV.obj", F, true);
     }
 }
 
