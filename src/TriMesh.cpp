@@ -2344,7 +2344,7 @@ namespace OptCuts {
         Optimizer optimizer(localMesh, energyTerms, energyParams, 0, true, isBijective,
                             UV_bnds, E, bnd, true);
         optimizer.precompute();
-        optimizer.setRelGL2Tol(1.0e-4);
+        optimizer.setRelGL2Tol(1.0e-6);
         optimizer.solve(maxIter); //do not output, the other part
         double curE;
         optimizer.computeEnergyVal(optimizer.getResult(), optimizer.getScaffold(), curE, true);
@@ -2466,7 +2466,7 @@ namespace OptCuts {
         Optimizer optimizer(localMesh, energyTerms, energyParams, 0, true, isBijective,
                             UV_bnds, E, bnd, true);
         optimizer.precompute();
-        optimizer.setRelGL2Tol(1.0e-4);
+        optimizer.setRelGL2Tol(1.0e-6);
         optimizer.solve(maxIter); //do not output, the other part
         double curE;
         optimizer.computeEnergyVal(optimizer.getResult(), optimizer.getScaffold(), curE, true);
@@ -2739,7 +2739,7 @@ namespace OptCuts {
         Optimizer optimizer(localMesh, energyTerms, energyParams, 0, true, !!scaffold,
                             UV_bnds, E, bnd, true);
         optimizer.precompute();
-        optimizer.setRelGL2Tol(1.0e-4);
+        optimizer.setRelGL2Tol(1.0e-6);
         optimizer.solve(maxIter);
         
         double curE;
