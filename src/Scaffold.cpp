@@ -3,7 +3,6 @@
 //  OptCuts
 //
 //  Created by Minchen Li on 4/5/18.
-//  Copyright © 2018 Minchen Li. All rights reserved.
 //
 
 #include "Scaffold.hpp"

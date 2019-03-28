@@ -3,7 +3,6 @@
 //  OptCuts
 //
 //  Created by Minchen Li on 1/31/18.
-//  Copyright © 2018 Minchen Li. All rights reserved.
 //
 
 #ifndef MeshProcessing_hpp

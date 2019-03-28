@@ -3,7 +3,6 @@
 //  OptCuts
 //
 //  Created by Minchen Li on 8/31/17.
-//  Copyright © 2017 Minchen Li. All rights reserved.
 //
 
 #include "Optimizer.hpp"

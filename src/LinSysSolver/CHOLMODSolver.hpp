@@ -3,7 +3,6 @@
 //  OptCuts
 //
 //  Created by Minchen Li on 6/22/18.
-//  Copyright © 2018 Minchen Li. All rights reserved.
 //
 
 #ifndef CHOLMODSolver_hpp

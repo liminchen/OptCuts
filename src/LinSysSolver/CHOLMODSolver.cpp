@@ -3,7 +3,6 @@
 //  OptCuts
 //
 //  Created by Minchen Li on 6/22/18.
-//  Copyright © 2018 Minchen Li. All rights reserved.
 //
 
 #include "CHOLMODSolver.hpp"
@@ -198,5 +197,3 @@ namespace OptCuts {
     template class CHOLMODSolver<Eigen::VectorXi, Eigen::VectorXd>;
     
 }
-
-

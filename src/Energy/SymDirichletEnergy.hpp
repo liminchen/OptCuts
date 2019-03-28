@@ -3,7 +3,6 @@
 //  OptCuts
 //
 //  Created by Minchen Li on 9/3/17.
-//  Copyright © 2017 Minchen Li. All rights reserved.
 //
 
 #ifndef SymDirichletEnergy_hpp

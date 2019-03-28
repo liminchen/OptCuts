@@ -1,9 +1,6 @@
 //
 //  PardisoSolver.cpp
 //
-//  Created by Olga Diamanti on 07/01/15.
-//  Copyright (c) 2015 Olga Diamanti. All rights reserved.
-//
 
 #include "PardisoSolver.hpp"
 #include <igl/sortrows.h>
