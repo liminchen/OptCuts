@@ -21,6 +21,9 @@
 #include <igl/euler_characteristic.h>
 #include <igl/edge_lengths.h>
 
+#include <igl/is_vertex_manifold.h>
+#include <igl/is_edge_manifold.h>
+
 #include <sys/stat.h> // for mkdir
 
 #include <fstream>
@@ -1156,6 +1159,14 @@ int main(int argc, char *argv[])
         return -1;
     }
     vertAmt_input = V.rows();
+    
+    Eigen::VectorXi B;
+    bool isManifold = igl::is_vertex_manifold(F, B) && igl::is_edge_manifold(F);
+    if(!isManifold) {
+        std::cout << "input mesh contains non-manifold edges or vertices" << std::endl;
+        std::cout << "please cleanup the mesh and retry" << std::endl;
+        exit(-1);
+    }
     
 //    //DEBUG
 //    OptCuts::TriMesh squareMesh(OptCuts::P_SQUARE, 1.0, 0.1, false);
