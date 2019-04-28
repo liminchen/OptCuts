@@ -351,6 +351,7 @@ namespace OptCuts {
         e1SqLen_div_dbAreaSq.resize(F.rows());
         e0dote1_div_dbAreaSq.resize(F.rows());
         std::vector<Eigen::RowVector3d> vertNormals(V_rest.rows(), Eigen::Vector3d::Zero());
+        bool isMeshInvalid = false;
         for(int triI = 0; triI < F.rows(); triI++) {
             const Eigen::Vector3i& triVInd = F.row(triI);
             
@@ -364,6 +365,11 @@ namespace OptCuts {
             
             triNormal.row(triI) = normalVec.normalized();
             triArea[triI] = 0.5 * normalVec.norm();
+            if(triArea[triI] == 0.0) {
+                std::cout << "area of triangle No." << triI << " (0-index) is 0" << std::endl;
+                std::cout << "vertex indices (0-index) are " << triVInd.transpose() << std::endl;
+                isMeshInvalid = true;
+            }
             if(triArea[triI] < areaThres_AM) {
                 // air mesh triangle degeneracy prevention
                 triArea[triI] = areaThres_AM;
@@ -390,11 +396,26 @@ namespace OptCuts {
             vertNormals[triVInd[1]] += normalVec;
             vertNormals[triVInd[2]] += normalVec;
         }
+        if(isMeshInvalid) {
+            std::cout << "please clean up the mesh and retry." << std::endl;
+            exit(-1);
+        }
         avgEdgeLen = igl::avg_edge_length(V_rest, F);
         virtualRadius = std::sqrt(surfaceArea / M_PI);
         for(auto& vNI : vertNormals) {
             vNI.normalize();
         }
+        
+        // std::cout << "avg edge length = " << avgEdgeLen << std::endl;
+        // std::cout << "triNormal validity: " << !!triNormal.rowwise().sum().sum() << std::endl;
+        // std::cout << "surfaceArea = " << surfaceArea << std::endl;
+        // std::cout << "avg triAreaSq = " << triAreaSq.sum() / triAreaSq.size() << std::endl;
+        // std::cout << "avg e0SqLen =" << e0SqLen.sum() / e0SqLen.size() << std::endl;
+        // std::cout << "avg e1SqLen =" << e1SqLen.sum() / e1SqLen.size() << std::endl;
+        // std::cout << "avg e0dote1 =" << e0dote1.sum() / e0dote1.size() << std::endl;
+        // std::cout << "avg e0SqLen_div_dbAreaSq =" << e0SqLen_div_dbAreaSq.sum() / e0SqLen_div_dbAreaSq.size() << std::endl;
+        // std::cout << "avg e1SqLen_div_dbAreaSq =" << e1SqLen_div_dbAreaSq.sum() / e1SqLen_div_dbAreaSq.size() << std::endl;
+        // std::cout << "avg e0dote1_div_dbAreaSq =" << e0dote1_div_dbAreaSq.sum() / e0dote1_div_dbAreaSq.size() << std::endl;
         
         computeLaplacianMtr();
         
