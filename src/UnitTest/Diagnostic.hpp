@@ -802,7 +802,7 @@ namespace OptCuts{
                                 
                                 infoFile.close();
                                 
-                                fprintf(distFile, (resultName + " " + std::to_string(E_d) + "\n").c_str());
+                                fprintf(distFile, "%s", (resultName + " " + std::to_string(E_d) + "\n").c_str());
                             }
                             else {
                                 std::cout << "can't open " << infoFilePath << std::endl;
