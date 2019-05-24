@@ -7,6 +7,8 @@
 
 #include "IglUtils.hpp"
 
+#include <tbb/tbb.h>
+
 #include <set>
 
 namespace OptCuts {
@@ -36,21 +38,25 @@ namespace OptCuts {
     
     void IglUtils::computeUniformLaplacian(const Eigen::MatrixXi& F, Eigen::SparseMatrix<double>& graphL) {
         int vertAmt = F.maxCoeff() + 1;
-        graphL.resize(vertAmt, vertAmt);
-        graphL.setZero();
-        graphL.reserve(vertAmt * 7);
-        for(int rowI = 0; rowI < F.rows(); rowI++) {
-            graphL.coeffRef(F(rowI, 0), F(rowI, 1))++;
-            graphL.coeffRef(F(rowI, 1), F(rowI, 0))++;
-            graphL.coeffRef(F(rowI, 1), F(rowI, 2))++;
-            graphL.coeffRef(F(rowI, 2), F(rowI, 1))++;
-            graphL.coeffRef(F(rowI, 2), F(rowI, 0))++;
-            graphL.coeffRef(F(rowI, 0), F(rowI, 2))++;
-            
-            graphL.coeffRef(F(rowI, 0), F(rowI, 0)) -= 2;
-            graphL.coeffRef(F(rowI, 1), F(rowI, 1)) -= 2;
-            graphL.coeffRef(F(rowI, 2), F(rowI, 2)) -= 2;
+        std::vector<Eigen::Triplet<double>> triplet(F.rows() * 9);
+        tbb::parallel_for(0, (int)F.rows(), 1, [&](int rowI)
+        {
+            int startInd = rowI * 9;
+
+            triplet[startInd] = Eigen::Triplet<double>(F(rowI, 0), F(rowI, 1), 1.0);
+            triplet[startInd + 1] = Eigen::Triplet<double>(F(rowI, 1), F(rowI, 0), 1.0);
+            triplet[startInd + 2] = Eigen::Triplet<double>(F(rowI, 1), F(rowI, 2), 1.0);
+            triplet[startInd + 3] = Eigen::Triplet<double>(F(rowI, 2), F(rowI, 1), 1.0);
+            triplet[startInd + 4] = Eigen::Triplet<double>(F(rowI, 2), F(rowI, 0), 1.0);
+            triplet[startInd + 5] = Eigen::Triplet<double>(F(rowI, 0), F(rowI, 2), 1.0);
+
+            triplet[startInd + 6] = Eigen::Triplet<double>(F(rowI, 0), F(rowI, 0), -2.0);
+            triplet[startInd + 7] = Eigen::Triplet<double>(F(rowI, 1), F(rowI, 1), -2.0);
+            triplet[startInd + 8] = Eigen::Triplet<double>(F(rowI, 2), F(rowI, 2), -2.0);
         }
+        );
+        graphL.resize(vertAmt, vertAmt);
+        graphL.setFromTriplets(triplet.begin(), triplet.end());
     }
     
     double getHETan(const std::map<std::pair<int, int>, double>& HETan, int v0, int v1) {
