@@ -29,6 +29,8 @@ python build.py
 ```
 *Tips on linear solver: By default OptCuts is built with Eigen::SimplicialLDLT. However, we also provide interfaces for CHOLMOD and PARDISO under src/LinSysSolver/ for customization. But note that unless MKL BLAS and LAPACK are used, CHOLMOD or PARDISO built with openblas on linux performs similar to Eigen.*
 
+*Tips for Windows users: Running OptCuts on Windows is possible to encounter severe speed issues, which can be related to the memory management of Eigen backend. A useful suggestion is to swap out Eigen's malloc with dlmalloc.*
+
 * Run
 ```
 python batch.py
