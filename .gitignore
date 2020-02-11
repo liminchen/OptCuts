@@ -4,3 +4,5 @@ build*/
 *.dylib
 *.vscode/
 output/
+ext/tbb/
+ext/.cache
