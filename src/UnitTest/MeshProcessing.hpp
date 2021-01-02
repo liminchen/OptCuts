@@ -281,6 +281,26 @@ namespace OptCuts {
                             std::cout << "mesh saved in " << meshPath.substr(0, meshPath.find("_closed.obj")) + "_withSUV.obj" << std::endl;
                             break;
                         }
+
+                        case 6: { // Tutte UV from input UV's seam
+                            // ./build/OptCuts_bin 2 camelHead.obj 6
+                            Eigen::VectorXi bnd;
+                            igl::boundary_loop(FUV, bnd);
+                            assert(bnd.size());
+                            
+                            Eigen::MatrixXd bnd_uv;
+                            OptCuts::IglUtils::map_vertices_to_circle(UV, bnd, bnd_uv);
+                            
+                            Eigen::SparseMatrix<double> A, M;
+                            OptCuts::IglUtils::computeUniformLaplacian(FUV, A);
+                            
+                            Eigen::MatrixXd UV_Tutte;
+                            igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
+
+                            igl::writeOBJ(meshPath.substr(0, meshPath.find(".obj")) + "_Tutte.obj", 
+                                V, F, N, FN, UV_Tutte, FUV);
+                            break;
+                        }
                             
                         default:
                             std::cout << "No procMode " << procMode << std::endl;
