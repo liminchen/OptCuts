@@ -955,7 +955,8 @@ bool preDrawFunc(igl::opengl::glfw::Viewer& viewer)
                         infoName = std::to_string(iterNum);
                         
                         // continue to make geometry image cuts
-                        assert(optimizer->createFracture(fracThres, false, false));
+                        bool returnVal = optimizer->createFracture(fracThres, false, false);
+                        assert(returnVal);
                         converged = false;
                     }
                     optimizer->flushEnergyFileOutput();
@@ -1359,38 +1360,77 @@ int main(int argc, char *argv[])
     }
     else {
         // no input UV
-        // * Harmonic map for initialization
+        std::vector<std::vector<int>> bnd_all;
+        igl::boundary_loop(F, bnd_all);
         Eigen::VectorXi bnd;
-        igl::boundary_loop(F, bnd); // Find the open boundary
-        if(bnd.size()) {
-            // disk-topology
-            
-            //TODO: what if it has multiple boundaries? or multi-components?
-            
-            // Map the boundary to a circle, preserving edge proportions
-            Eigen::MatrixXd bnd_uv;
-            OptCuts::IglUtils::map_vertices_to_circle(V, bnd, bnd_uv);
-            
-            Eigen::MatrixXd UV_Tutte;
-            
-            // Harmonic map with uniform weights
-            if(bnd.size() == V.rows()) {
-                UV_Tutte.resize(V.rows(), 2);
-                for(int bndVI = 0; bndVI < bnd_uv.rows(); ++bndVI) {
-                    UV_Tutte.row(bnd[bndVI]) = bnd_uv.row(bndVI);
+        if(bnd_all.size()) {
+            // ASSUME: no disconnected closed surface present
+            if (bnd_all.size() == 1) {
+                // disk-topology
+                bnd.resize(bnd_all[0].size());
+                std::memcpy(bnd.data(), bnd_all[0].data(), sizeof(int) * bnd.size());
+                
+                // Map the boundary to a circle, preserving edge proportions
+                Eigen::MatrixXd bnd_uv;
+                OptCuts::IglUtils::map_vertices_to_circle(V, bnd, bnd_uv);
+                
+                Eigen::MatrixXd UV_Tutte;
+                
+                // Harmonic map with uniform weights
+                if(bnd.size() == V.rows()) {
+                    UV_Tutte.resize(V.rows(), 2);
+                    for(int bndVI = 0; bndVI < bnd_uv.rows(); ++bndVI) {
+                        UV_Tutte.row(bnd[bndVI]) = bnd_uv.row(bndVI);
+                    }
                 }
+                else {
+                    Eigen::SparseMatrix<double> A, M;
+                    OptCuts::IglUtils::computeUniformLaplacian(F, A);
+                    igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
+    //            OptCuts::IglUtils::computeMVCMtr(V, F, A);
+    //            OptCuts::IglUtils::fixedBoundaryParam_MVC(A, bnd, bnd_uv, UV_Tutte);
+                }
+                
+                triSoup.emplace_back(new OptCuts::TriMesh(V, F, UV_Tutte, Eigen::MatrixXi(), false));
+                outputFolderPath += meshName + "_Tutte_" + OptCuts::IglUtils::rtos(lambda_init) + "_" + OptCuts::IglUtils::rtos(testID) +
+                    "_" + startDS + folderTail;
             }
             else {
+                // multiple disk topology surfaces
+                int UVGridDim = std::ceil(std::sqrt(bnd_all.size()));
+                Eigen::VectorXi bnd_stacked;
+                Eigen::MatrixXd bnd_uv_stacked;
+                int curBndVAmt = 0;
+                for(int bndI = 0; bndI < bnd_all.size(); bndI++) {
+                    // map boundary to unit circle
+                    bnd_stacked.conservativeResize(curBndVAmt + bnd_all[bndI].size());
+                    bnd_stacked.tail(bnd_all[bndI].size()) = Eigen::VectorXi::Map(bnd_all[bndI].data(),
+                                                                                bnd_all[bndI].size());
+
+                    Eigen::MatrixXd bnd_uv;
+                    igl::map_vertices_to_circle(V,
+                                                bnd_stacked.tail(bnd_all[bndI].size()),
+                                                bnd_uv);
+                    double xOffset = bndI % UVGridDim * 2.1, yOffset = bndI / UVGridDim * 2.1;
+                    for(int bnd_uvI = 0; bnd_uvI < bnd_uv.rows(); bnd_uvI++) {
+                        bnd_uv(bnd_uvI, 0) += xOffset;
+                        bnd_uv(bnd_uvI, 1) += yOffset;
+                    }
+                    bnd_uv_stacked.conservativeResize(curBndVAmt + bnd_uv.rows(), 2);
+                    bnd_uv_stacked.bottomRows(bnd_uv.rows()) = bnd_uv;
+
+                    curBndVAmt = bnd_stacked.size();
+                }
+                // Harmonic map with uniform weights
+                Eigen::MatrixXd UV_Tutte;
                 Eigen::SparseMatrix<double> A, M;
                 OptCuts::IglUtils::computeUniformLaplacian(F, A);
-                igl::harmonic(A, M, bnd, bnd_uv, 1, UV_Tutte);
-//            OptCuts::IglUtils::computeMVCMtr(V, F, A);
-//            OptCuts::IglUtils::fixedBoundaryParam_MVC(A, bnd, bnd_uv, UV_Tutte);
+                igl::harmonic(A, M, bnd_stacked, bnd_uv_stacked, 1, UV_Tutte);
+
+                triSoup.emplace_back(new OptCuts::TriMesh(V, F, UV_Tutte, Eigen::MatrixXi(), false));
+                outputFolderPath += meshName + "_MultichartTutte_" + OptCuts::IglUtils::rtos(lambda_init) + "_" + OptCuts::IglUtils::rtos(testID) +
+                    "_" + startDS + folderTail;
             }
-            
-            triSoup.emplace_back(new OptCuts::TriMesh(V, F, UV_Tutte, Eigen::MatrixXi(), false));
-            outputFolderPath += meshName + "_Tutte_" + OptCuts::IglUtils::rtos(lambda_init) + "_" + OptCuts::IglUtils::rtos(testID) +
-                "_" + startDS + folderTail;
         }
         else {
             // closed surface
