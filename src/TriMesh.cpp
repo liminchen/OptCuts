@@ -1247,7 +1247,7 @@ namespace OptCuts {
         std::reverse(path.begin(), path.end());
     }
     
-    void TriMesh::farthestPointCut(void)
+    void TriMesh::farthestPointCut(int p_vI)
     {
         assert(vNeighbor.size() == V_rest.rows());
         
@@ -1261,7 +1261,7 @@ namespace OptCuts {
         }
         
         std::vector<int> path;
-        getFarthestPointPath(graph, getFarthestPoint(graph, 0), path);
+        getFarthestPointPath(graph, getFarthestPoint(graph, p_vI), path);
         
         bool makeCoh = true;
         if(!makeCoh) {
@@ -1281,7 +1281,7 @@ namespace OptCuts {
     {
         // compute UV map for find extremal point (interior)
         data_findExtrema = *this;
-        const int mapType = 0; // 0: SD, 1: harmonic (uniform), 2: harmonic (cotangent), 3: harmonic (MVC)
+        const int mapType = 1; // 0: SD, 1: harmonic (uniform), 2: harmonic (cotangent), 3: harmonic (MVC)
         if(mapType) {
             Eigen::VectorXi bnd;
             igl::boundary_loop(this->F, bnd); // Find the open boundary
