@@ -1284,16 +1284,16 @@ int main(int argc, char *argv[])
     }
     switch(initCutOption) {
         case 0:
-            std::cout << "random 2-edge initial cut for closed surface" << std::endl;
+            std::cout << "random 2-edge initial cut for genus-0 closed surface" << std::endl;
             break;
             
         case 1:
-            std::cout << "farthest 2-point initial cut for closed surface" << std::endl;
+            std::cout << "farthest 2-point initial cut for genus-0 closed surface" << std::endl;
             break;
             
         default:
             std::cout << "input initial cut option invalid, use default" << std::endl;
-            std::cout << "random 2-edge initial cut for closed surface" << std::endl;
+            std::cout << "random 2-edge initial cut for genus-0 closed surface" << std::endl;
             initCutOption = 0;
             break;
     }
@@ -1376,79 +1376,104 @@ int main(int argc, char *argv[])
         Eigen::VectorXi C;
         igl::facet_components(F, C);
         int n_components = C.maxCoeff() + 1;
-        std::cout << "n_components " << n_components << std::endl;
-
-        std::vector<Eigen::MatrixXi> F_component(n_components);
-        std::vector<std::set<int>> V_ind_component(n_components);
-        for (int triI = 0; triI < F.rows(); ++triI) {
-            F_component[C[triI]].conservativeResize(F_component[C[triI]].rows() + 1, 3);
-            F_component[C[triI]].bottomRows(1) = F.row(triI);
-            for (int i = 0; i < 3; ++i) {
-                V_ind_component[C[triI]].insert(F(triI, i));
-            }
-        }
-
-        std::vector<int> components_to_cut;
-        for(int componentI = 0; componentI < n_components; ++componentI) {
-            std::cout << ">>> component " << componentI << std::endl;
-            
-            std::vector<std::vector<int>> bnd_all;
-            igl::boundary_loop(F_component[componentI], bnd_all);
-            std::cout << "boundary loop count " << bnd_all.size() << std::endl;
-            
-            int genus = 1 - (igl::euler_characteristic(V, F_component[componentI]) - V.rows() + V_ind_component[componentI].size() + bnd_all.size()) / 2;
-            std::cout << "genus " << genus << std::endl;
-            if (genus == 0) {
-                if (bnd_all.size() == 0) {
-                    // closed surface (genus = 0)
-                    components_to_cut.emplace_back(componentI);
-                }
-            }
-            else {
-                // higher-genus surfaces
-                components_to_cut.emplace_back(-componentI - 1);
-            }
-        }
+        std::cout << n_components << " disconnected components in total." << std::endl;
 
         OptCuts::TriMesh temp(V, F, Eigen::MatrixXd(), Eigen::MatrixXi(), false);
-        for (auto componentI: components_to_cut) {
-            if (componentI < 0) {
-                componentI = -componentI - 1;
-                //TODO: cut high genus
-
-
-
-
-            }
-            else {
-                // cut the topological sphere into a topological disk
-                switch (initCutOption) {
-                case 0:
-                    temp.onePointCut(F_component[componentI](0, 0));
-                    rand1PInitCut = (n_components == 1);
-                    break;
-                    
-                case 1:
-                    temp.farthestPointCut(F_component[componentI](0, 0));
-                    break;
-                    
-                default:
-                    std::cout << "invalid initCutOption " << initCutOption << std::endl;
-                    assert(0);
-                    break;
-                }
-            }
-        }
-
-        F_component.resize(0);
-        F_component.resize(n_components);
-        V_ind_component.resize(0);
-        V_ind_component.resize(n_components);
+        std::vector<Eigen::MatrixXi> F_component(n_components);
+        std::vector<std::set<int>> V_ind_component(n_components);
         for (int triI = 0; triI < temp.F.rows(); ++triI) {
             F_component[C[triI]].conservativeResize(F_component[C[triI]].rows() + 1, 3);
             F_component[C[triI]].bottomRows(1) = temp.F.row(triI);
             for (int i = 0; i < 3; ++i) {
                 V_ind_component[C[triI]].insert(temp.F(triI, i));
+            }
+        }
+        while (true) {
+            std::vector<int> components_to_cut;
+            for(int componentI = 0; componentI < n_components; ++componentI) {
+                std::cout << ">>> component " << componentI << std::endl;
+                
+                int EC = igl::euler_characteristic(temp.V, F_component[componentI]) - temp.V.rows() + V_ind_component[componentI].size();
+                std::cout << "euler_characteristic " << EC << std::endl;
+                if (EC < 1) {
+                    // treat as higher-genus surfaces using cut_to_disk()
+                    components_to_cut.emplace_back(-componentI - 1);
+                }
+                else if (EC == 2) {
+                    // closed genus-0 surface
+                    components_to_cut.emplace_back(componentI);
+                }
+                else if (EC != 1) {
+                    std::cout << "unsupported single-connected component!" << std::endl;
+                    exit(-1);
+                }
+            }
+            std::cout << components_to_cut.size() << " components to cut to disk" << std::endl;
+
+            if (components_to_cut.empty()) {
+                break;
+            }
+
+            for (auto componentI: components_to_cut) {
+                if (componentI < 0) {
+                    // cut high genus
+                    componentI = -componentI - 1;
+
+                    std::vector<std::vector<int>> cuts;
+                    igl::cut_to_disk(F_component[componentI], cuts); // Meshes with boundary are supported; boundary edges will be included as cuts.
+                    std::cout << cuts.size() << " seams to cut component " << componentI << std::endl;
+                    
+                    // only cut one seam each time to avoid seam vertex id inconsistency
+                    int cuts_made = 0;
+                    for (auto& seamI : cuts) {
+                        if (seamI.front() == seamI.back()) {
+                            // cutPath() dos not support closed-loop cuts, split it into two cuts
+                            cuts_made += temp.cutPath(std::vector<int>({seamI[seamI.size() - 3], seamI[seamI.size() - 2], seamI[seamI.size() - 1]}), true);
+                            temp.initSeams = temp.cohE;
+                            seamI.resize(seamI.size() - 2);
+                        }
+                        cuts_made += temp.cutPath(seamI, true);
+                        temp.initSeams = temp.cohE;
+                        if (cuts_made) {
+                            break;
+                        }
+                    }
+
+                    if (!cuts_made) {
+                        std::cout << "FATAL ERROR: no cuts made when cutting input geometry to disk-topology!" << std::endl;
+                        exit(-1);
+                    }
+                }
+                else {
+                    // cut the topological sphere into a topological disk
+                    switch (initCutOption) {
+                    case 0:
+                        temp.onePointCut(F_component[componentI](0, 0));
+                        rand1PInitCut = (n_components == 1);
+                        break;
+                        
+                    case 1:
+                        temp.farthestPointCut(F_component[componentI](0, 0));
+                        break;
+                        
+                    default:
+                        std::cout << "invalid initCutOption " << initCutOption << std::endl;
+                        assert(0);
+                        break;
+                    }
+                }
+            }
+
+            F_component.resize(0);
+            F_component.resize(n_components);
+            V_ind_component.resize(0);
+            V_ind_component.resize(n_components);
+            for (int triI = 0; triI < temp.F.rows(); ++triI) {
+                F_component[C[triI]].conservativeResize(F_component[C[triI]].rows() + 1, 3);
+                F_component[C[triI]].bottomRows(1) = temp.F.row(triI);
+                for (int i = 0; i < 3; ++i) {
+                    V_ind_component[C[triI]].insert(temp.F(triI, i));
+                }
             }
         }
 
@@ -1465,10 +1490,7 @@ int main(int argc, char *argv[])
             
             std::vector<std::vector<int>> bnd_all;
             igl::boundary_loop(F_component[componentI], bnd_all);
-            std::cout << "boundary loop count " << bnd_all.size() << std::endl;
-            
-            int genus = 1 - (igl::euler_characteristic(temp.V_rest, F_component[componentI]) - temp.V_rest.rows() + V_ind_component[componentI].size() + bnd_all.size()) / 2;
-            std::cout << "genus " << genus << std::endl;
+            std::cout << "boundary loop count " << bnd_all.size() << std::endl; // must be 1 for the current initial cut strategy
             
             int longest_bnd_id = 0;
             for (int bnd_id = 1; bnd_id < bnd_all.size(); ++bnd_id) {
@@ -1779,6 +1801,7 @@ int main(int argc, char *argv[])
     
     mkdir(outputFolderPath.c_str(), 0777);
     outputFolderPath += '/';
+    igl::writeOBJ(outputFolderPath + "initial_cuts.obj", triSoup.back()->V_rest, triSoup.back()->F);
     logFile.open(outputFolderPath + "log.txt");
     if(!logFile.is_open()) {
         std::cout << "failed to create log file, please ensure output directory is created successfully!" << std::endl;
