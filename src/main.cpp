@@ -1320,8 +1320,9 @@ int main(int argc, char *argv[])
         //right now OptCuts assumes input UV is a set of topological disks
 
         bool recompute_UV_needed = !temp->checkInversion();
-        if (!recompute_UV_needed && bijectiveParam) {
+        if ((!recompute_UV_needed) && bijectiveParam && (bnd_all.size() > 1)) {
             //TODO: check overlaps and decide whether needs recompute UV
+            //needs to check even if bnd_all.size() == 1
             //right now OptCuts take the input seams and recompute UV by default when bijective mapping is enabled
             recompute_UV_needed = true;
         }
