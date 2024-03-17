@@ -1247,7 +1247,7 @@ namespace OptCuts {
         std::reverse(path.begin(), path.end());
     }
     
-    void TriMesh::farthestPointCut(void)
+    void TriMesh::farthestPointCut(int p_vI)
     {
         assert(vNeighbor.size() == V_rest.rows());
         
@@ -1261,7 +1261,7 @@ namespace OptCuts {
         }
         
         std::vector<int> path;
-        getFarthestPointPath(graph, getFarthestPoint(graph, 0), path);
+        getFarthestPointPath(graph, getFarthestPoint(graph, p_vI), path);
         
         bool makeCoh = true;
         if(!makeCoh) {
@@ -1281,7 +1281,7 @@ namespace OptCuts {
     {
         // compute UV map for find extremal point (interior)
         data_findExtrema = *this;
-        const int mapType = 0; // 0: SD, 1: harmonic (uniform), 2: harmonic (cotangent), 3: harmonic (MVC)
+        const int mapType = 1; // 0: SD, 1: harmonic (uniform), 2: harmonic (cotangent), 3: harmonic (MVC)
         if(mapType) {
             Eigen::VectorXi bnd;
             igl::boundary_loop(this->F, bnd); // Find the open boundary
@@ -1390,9 +1390,10 @@ namespace OptCuts {
         cutPath(path, true);
     }
     
-    void TriMesh::cutPath(std::vector<int> path, bool makeCoh, int changePos,
+    int TriMesh::cutPath(std::vector<int> path, bool makeCoh, int changePos,
                                const Eigen::MatrixXd& newVertPos, bool allowCutThrough)
     {
+        int cuts_made = 0;
         assert(path.size() >= 2);
         if(changePos) {
             assert((changePos == 1) && "right now only support change 1"); //!!! still only allow 1?
@@ -1400,10 +1401,10 @@ namespace OptCuts {
             assert(changePos * 2 == newVertPos.rows());
         }
         
-        for(int pI = 1; pI + 1 < path.size(); pI++) {
-            assert(!isBoundaryVert(path[pI]) &&
-                   "Boundary vertices detected on split path, please split multiple times!");
-        }
+        // for(int pI = 1; pI + 1 < path.size(); pI++) {
+        //     assert(!isBoundaryVert(path[pI]) &&
+        //            "Boundary vertices detected on split path, please split multiple times!");
+        // }
         
         bool isFromBound = isBoundaryVert(path[0]);
         bool isToBound = isBoundaryVert(path.back());
@@ -1420,8 +1421,11 @@ namespace OptCuts {
             for(int vI = 0; vI + 1 < path.size(); vI++) {
                 int vInd_s = path[vI];
                 int vInd_e = path[vI + 1];
-                assert(edge2Tri.find(std::pair<int, int>(vInd_s, vInd_e)) != edge2Tri.end());
-                assert(edge2Tri.find(std::pair<int, int>(vInd_e, vInd_s)) != edge2Tri.end());
+                if((edge2Tri.find(std::pair<int, int>(vInd_s, vInd_e)) == edge2Tri.end()) ||
+                    (edge2Tri.find(std::pair<int, int>(vInd_e, vInd_s)) == edge2Tri.end()))
+                {
+                    continue;
+                }
                 Eigen::MatrixXd newVertPos;
                 if(cutThrough) {
                     newVertPos.resize(4, 2);
@@ -1432,6 +1436,7 @@ namespace OptCuts {
                     newVertPos << V.row(vInd_s), V.row(vInd_s);
                 }
                 splitEdgeOnBoundary(std::pair<int, int>(vInd_s, vInd_e), newVertPos, true); //!!! make coh?
+                ++cuts_made;
                 updateFeatures();
             }
         }
@@ -1495,14 +1500,20 @@ namespace OptCuts {
             for(int vI = 2; vI + 1 < path.size(); vI++) {
                 int vInd_s = path[vI];
                 int vInd_e = path[vI + 1];
-                assert(edge2Tri.find(std::pair<int, int>(vInd_s, vInd_e)) != edge2Tri.end());
-                assert(edge2Tri.find(std::pair<int, int>(vInd_e, vInd_s)) != edge2Tri.end());
+                if((edge2Tri.find(std::pair<int, int>(vInd_s, vInd_e)) == edge2Tri.end()) ||
+                    (edge2Tri.find(std::pair<int, int>(vInd_e, vInd_s)) == edge2Tri.end()))
+                {
+                    continue;
+                }
                 Eigen::Matrix2d newVertPos;
                 newVertPos << V.row(vInd_s), V.row(vInd_s);
                 splitEdgeOnBoundary(std::pair<int, int>(vInd_s, vInd_e), newVertPos, true, allowCutThrough); //!!! make coh?
+                ++cuts_made;
                 updateFeatures();
             }
         }
+
+        return cuts_made;
     }
     
     void TriMesh::computeSeamScore(Eigen::VectorXd& seamScore) const

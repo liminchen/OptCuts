@@ -98,9 +98,9 @@ namespace OptCuts{
         
         void onePointCut(int vI = 0);
         void highCurvOnePointCut(void);
-        void farthestPointCut(void);
+        void farthestPointCut(int vI = 0);
         void geomImgCut(TriMesh& data_findExtrema);
-        void cutPath(std::vector<int> path, bool makeCoh = false, int changePos = 0,
+        int cutPath(std::vector<int> path, bool makeCoh = false, int changePos = 0,
                      const Eigen::MatrixXd& newVertPos = Eigen::MatrixXd(), bool allowCutThrough = true);
         
         void computeSeamScore(Eigen::VectorXd& seamScore) const;
