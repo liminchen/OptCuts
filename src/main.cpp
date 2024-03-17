@@ -1316,12 +1316,14 @@ int main(int argc, char *argv[])
         std::vector<std::vector<int>> bnd_all;
         igl::boundary_loop(temp->F, bnd_all);
 
+        //TODO: check input UV genus (validity)
+        //right now OptCuts assumes input UV is a set of topological disks
+
         bool recompute_UV_needed = !temp->checkInversion();
-        if (bijectiveParam) {
-            // check overlaps
-
-
-
+        if (!recompute_UV_needed && bijectiveParam) {
+            //TODO: check overlaps and decide whether needs recompute UV
+            //right now OptCuts take the input seams and recompute UV by default when bijective mapping is enabled
+            recompute_UV_needed = true;
         }
         if(recompute_UV_needed) {
             std::cout << "local injectivity violated in given input UV map, " <<
@@ -1373,11 +1375,14 @@ int main(int argc, char *argv[])
             OptCuts::IglUtils::rtos(testID) + "_" +startDS + folderTail;
     }
     else {
+        // no UV provided, compute initial UV
+
         Eigen::VectorXi C;
         igl::facet_components(F, C);
         int n_components = C.maxCoeff() + 1;
-        std::cout << n_components << " disconnected components in total." << std::endl;
+        std::cout << n_components << " disconnected components in total" << std::endl;
 
+        // in each pass, make one cut on each component if needed, until all becoming disk-topology
         OptCuts::TriMesh temp(V, F, Eigen::MatrixXd(), Eigen::MatrixXi(), false);
         std::vector<Eigen::MatrixXi> F_component(n_components);
         std::vector<std::set<int>> V_ind_component(n_components);
@@ -1464,6 +1469,7 @@ int main(int argc, char *argv[])
                 }
             }
 
+            // data update on each component for identifying a new cut
             F_component.resize(0);
             F_component.resize(n_components);
             V_ind_component.resize(0);
@@ -1483,6 +1489,7 @@ int main(int argc, char *argv[])
         } while(UVGridDim * UVGridDim < n_components);
         std::cout << "UVGridDim " << UVGridDim << std::endl;
 
+        // compute boundary UV coordinates, using a grid layout for muliComp
         Eigen::VectorXi bnd_stacked;
         Eigen::MatrixXd bnd_uv_stacked;
         for(int componentI = 0; componentI < n_components; ++componentI) {
