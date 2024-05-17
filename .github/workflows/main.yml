@@ -37,3 +37,6 @@ jobs:
         with:
           name: Build Products
           path: build/OptCuts_bin
+
+      - name: Run Tests
+        run: python batch.py
