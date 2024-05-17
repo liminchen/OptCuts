@@ -26,10 +26,14 @@ jobs:
             cmake -DCMAKE_BUILD_TYPE=Release ..
       
       - name: Build
-        run: make -j 12
+        run: |
+            cd build
+            make -j 12
 
       - name: View Files
-        run: ls -la
+        run: |
+            ls -la
+            ls -la build
 
       # Upload the build results - Retained for 90 days by default
       - name: Upload Build Artifacts
