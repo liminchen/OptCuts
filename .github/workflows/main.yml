@@ -14,6 +14,11 @@ jobs:
           lfs: true
           submodules: recursive
 
+      - name: Update packages
+        run: sudo apt-get update
+      - name: Install packages
+        run: sudo apt-get install --fix-missing libgl1-mesa-dev
+
       - name: Run CMake
         run: |
             mkdir build
