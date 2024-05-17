@@ -30,29 +30,10 @@ jobs:
             cd build
             make -j 12
 
-      - name: View Files
-        run: |
-            ls -la
-            ls -la build
-
       # Upload the build results - Retained for 90 days by default
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
           name: Build Products
-          path: dist
-
-      # Commit the build results to the branch
-      # Commit will fail if files are unchanged
-      #- name: Commit Build Artifacts in dist
-      #  run: |
-      #    git config --local user.email "action@github.com"
-      #    git config --local user.name "GitHub Action"
-      #    git add dist/*
-      #    git diff-index --quiet HEAD || git commit -m "Build PhysX-JS-WebIDL"
-
-      #- name: Push Changes to Branch
-      #  uses: ad-m/github-push-action@master
-      #  with:
-      #    github_token: ${{ secrets.GITHUB_TOKEN }}
+          path: build/OptCuts_bin
